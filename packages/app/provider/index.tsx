@@ -8,7 +8,7 @@ import {
   isWeb,
 } from '@my/ui'
 import { ToastViewport } from './ToastViewport'
-// import { AuthProvider } from './AuthProvider'
+import { AuthProvider } from './AuthProvider'
 import { Provider as ReduxProvider } from 'react-redux'
 import { store } from 'app/store'
 
@@ -23,18 +23,18 @@ export function Provider({
   return (
     <TamaguiProvider config={config} defaultTheme={theme} {...rest}>
       <ReduxProvider store={store}>
-        {/* <AuthProvider> */}
-        <ToastProvider
-          swipeDirection="horizontal"
-          duration={6000}
-          native={[]}
-          // native={isWeb ? [] : ['mobile']}
-        >
-          {children}
-          <CustomToast />
-          <ToastViewport />
-        </ToastProvider>
-        {/* </AuthProvider> */}
+        <AuthProvider>
+          <ToastProvider
+            swipeDirection="horizontal"
+            duration={6000}
+            native={[]}
+            // native={isWeb ? [] : ['mobile']}
+          >
+            {children}
+            <CustomToast />
+            <ToastViewport />
+          </ToastProvider>
+        </AuthProvider>
       </ReduxProvider>
     </TamaguiProvider>
   )

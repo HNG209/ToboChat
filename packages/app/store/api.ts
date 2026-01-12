@@ -19,4 +19,5 @@ export const api = createApi({
   }),
 })
 
-export const { useGetProfileQuery, useLoginMutation, useLogoutMutation } = api
+export const { useGetProfileQuery, useLoginMutation, useLogoutMutation, useLazyGetProfileQuery } =
+  api
