@@ -1,8 +1,7 @@
 import axios from 'axios'
 
 const getBaseUrl = () => {
-  // console.log('Web axiosClient called')
-  return 'http://localhost:8081/api'
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'
 }
 
 let clientInstance: any = null

@@ -7831,7 +7831,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"agent-base@npm:^7.1.0, agent-base@npm:^7.1.2, agent-base@npm:^7.1.4":
+"agent-base@npm:^7.1.0, agent-base@npm:^7.1.2":
   version: 7.1.4
   resolution: "agent-base@npm:7.1.4"
   checksum: 10/79bef167247789f955aaba113bae74bf64aa1e1acca4b1d6bb444bdf91d82c3e07e9451ef6a6e2e35e8f71a6f97ce33e3d855a5328eb9fad1bc3cc4cfd031ed8
@@ -8048,7 +8048,6 @@ __metadata:
     "@types/react-native": "npm:^0.73.0"
     async-mutex: "npm:^0.5.0"
     axios: "npm:^1.13.2"
-    axios-cookiejar-support: "npm:^6.0.5"
     burnt: "npm:^0.12.2"
     expo-linking: "npm:~7.1.4"
     expo-secure-store: "npm:^15.0.8"
@@ -8205,18 +8204,6 @@ __metadata:
   version: 0.4.0
   resolution: "asynckit@npm:0.4.0"
   checksum: 10/3ce727cbc78f69d6a4722517a58ee926c8c21083633b1d3fdf66fd688f6c127a53a592141bd4866f9b63240a86e9d8e974b13919450bd17fa33c2d22c4558ad8
-  languageName: node
-  linkType: hard
-
-"axios-cookiejar-support@npm:^6.0.5":
-  version: 6.0.5
-  resolution: "axios-cookiejar-support@npm:6.0.5"
-  dependencies:
-    http-cookie-agent: "npm:^7.0.3"
-  peerDependencies:
-    axios: ">=0.20.0"
-    tough-cookie: ">=4.0.0"
-  checksum: 10/3cc195f740b1abe3f5faa5c4773d12e8c1768fd9703ebef15f30dd20fc488eddff2d200148e6ef95d3167478886a2246080a4adce548003ae57ca20042273299
   languageName: node
   linkType: hard
 
@@ -12124,21 +12111,6 @@ __metadata:
   version: 4.2.0
   resolution: "http-cache-semantics@npm:4.2.0"
   checksum: 10/4efd2dfcfeea9d5e88c84af450b9980be8a43c2c8179508b1c57c7b4421c855f3e8efe92fa53e0b3f4a43c85824ada930eabbc306d1b3beab750b6dcc5187693
-  languageName: node
-  linkType: hard
-
-"http-cookie-agent@npm:^7.0.3":
-  version: 7.0.3
-  resolution: "http-cookie-agent@npm:7.0.3"
-  dependencies:
-    agent-base: "npm:^7.1.4"
-  peerDependencies:
-    tough-cookie: ^4.0.0 || ^5.0.0 || ^6.0.0
-    undici: ^7.0.0
-  peerDependenciesMeta:
-    undici:
-      optional: true
-  checksum: 10/ec4dc5a6694a88d8d4cc5df1d0d380ebf81976b764ecebb612afc3426ae290bf5a0d64f2e86294885bb07ec328f3940d1389d2297e6b163bacef8412e11767c2
   languageName: node
   linkType: hard
 

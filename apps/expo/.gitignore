@@ -1,6 +1,7 @@
 .expo
 ios
 android
+.env
 
 # OSX
 #

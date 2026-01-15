@@ -53,7 +53,7 @@ export function LoginScreen() {
     // Dismiss keyboard khi chạm ra ngoài (cho Mobile)
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <Theme name="light">
-        <YStack justifyContent="center" alignItems="center" bg="$background" p="$4">
+        <YStack flex={1} justifyContent="center" alignItems="center" bg="$background" p="$4">
           {/* Container Form */}
           <YStack
             width="100%"
@@ -90,7 +90,7 @@ export function LoginScreen() {
                 >
                   <User size={18} color="$color10" />
                   <Input
-                    // f={1}
+                    flex={1}
                     unstyled
                     p="$3"
                     placeholder="Nhập tài khoản..."
@@ -114,6 +114,7 @@ export function LoginScreen() {
                   <Lock size={18} color="$color10" />
                   <Input
                     unstyled
+                    flex={1}
                     p="$3"
                     placeholder="Nhập mật khẩu..."
                     value={password}

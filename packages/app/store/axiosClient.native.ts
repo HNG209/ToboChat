@@ -3,8 +3,14 @@ import { CookieJar } from 'tough-cookie'
 import * as SecureStore from 'expo-secure-store'
 import Constants from 'expo-constants'
 
-// 1. Cấu hình URL cho Mobile
 const getBaseUrl = () => {
+  // 1. Ưu tiên lấy từ biến môi trường
+  const envUrl = process.env.EXPO_PUBLIC_API_URL
+  if (envUrl) {
+    return envUrl
+  }
+
+  // 2. Fallback (dự phòng) nếu quên set env
   const debuggerHost = Constants.expoConfig?.hostUri
   const localhost = debuggerHost?.split(':')[0]
   return localhost ? `http://${localhost}:8080` : 'https://api-prod.com'
