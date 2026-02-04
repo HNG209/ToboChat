@@ -7,8 +7,12 @@
     "expo-env.d.ts"
   ],
   "compilerOptions": {
+    "module": "esnext", 
+    "moduleResolution": "bundler",
     "composite": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
+    "esModuleInterop": true
   },
   "references": []
 }

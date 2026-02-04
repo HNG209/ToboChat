@@ -1,7 +1,6 @@
-import { HomeScreen } from 'app/features/home/screen'
-import { Stack } from 'expo-router'
-import { LoginScreen } from 'app/features/auth/LoginScreen'
+// import { LoginScreen } from 'app/features/auth/LoginScreen'
+import { AuthScreen } from 'app/features/auth/AuthScreen'
 
 export default function Screen() {
-  return <LoginScreen />
+  return <AuthScreen />
 }
