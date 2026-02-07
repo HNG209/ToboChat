@@ -1,4 +1,4 @@
-import 'react-native-get-random-values';
+import 'react-native-get-random-values'
 import { useEffect } from 'react'
 import { useColorScheme } from 'react-native'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
@@ -8,17 +8,17 @@ import { Provider } from 'app/provider'
 import { NativeToast } from '@my/ui/src/NativeToast'
 import { Amplify } from 'aws-amplify'
 import config from 'app/config/amplifyconfiguration.json'
-import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
-Amplify.configure(config);
+Amplify.configure(config)
 
 cognitoUserPoolsTokenProvider.setKeyValueStorage({
   setItem: AsyncStorage.setItem,
   getItem: AsyncStorage.getItem,
   removeItem: AsyncStorage.removeItem,
   clear: AsyncStorage.clear,
-});
+})
 
 export const unstable_settings = {
   // Ensure that reloading on `/user` keeps a back button present.
@@ -54,11 +54,10 @@ function RootLayoutNav() {
   return (
     <Provider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Tabs>
-          <Tabs.Screen name="Home" options={{ title: 'Home', headerShown: false }} />
-          <Tabs.Screen name="chat" options={{ title: 'Chat', headerShown: false }} />
-          <Tabs.Screen name="user/[id]" options={{ title: 'User', headerShown: false }} />
-        </Tabs>
+        <Stack>
+          <Stack.Screen name="(main)" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+        </Stack>
         <NativeToast />
       </ThemeProvider>
     </Provider>

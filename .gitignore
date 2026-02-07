@@ -1,5 +1,7 @@
 dist
 
+amplifyconfiguration.json
+
 **/node_modules
 .yarn/*
 !.yarn/patches
