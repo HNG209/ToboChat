@@ -17,13 +17,14 @@ import {
 import { Eye, EyeOff, LogIn, Lock, User } from '@tamagui/lucide-icons'
 import { useLoginMutation } from '../../store/api' // Import từ file api.ts đã sửa
 import { useLink } from 'solito/navigation' // Hoặc router của bạn
-
+import { useRouter } from "next/navigation";
 export function LoginScreen() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
+  const router = useRouter();
   // Gọi Hook từ RTK Query
   const [login, { isLoading }] = useLoginMutation()
 
@@ -41,6 +42,7 @@ export function LoginScreen() {
 
     try {
       await login({ username, password }).unwrap()
+      router.replace("/chat"); 
       console.log('Đăng nhập thành công!')
     } catch (err: any) {
       // Xử lý lỗi từ Backend trả về

@@ -16,13 +16,13 @@ import { ChevronDown, ChevronUp } from '@tamagui/lucide-icons'
 import { useState } from 'react'
 import { Platform } from 'react-native'
 import { useLink } from 'solito/navigation'
-
+import HomeScreen from "../../screen/HomeScreen"
 // remove on later
-export function HomeScreen() {
+export function Home() {
   const linkProps = useLink({
     href: '/user/nate',
   })
-
+   
   return (
     <YStack flex={1} justify="center" items="center" gap="$8" p="$4" bg="$background">
       <XStack
