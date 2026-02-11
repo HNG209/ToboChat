@@ -41,8 +41,7 @@ export function LoginScreen() {
     }
 
     try {
-      await login({ username, password }).unwrap()
-      router.replace("/chat"); 
+      await login({ username, password }).unwrap() 
       console.log('Đăng nhập thành công!')
     } catch (err: any) {
       // Xử lý lỗi từ Backend trả về

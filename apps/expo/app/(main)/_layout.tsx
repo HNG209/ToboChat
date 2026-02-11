@@ -19,7 +19,7 @@ export default function MainLayout() {
         options={{
           title: 'Tin nhắn',
           tabBarIcon: ({ color, size }) => (
-            <Users color={color} size={size} />
+            <MessageCircle color={color} size={size} />
           ),
         }}
       />

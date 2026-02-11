@@ -1,3 +1,3 @@
-import { ChatDetailScreen } from 'app/features/chat/ChatDetailScreen'
+import ChatMain from 'app/features/chat/ChatMain'
 
-export default ChatDetailScreen
+export default ChatMain

@@ -1,24 +1,34 @@
 'use client'
 
-import { Avatar, Button, Image, Paragraph, Text, XStack, YStack } from '@my/ui'
-import { ArrowLeft, ChevronLeft, MoreVertical } from '@tamagui/lucide-icons'
+import { Avatar, Button, Image, Popover, Text, XStack, YStack } from '@my/ui'
+import { ArrowLeft, MoreVertical } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 
+// Su dung cho dang xuat
+import { LogOut } from '@tamagui/lucide-icons'
+import { ListItem, Separator } from '@my/ui'
+
+import { useState } from 'react'
+import { signOut } from 'aws-amplify/auth'
+
 export default function UserDetailScreen({ id }: { id: string }) {
+  const [open, setOpen] = useState(false)
   const router = useRouter()
-  if (id) {
-    return null
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      setOpen(false)
+    } catch (err) {
+      console.log('Logout error', err)
+    }
   }
+
   return (
     <YStack flex={1} bg="$background">
-
       {/* COVER */}
       <YStack position="relative">
-        <Image
-          source={{ uri: 'https://picsum.photos/800/400' }}
-          height={220}
-          width="100%"
-        />
+        <Image source={{ uri: 'https://picsum.photos/800/400' }} height={220} width="100%" />
 
         {/* HEADER ICONS */}
         <XStack
@@ -34,9 +44,28 @@ export default function UserDetailScreen({ id }: { id: string }) {
             <ArrowLeft color="white" />
           </Button>
 
-          <Button chromeless>
-            <MoreVertical color="white" />
-          </Button>
+          {/* SỬ DỤNG POPOVER TẠI ĐÂY */}
+          <Popover size="$5" allowFlip placement="bottom-end">
+            <Popover.Trigger asChild>
+              <Button chromeless icon={MoreVertical} color="white" />
+            </Popover.Trigger>
+
+            <Popover.Content elevate>
+              <YStack width={200}>
+                {/* Option 1: Bọc ListItem trong Popover.Close */}
+                <Popover.Close asChild>
+                  <ListItem pressTheme icon={LogOut} title="Đăng xuất" onPress={handleLogout} />
+                </Popover.Close>
+
+                <Separator />
+
+                {/* Option 2: Nút Hủy */}
+                <Popover.Close asChild>
+                  <ListItem pressTheme title="Hủy" />
+                </Popover.Close>
+              </YStack>
+            </Popover.Content>
+          </Popover>
         </XStack>
 
         {/* AVATAR */}
@@ -68,27 +97,21 @@ export default function UserDetailScreen({ id }: { id: string }) {
           Nguyễn Văn A
         </Text>
 
-        <Text
-          fontSize="$4"
-          color="$color10"
-          textAlign="center"
-        >
+        <Text fontSize="$4" color="$color10" textAlign="center">
           Sinh viên năm 4 · Yêu công nghệ · React Native 📱
         </Text>
 
         {/* ACTIONS */}
         <XStack space="$3" marginTop="$3">
           <Button size="$4" theme="active">
-            Nhắn tin
+            Ket Ban
           </Button>
 
           <Button size="$4" variant="outlined">
-            Theo dõi
+            Nhan tin
           </Button>
         </XStack>
       </YStack>
     </YStack>
   )
 }
-
-

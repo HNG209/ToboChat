@@ -16,7 +16,7 @@ import { ChevronDown, ChevronUp } from '@tamagui/lucide-icons'
 import { useState } from 'react'
 import { Platform } from 'react-native'
 import { useLink } from 'solito/navigation'
-import HomeScreen from "../../screen/HomeScreen"
+
 // remove on later
 export function Home() {
   const linkProps = useLink({

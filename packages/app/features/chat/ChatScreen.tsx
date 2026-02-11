@@ -204,13 +204,6 @@ export function ChatScreen({ insets }: Props) {
           {/* --- FOOTER (INPUT) --- */}
           <XStack
             p="$2"
-            // 4. Xử lý Padding Bottom thông minh:
-            // - Trên iOS: Khi bàn phím hiện, KeyboardAvoidingView tự đẩy lên,
-            //   nếu để padding lớn sẽ bị hở. Ta để insets.bottom (khi ko phím)
-            //   nhưng thực tế behavior='padding' của iOS đôi khi xử lý tốt nhất
-            //   nếu ta bọc Footer trong một View riêng.
-            //   Cách đơn giản nhất: Dùng Math.max để đảm bảo luôn cách đáy 1 chút
-            //   nhưng không quá lớn.
             alignItems="center"
             bg="$background"
             borderColor="$borderColor"
