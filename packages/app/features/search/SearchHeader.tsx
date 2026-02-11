@@ -1,5 +1,6 @@
 import { Button, Input, XStack, YStack } from '@my/ui'
 import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function SearchHeader() {
   return (
@@ -13,7 +14,7 @@ export default function SearchHeader() {
           borderRadius={6}
           alignItems="center"
           paddingHorizontal="$2"
-          height={32}
+          height={37}
         >
           <Search size={16} color="#65717e" />
           <Input

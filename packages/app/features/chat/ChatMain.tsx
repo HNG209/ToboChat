@@ -1,7 +1,8 @@
 import { useRouter } from 'solito/navigation'
 import SearchHeader from '../search/SearchHeader'
-import { Avatar, ListItem, ScrollView, Text, YStack } from '@my/ui'
+import { Avatar, ListItem, ScrollView, Text, View, YStack } from '@my/ui'
 import { Pin } from '@tamagui/lucide-icons'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 const CHAT_DATA = [
   {
     id: '1',
@@ -30,29 +31,48 @@ const CHAT_DATA = [
 ]
 export default function ChatMain() {
   const router = useRouter()
+
   return (
     <YStack flex={1}>
       <SearchHeader />
-      <ScrollView>
+      <ScrollView backgroundColor="white">
         {CHAT_DATA.map((item) => (
           <ListItem
             key={item.id}
             pressTheme
             onPress={() => router.push(`/chat/${item.id}`)}
-            title={item.name}
-            subTitle={item.message}
+            hoverStyle={{ background: '$gray3' }} // Hiệu ứng khi di chuột qua
+            paddingVertical="$3"
+            paddingHorizontal="$4"
+            // Phần Tiêu đề (Tên người dùng)
+            title={
+              <Text fontWeight="600" fontSize={15} color="$gray12">
+                {item.name}
+              </Text>
+            }
+            // Phần Nội dung tin nhắn (Subtitle)
+            subTitle={
+              <Text fontSize={13} color="$gray10" numberOfLines={1} marginTop={2}>
+                {item.message}
+              </Text>
+            }
+            // Avatar
             icon={
               <Avatar circular size="$5">
                 <Avatar.Image src={item.avatar} />
               </Avatar>
             }
-            // ... các thuộc tính khác giữ nguyên
           >
-            <YStack alignItems="flex-end">
-              <Text fontSize={12} color="$color10">
+            {/* Phần thời gian và ghim bên phải */}
+            <YStack space="$1" alignItems="flex-end" justifyContent="center">
+              <Text fontSize={11} color="$gray9">
                 {item.time}
               </Text>
-              {item.pinned && <Pin size={12} rotate="45deg" />}
+              {item.pinned ? (
+                <Pin size={12} color="$gray8" rotate="45deg" fill="currentColor" />
+              ) : (
+                <View height={12} /> // Giữ chỗ để layout không bị nhảy
+              )}
             </YStack>
           </ListItem>
         ))}

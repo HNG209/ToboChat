@@ -10,6 +10,7 @@ import { Amplify } from 'aws-amplify'
 import config from 'app/config/amplifyconfiguration.json'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 Amplify.configure(config)
 
@@ -57,6 +58,7 @@ function RootLayoutNav() {
         <Stack>
           <Stack.Screen name="(main)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
         </Stack>
         <NativeToast />
       </ThemeProvider>

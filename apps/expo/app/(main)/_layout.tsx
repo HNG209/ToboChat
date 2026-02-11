@@ -4,7 +4,7 @@ import { MessageCircle, Users, User } from '@tamagui/lucide-icons'
 export default function MainLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="index"
         options={{
           title: 'Chat',
@@ -12,15 +12,13 @@ export default function MainLayout() {
             <MessageCircle color={color} size={size} />
           ),
         }}
-      />
+      /> */}
 
       <Tabs.Screen
         name="chat"
         options={{
           title: 'Tin nhắn',
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
 
@@ -28,9 +26,7 @@ export default function MainLayout() {
         name="profile"
         options={{
           title: 'Tôi',
-          tabBarIcon: ({ color, size }) => (
-            <User color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
     </Tabs>

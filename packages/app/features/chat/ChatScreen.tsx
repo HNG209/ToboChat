@@ -186,13 +186,7 @@ export function ChatScreen({ insets }: Props) {
                     <Text fontSize="$4" color={isMe ? 'white' : '$color'} lineHeight={22}>
                       {msg.text}
                     </Text>
-                    <Text
-                      fontSize="$1"
-                      color={isMe ? '$blue3' : '$gray9'}
-                      textAlign="right"
-                      mt="$1"
-                      opacity={0.8}
-                    >
+                    <Text fontSize="$1" textAlign="right" mt="$1" opacity={0.8}>
                       {msg.timestamp}
                     </Text>
                   </YStack>
