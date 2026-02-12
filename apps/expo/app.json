@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "yourprojectsname",
-    "slug": "yourprojectsname",
-    "scheme": "yourprojectsname",
+    "name": "ToboChat",
+    "slug": "ToboChat",
+    "scheme": "tobochat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,14 +20,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourprojectsname.app"
+      "bundleIdentifier": "com.tobochat.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.yourprojectsname.app"
+      "package": "com.tobochat.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -42,9 +42,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e099a742-4dd9-4730-94db-dc66b972db54"
+        "projectId": "24633ca8-91fc-470f-bf16-4d585a42bc4f"
       }
     },
-    "owner": "hng209"
+    "owner": "teamtobo"
   }
 }
