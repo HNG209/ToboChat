@@ -4,6 +4,7 @@ import { Avatar, Button, Image, Popover, Text, XStack, YStack } from '@my/ui'
 import { ArrowLeft, MoreVertical } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 
+import { useGetProfileQuery } from '../../store/api'
 // Su dung cho dang xuat
 import { LogOut } from '@tamagui/lucide-icons'
 import { ListItem, Separator } from '@my/ui'
@@ -11,14 +12,20 @@ import { ListItem, Separator } from '@my/ui'
 import { useState } from 'react'
 import { signOut } from 'aws-amplify/auth'
 
-export default function UserDetailScreen({ id }: { id: string }) {
+export default function UserDetailScreen({ id }: { id?: string }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
+
+  // id	          API gọi
+  // undefined	  /users/me
+  // "abc123"	    /users/abc123
+  const { data } = useGetProfileQuery(id)
 
   const handleLogout = async () => {
     try {
       await signOut()
       setOpen(false)
+      router.replace('/')
     } catch (err) {
       console.log('Logout error', err)
     }
@@ -94,7 +101,7 @@ export default function UserDetailScreen({ id }: { id: string }) {
         borderTopRightRadius="$6"
       >
         <Text fontSize="$8" fontWeight="700">
-          Nguyễn Văn A
+          {data?.result?.name ?? 'No name'}
         </Text>
 
         <Text fontSize="$4" color="$color10" textAlign="center">

@@ -6,7 +6,8 @@ export const api = createApi({
   baseQuery: axiosBaseQuery(),
   endpoints: (builder) => ({
     getProfile: builder.query({
-      query: () => ({ url: '/users/me', method: 'GET' }),
+      query: (id?: string) =>
+        id ? { url: `/users/${id}`, method: 'GET' } : { url: '/users/me', method: 'GET' },
     }),
   }),
 })

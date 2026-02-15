@@ -1,15 +1,26 @@
-import { Button, Image, Spacer, View, YStack } from '@my/ui'
-import {
-  Briefcase,
-  Cloud,
-  Contact2,
-  FolderOpen,
-  MessageSquare,
-  ScanLine,
-  Settings2,
-} from '@tamagui/lucide-icons'
+import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
+import { Contact2, LogOut, MessageSquare, Settings, User } from '@tamagui/lucide-icons'
+import { signOut } from 'aws-amplify/auth'
+import { useState } from 'react'
+import { useRouter } from 'solito/navigation'
 
 export const ZaloSidebar = () => {
+  const { push } = useRouter()
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const handleGoToUser = () => {
+    push(`/user/me`)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      setOpen(false)
+      router.replace('/') // dùng replace để không back lại được
+    } catch (err) {
+      console.log('Logout error', err)
+    }
+  }
   return (
     <YStack
       width={64}
@@ -44,11 +55,34 @@ export const ZaloSidebar = () => {
       <Spacer flex={1} />
 
       <YStack space="$2" alignItems="center" paddingBottom="$4">
-        <Button backgroundColor="transparent" icon={<Cloud size={24} color="white" />} />
-        <Button backgroundColor="transparent" icon={<FolderOpen size={24} color="white" />} />
-        <Button backgroundColor="transparent" icon={<ScanLine size={24} color="white" />} />
-        <Button backgroundColor="transparent" icon={<Briefcase size={24} color="white" />} />
-        <Button backgroundColor="transparent" icon={<Settings2 size={24} color="white" />} />
+        <Button
+          title="Hồ sơ"
+          backgroundColor="transparent"
+          onPress={() => handleGoToUser()}
+          icon={<User size={24} color="white" />}
+        />
+        <Button
+          title="Cài đặt"
+          backgroundColor="transparent"
+          icon={<Settings size={24} color="white" />}
+        />
+        <Popover open={open} onOpenChange={setOpen} placement="right">
+          <Popover.Trigger asChild>
+            <Button
+              title="Đăng xuất"
+              backgroundColor="transparent"
+              icon={<LogOut size={24} color="white" />}
+            />
+          </Popover.Trigger>
+
+          <Popover.Content elevate>
+            <YStack width={160}>
+              <Popover.Close asChild>
+                <ListItem pressTheme icon={LogOut} title="Đăng xuất" onPress={handleLogout} />
+              </Popover.Close>
+            </YStack>
+          </Popover.Content>
+        </Popover>
       </YStack>
     </YStack>
   )
