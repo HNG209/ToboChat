@@ -32,7 +32,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   }
 
   return (
-    <YStack flex={1} bg="$background">
+    <YStack flex={1}>
       {/* COVER */}
       <YStack position="relative">
         <Image source={{ uri: 'https://picsum.photos/800/400' }} height={220} width="100%" />

@@ -1,13 +1,17 @@
+import { Theme } from '@my/ui'
 import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
-import { Contact2, LogOut, MessageSquare, Settings, User } from '@tamagui/lucide-icons'
+import { Contact2, LogOut, MessageSquare, Settings, Sun, User } from '@tamagui/lucide-icons'
 import { signOut } from 'aws-amplify/auth'
 import { useState } from 'react'
 import { useRouter } from 'solito/navigation'
 
+import { useAppTheme } from '../../provider/ThemeContext'
 export const ZaloSidebar = () => {
   const { push } = useRouter()
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [openSignOut, setOpenSignOut] = useState(false)
+  const [openSetting, setOpenSetting] = useState(false)
+  const { theme, setTheme } = useAppTheme()
   const handleGoToUser = () => {
     push(`/user/me`)
   }
@@ -15,7 +19,7 @@ export const ZaloSidebar = () => {
   const handleLogout = async () => {
     try {
       await signOut()
-      setOpen(false)
+      setOpenSignOut(false)
       router.replace('/') // dùng replace để không back lại được
     } catch (err) {
       console.log('Logout error', err)
@@ -25,7 +29,7 @@ export const ZaloSidebar = () => {
     <YStack
       width={64}
       height="100vh"
-      backgroundColor="#006aff" // Màu xanh đặc trưng của Zalo
+      backgroundColor="$primary" // Màu xanh đặc trưng của Zalo
       alignItems="center"
       paddingVertical="$4"
     >
@@ -61,12 +65,32 @@ export const ZaloSidebar = () => {
           onPress={() => handleGoToUser()}
           icon={<User size={24} color="white" />}
         />
-        <Button
-          title="Cài đặt"
-          backgroundColor="transparent"
-          icon={<Settings size={24} color="white" />}
-        />
-        <Popover open={open} onOpenChange={setOpen} placement="right">
+        {/* Cai dat phan chuyen mau cho phan setting */}
+        <Popover open={openSetting} onOpenChange={setOpenSetting} placement="right">
+          <Popover.Trigger asChild>
+            <Button
+              title="Cài đặt"
+              backgroundColor="transparent"
+              icon={<Settings size={24} color="white" />}
+            />
+          </Popover.Trigger>
+
+          <Popover.Content elevate>
+            <YStack width={160}>
+              <Popover.Close asChild>
+                <ListItem
+                  pressTheme
+                  icon={Sun}
+                  title={theme === 'zaloLight' ? 'Chế độ tối' : 'Chế độ sáng'}
+                  onPress={() =>
+                    setTheme((prev) => (prev === 'zaloLight' ? 'zaloDark' : 'zaloLight'))
+                  }
+                />
+              </Popover.Close>
+            </YStack>
+          </Popover.Content>
+        </Popover>
+        <Popover open={openSignOut} onOpenChange={setOpenSignOut} placement="right">
           <Popover.Trigger asChild>
             <Button
               title="Đăng xuất"

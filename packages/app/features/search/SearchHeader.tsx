@@ -1,49 +1,51 @@
-import { Button, Input, XStack, YStack } from '@my/ui'
+import { Button, XStack } from '@my/ui'
+import { Input } from '@my/ui'
+import { YStack } from '@my/ui'
 import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function SearchHeader() {
   return (
-    <YStack padding="$3" backgroundColor="white" space="$2">
-      {/* Container chính chứa Search và Icons */}
+    <YStack padding="$3" space="$2" backgroundColor="$background">
       <XStack alignItems="center" space="$2">
-        {/* Thanh Search bọc trong 1 XStack để giả Input Group */}
         <XStack
           flex={1}
-          backgroundColor="#eaedf0" // Màu xám nhạt đặc trưng của Zalo
+          // Sửa từ #eaedf0 sang token color bậc thấp
+          backgroundColor="$color3"
           borderRadius={6}
           alignItems="center"
           paddingHorizontal="$2"
           height={37}
         >
-          <Search size={16} color="#65717e" />
+          <Search size={16} color="$color10" />
           <Input
             flex={1}
             borderWidth={0}
             backgroundColor="transparent"
             placeholder="Tìm kiếm"
-            placeholderTextColor="#65717e"
+            // Sửa màu placeholder để tự đổi theo theme
+            placeholderTextColor="$color10"
             fontSize={13}
             height="100%"
+            color="$color" // Thêm dòng này để chữ nhập vào cũng đổi màu
             focusStyle={{ outlineWidth: 0 }}
           />
         </XStack>
 
-        {/* Cụm icon chức năng bên phải */}
         <XStack space="$1">
           <Button
             size="$2"
             circular
             backgroundColor="transparent"
-            icon={<UserPlus size={18} color="#404e5a" />}
-            hoverStyle={{ backgroundColor: '#dfe2e7' }}
+            // Dùng token $color thay vì mã màu cứng
+            icon={<UserPlus size={18} color="$color" />}
+            hoverStyle={{ backgroundColor: '$color4' }}
           />
           <Button
             size="$2"
             circular
             backgroundColor="transparent"
-            icon={<Users size={18} color="#404e5a" />}
-            hoverStyle={{ backgroundColor: '#dfe2e7' }}
+            icon={<Users size={18} color="$color" />}
+            hoverStyle={{ backgroundColor: '$color4' }}
           />
         </XStack>
       </XStack>

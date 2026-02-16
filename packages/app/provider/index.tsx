@@ -12,30 +12,27 @@ import { AuthProvider } from './AuthProvider'
 import { Provider as ReduxProvider } from 'react-redux'
 import { store } from 'app/store'
 
-export function Provider({
-  children,
-  defaultTheme = 'light',
-  ...rest
-}: Omit<TamaguiProviderProps, 'config'> & { defaultTheme?: string }) {
-  const colorScheme = useColorScheme()
-  const theme = defaultTheme || (colorScheme === 'dark' ? 'dark' : 'light')
+import { ThemeContext } from './ThemeContext'
+import { useState } from 'react'
+import { Theme } from '@my/ui'
+import { YStack } from '@my/ui'
+
+export function Provider({ children }) {
+  const [theme, setTheme] = useState<'zaloLight' | 'zaloDark'>('zaloLight')
 
   return (
-    <TamaguiProvider config={config} defaultTheme={theme} {...rest}>
-      <ReduxProvider store={store}>
-        <AuthProvider>
-          <ToastProvider
-            swipeDirection="horizontal"
-            duration={6000}
-            native={[]}
-            // native={isWeb ? [] : ['mobile']}
-          >
-            {children}
-            <CustomToast />
-            <ToastViewport />
-          </ToastProvider>
-        </AuthProvider>
-      </ReduxProvider>
-    </TamaguiProvider>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      <TamaguiProvider config={config} defaultTheme={theme}>
+        {/* Ép toàn bộ con bên trong render theo theme state */}
+        <Theme name={theme}>
+          {/* YStack này đảm bảo nền của app luôn ăn theo theme */}
+          <YStack flex={1} backgroundColor="$background">
+            <ReduxProvider store={store}>
+              <AuthProvider>{children}</AuthProvider>
+            </ReduxProvider>
+          </YStack>
+        </Theme>
+      </TamaguiProvider>
+    </ThemeContext.Provider>
   )
 }
