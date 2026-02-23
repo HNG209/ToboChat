@@ -1,7 +1,7 @@
 'use client'
 
-import { Avatar, Button, Image, Popover, Text, XStack, YStack } from '@my/ui'
-import { ArrowLeft, MoreVertical } from '@tamagui/lucide-icons'
+import { Avatar, Button, Image, Popover, Text, Theme, XStack, YStack } from '@my/ui'
+import { ArrowLeft, MoreVertical, Sun } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 
 import { useGetProfileQuery } from '../../store/api'
@@ -11,11 +11,13 @@ import { ListItem, Separator } from '@my/ui'
 
 import { useState } from 'react'
 import { signOut } from 'aws-amplify/auth'
+import { useAppTheme } from 'app/provider/ThemeContext'
 
 export default function UserDetailScreen({ id }: { id?: string }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
-
+  // 1. Dùng light/dark đồng bộ với Context mới
+  const { theme, setTheme } = useAppTheme()
   // id	          API gọi
   // undefined	  /users/me
   // "abc123"	    /users/abc123
@@ -32,7 +34,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   }
 
   return (
-    <YStack flex={1}>
+    <YStack flex={1} backgroundColor="$background">
       {/* COVER */}
       <YStack position="relative">
         <Image source={{ uri: 'https://picsum.photos/800/400' }} height={220} width="100%" />
@@ -56,19 +58,55 @@ export default function UserDetailScreen({ id }: { id?: string }) {
             <Popover.Trigger asChild>
               <Button chromeless icon={MoreVertical} color="white" />
             </Popover.Trigger>
+            <Popover.Content elevate backgroundColor="$background" padding={0}>
+              <YStack width={200} paddingVertical="$2">
+                {/* Nút Đăng xuất */}
+                <XStack
+                  paddingHorizontal="$4"
+                  height={48} // Ép chiều cao hàng cố định
+                  alignItems="center" // Căn giữa theo chiều dọc
+                  onPress={handleLogout}
+                >
+                  <YStack width={30} alignItems="center">
+                    <LogOut size={20} color="$color" />
+                  </YStack>
+                  <Text
+                    color="$color"
+                    fontSize="$4"
+                    lineHeight={20} // Ép độ cao dòng bằng đúng size icon
+                    marginLeft="$2"
+                  >
+                    Đăng xuất
+                  </Text>
+                </XStack>
 
-            <Popover.Content elevate>
-              <YStack width={200}>
-                {/* Option 1: Bọc ListItem trong Popover.Close */}
+                <Separator marginVertical="$2" />
+
+                {/* Nút Đổi Theme */}
+                <XStack
+                  paddingHorizontal="$4"
+                  height={48}
+                  alignItems="center"
+                  onPress={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                >
+                  <YStack width={30} alignItems="center">
+                    <Sun size={20} color="$color" />
+                  </YStack>
+                  <Text color="$color" fontSize="$4" lineHeight={20} marginLeft="$2">
+                    {theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'}
+                  </Text>
+                </XStack>
                 <Popover.Close asChild>
-                  <ListItem pressTheme icon={LogOut} title="Đăng xuất" onPress={handleLogout} />
-                </Popover.Close>
-
-                <Separator />
-
-                {/* Option 2: Nút Hủy */}
-                <Popover.Close asChild>
-                  <ListItem pressTheme title="Hủy" />
+                  <XStack paddingHorizontal="$4" height={48}>
+                    <Text
+                      color="$color"
+                      fontSize="$4"
+                      lineHeight={30} // Ép độ cao dòng bằng đúng size icon
+                      marginLeft="$2"
+                    >
+                      Hủy
+                    </Text>
+                  </XStack>
                 </Popover.Close>
               </YStack>
             </Popover.Content>

@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 
-type ThemeType = 'zaloLight' | 'zaloDark'
+// 1. Đổi tên thành light và dark để khớp với bộ màu mặc định của Tamagui
+type ThemeType = 'light' | 'dark'
 
 export const ThemeContext = createContext<{
   theme: ThemeType

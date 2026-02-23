@@ -5,7 +5,7 @@ import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
 
 export default function SearchHeader() {
   return (
-    <YStack padding="$3" space="$2" backgroundColor="$background">
+    <YStack padding="$3" marginTop="$5" space="$2" backgroundColor="$background">
       <XStack alignItems="center" space="$2">
         <XStack
           flex={1}

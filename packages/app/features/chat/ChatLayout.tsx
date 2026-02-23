@@ -48,7 +48,6 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           width={340}
           borderRightWidth={1}
           borderColor="$borderColor"
-          backgroundColor="$primary"
           color="$color"
           height="100%"
         >
