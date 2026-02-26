@@ -1,10 +1,18 @@
-import { Theme } from '@my/ui'
+import { Text, Theme } from '@my/ui'
 import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
-import { Contact2, LogOut, MessageSquare, Settings, Sun, User } from '@tamagui/lucide-icons'
+import {
+  Contact2,
+  Languages,
+  LogOut,
+  MessageSquare,
+  Settings,
+  Sun,
+  User,
+} from '@tamagui/lucide-icons'
 import { signOut } from 'aws-amplify/auth'
 import { useState } from 'react'
 import { useRouter } from 'solito/navigation'
-
+import { useTranslation } from 'react-i18next'
 import { useAppTheme } from '../../provider/ThemeContext'
 export const ZaloSidebar = () => {
   const { push } = useRouter()
@@ -17,6 +25,15 @@ export const ZaloSidebar = () => {
     push(`/user/me`)
   }
 
+  // Phan chuyen doi ngon ngu
+  const { t, i18n } = useTranslation()
+  const toggleLanguage = () => {
+    const currentLang = i18n.language || 'vi'
+    const newLang = currentLang.includes('vi') ? 'en' : 'vi'
+    console.log('Switching to:', newLang)
+    i18n.changeLanguage(newLang)
+  }
+  // ham dang xuat
   const handleLogout = async () => {
     try {
       await signOut()
@@ -52,6 +69,7 @@ export const ZaloSidebar = () => {
       <Button
         marginTop={20}
         size="$5"
+        title={t('messages')}
         backgroundColor="#005ae0" // Màu xanh đậm hơn khi được chọn
         icon={<MessageSquare size={24} color="$color" />}
         borderRadius={0} // Zalo thường dùng dạng khối vuông cho item đang chọn
@@ -65,7 +83,7 @@ export const ZaloSidebar = () => {
 
       <YStack space="$2" alignItems="center" paddingBottom="$4">
         <Button
-          title="Hồ sơ"
+          title={t('profile')}
           backgroundColor="transparent"
           onPress={() => handleGoToUser()}
           icon={<User size={24} color="$color" />}
@@ -74,7 +92,7 @@ export const ZaloSidebar = () => {
         <Popover open={openSetting} onOpenChange={setOpenSetting} placement="right">
           <Popover.Trigger asChild>
             <Button
-              title="Cài đặt"
+              title={t('settings')}
               backgroundColor="transparent"
               icon={<Settings size={24} color="$color" />}
             />
@@ -86,9 +104,18 @@ export const ZaloSidebar = () => {
                   <ListItem
                     pressTheme
                     icon={Sun}
-                    title={theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'}
+                    title={theme === 'light' ? t('darkMode') : t('lightMode')}
                     onPress={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
                   />
+                </Popover.Close>
+                {/* nut chuyen doi ngon ngu */}
+                <Popover.Close asChild>
+                  <ListItem
+                    pressTheme
+                    icon={Languages}
+                    title={i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
+                    onPress={toggleLanguage}
+                  ></ListItem>
                 </Popover.Close>
               </YStack>
             </Popover.Content>
@@ -97,7 +124,7 @@ export const ZaloSidebar = () => {
         <Popover open={openSignOut} onOpenChange={setOpenSignOut} placement="right">
           <Popover.Trigger asChild>
             <Button
-              title="Đăng xuất"
+              title={t('logout')}
               backgroundColor="transparent"
               icon={<LogOut size={24} color="$color" />}
             />
@@ -106,7 +133,7 @@ export const ZaloSidebar = () => {
           <Popover.Content elevate>
             <YStack width={160}>
               <Popover.Close asChild>
-                <ListItem pressTheme icon={LogOut} title="Đăng xuất" onPress={handleLogout} />
+                <ListItem pressTheme icon={LogOut} title={t('logout')} onPress={handleLogout} />
               </Popover.Close>
             </YStack>
           </Popover.Content>

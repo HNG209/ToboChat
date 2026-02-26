@@ -10,6 +10,9 @@ import { useEffect, useState } from 'react'
 import { Theme } from '@my/ui'
 import { YStack } from '@my/ui'
 
+// Phan chuyen doi ngon ngu
+import { I18nextProvider } from 'react-i18next'
+import i18n from '../i18n'
 export function Provider({ children }) {
   const systemScheme = useColorScheme()
 
@@ -28,31 +31,17 @@ export function Provider({ children }) {
       {/* defaultTheme giúp Tamagui biết nên render kiểu gì ban đầu */}
       <TamaguiProvider config={config} defaultTheme={theme}>
         {/* Component Theme này sẽ áp các token màu $background, $color... theo theme hiện tại */}
-        <Theme name={theme}>
-          {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
-          <YStack flex={1} backgroundColor="$background">
-            <ReduxProvider store={store}>
-              <AuthProvider>{children}</AuthProvider>
-            </ReduxProvider>
-          </YStack>
-        </Theme>
+        <I18nextProvider i18n={i18n}>
+          <Theme name={theme}>
+            {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
+            <YStack flex={1} backgroundColor="$background">
+              <ReduxProvider store={store}>
+                <AuthProvider>{children}</AuthProvider>
+              </ReduxProvider>
+            </YStack>
+          </Theme>
+        </I18nextProvider>
       </TamaguiProvider>
     </ThemeContext.Provider>
   )
-  // const [theme, setTheme] = useState<'zaloLight' | 'zaloDark'>('zaloLight')
-  // return (
-  //   <ThemeContext.Provider value={{ theme, setTheme }}>
-  //     <TamaguiProvider config={config} defaultTheme={theme}>
-  //       {/* Ép toàn bộ con bên trong render theo theme state */}
-  //       <Theme name={theme}>
-  //         {/* YStack này đảm bảo nền của app luôn ăn theo theme */}
-  //         <YStack flex={1} backgroundColor="$background">
-  //           <ReduxProvider store={store}>
-  //             <AuthProvider>{children}</AuthProvider>
-  //           </ReduxProvider>
-  //         </YStack>
-  //       </Theme>
-  //     </TamaguiProvider>
-  //   </ThemeContext.Provider>
-  // )
 }

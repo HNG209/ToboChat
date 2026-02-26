@@ -1,0 +1,13 @@
+{
+  "welcome": "Xin chào",
+  "profile": "Hồ sơ",
+  "settings": "Cài đặt",
+  "logout": "Đăng xuất",
+  "messages": "Tin nhắn",
+  "darkMode": "Chế độ tối",
+  "lightMode": "Chế độ sáng",
+  "sidebar": {
+    "message": "Tin nhắn",
+    "contacts": "Danh bạ"
+  }
+}

@@ -1,12 +1,24 @@
 {
   "extends": "../../tsconfig.base",
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.json"
+  ],
   "compilerOptions": {
     "composite": true,
     "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     "paths": {
-      "app/*": ["./packages/app/*"],
-      "@my/ui/*": ["./packages/ui/*"]
+      "app/*": [
+        "./packages/app/*"
+      ],
+      "@my/ui/*": [
+        "./packages/ui/*"
+      ]
     }
   },
   "references": []

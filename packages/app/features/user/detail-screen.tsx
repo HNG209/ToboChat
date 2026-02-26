@@ -1,7 +1,7 @@
 'use client'
 
 import { Avatar, Button, Image, Popover, Text, Theme, XStack, YStack } from '@my/ui'
-import { ArrowLeft, MoreVertical, Sun } from '@tamagui/lucide-icons'
+import { ArrowLeft, Languages, MoreVertical, Sun } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 
 import { useGetProfileQuery } from '../../store/api'
@@ -12,6 +12,7 @@ import { ListItem, Separator } from '@my/ui'
 import { useState } from 'react'
 import { signOut } from 'aws-amplify/auth'
 import { useAppTheme } from 'app/provider/ThemeContext'
+import { useTranslation } from 'react-i18next'
 
 export default function UserDetailScreen({ id }: { id?: string }) {
   const [open, setOpen] = useState(false)
@@ -33,6 +34,15 @@ export default function UserDetailScreen({ id }: { id?: string }) {
     }
   }
 
+  // Chuyen doi ngon ngu
+
+  const { t, i18n } = useTranslation()
+  const toggleLanguage = () => {
+    const currentLang = i18n.language || 'vi'
+    const newLang = currentLang.includes('vi') ? 'en' : 'vi'
+    console.log('Switching to:', newLang)
+    i18n.changeLanguage(newLang)
+  }
   return (
     <YStack flex={1} backgroundColor="$background">
       {/* COVER */}
@@ -76,7 +86,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
                     lineHeight={20} // Ép độ cao dòng bằng đúng size icon
                     marginLeft="$2"
                   >
-                    Đăng xuất
+                    {t('logout')}
                   </Text>
                 </XStack>
 
@@ -93,9 +103,25 @@ export default function UserDetailScreen({ id }: { id?: string }) {
                     <Sun size={20} color="$color" />
                   </YStack>
                   <Text color="$color" fontSize="$4" lineHeight={20} marginLeft="$2">
-                    {theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'}
+                    {theme === 'light' ? t('darkMode') : t('lightMode')}
                   </Text>
                 </XStack>
+                <Separator marginVertical="$2" />
+                {/* chuyen doi ngon ngu */}
+                <XStack
+                  paddingHorizontal="$4"
+                  height={48}
+                  alignItems="center"
+                  onPress={toggleLanguage}
+                >
+                  <YStack width={30} alignItems="center">
+                    <Languages size={20} color="$color" />
+                  </YStack>
+                  <Text color="$color" fontSize="$4" lineHeight={20} marginLeft="$2">
+                    {i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
+                  </Text>
+                </XStack>
+                <Separator marginVertical="$2" />
                 <Popover.Close asChild>
                   <XStack paddingHorizontal="$4" height={48}>
                     <Text

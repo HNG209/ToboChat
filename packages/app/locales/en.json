@@ -1,0 +1,13 @@
+{
+  "welcome": "Welcome",
+  "profile": "Profile",
+  "settings": "Settings",
+  "logout": "Log out",
+  "messages": "Messages",
+  "darkMode": "Dark Mode",
+  "lightMode": "Light Mode",
+  "sidebar": {
+    "message": "Messages",
+    "contacts": "Contacts"
+  }
+}
