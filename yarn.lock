@@ -16140,6 +16140,7 @@ __metadata:
     husky: "npm:^9.1.6"
     i18next: "npm:^25.8.13"
     i18next-browser-languagedetector: "npm:^8.2.1"
+    qrcode.react: "npm:^4.2.0"
     react-i18next: "npm:^16.5.4"
     sonner: "npm:^2.0.7"
     turbo: "npm:^1.13.4"
@@ -17451,6 +17452,15 @@ __metadata:
   bin:
     qrcode-terminal: ./bin/qrcode-terminal.js
   checksum: 10/61fe2336b954584f321f2593d7e33f5b235788d829ea982f11a388d1e80e9cafb086dd28e7bd1649859cac62a6eb5818c9de14657222e3f66ba7376d0edccefd
+  languageName: node
+  linkType: hard
+
+"qrcode.react@npm:^4.2.0":
+  version: 4.2.0
+  resolution: "qrcode.react@npm:4.2.0"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10/665036d88b160e6d5de4e24d101bc63bd2b76712802e874bbffe56c6b6e5fe50c63f02c3cba2975b2e2b555c1f1e112cbb42987f8cb3a626ce2d17023cfde6ac
   languageName: node
   linkType: hard
 
