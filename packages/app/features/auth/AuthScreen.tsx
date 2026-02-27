@@ -19,9 +19,11 @@ import {
   resendSignUpCode,
   resetPassword,
   confirmResetPassword,
+  confirmSignIn,
 } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
 import { SwitchThemeButton, useToastController } from '@my/ui'
+import { QRCodeSVG } from 'qrcode.react'
 // import { toast } from 'sonner'
 
 export function AuthScreen() {
@@ -33,7 +35,7 @@ export function AuthScreen() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [step, setStep] = useState<'LOGIN' | 'CONFIRM'>('LOGIN')
+  const [step, setStep] = useState<'LOGIN' | 'CONFIRM' | 'CONFIRM_MFA' | 'SETUP_MFA'>('LOGIN')
   const [openForgotDialog, setOpenForgotDialog] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resendTimer, setResendTimer] = useState(0)
@@ -46,7 +48,7 @@ export function AuthScreen() {
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotCode, setForgotCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
-
+  const [totpDetails, setTotpDetails] = useState<any>(null)
   // Đếm ngược resend
   useEffect(() => {
     if (resendTimer > 0) {
@@ -62,19 +64,28 @@ export function AuthScreen() {
     setError(null)
     try {
       const { isSignedIn, nextStep } = await signIn({ username: email, password })
+      console.log('Next Step:', nextStep)
       if (isSignedIn) {
         router.push('/chat')
-      } else if (nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
-        setStep('CONFIRM')
-        setResendTimer(60)
       }
-    } catch (error: any) {
-      if (error.name === 'UserNotConfirmedException') {
-        setStep('CONFIRM')
-        setResendTimer(60)
-        setError('Tài khoản chưa xác thực. Vui lòng kiểm tra email.')
-      } else {
-        setError(error.message)
+
+      switch (nextStep?.signInStep) {
+        case 'CONFIRM_SIGN_IN_WITH_TOTP_CODE':
+          setStep('CONFIRM_MFA')
+          break
+
+        case 'CONTINUE_SIGN_IN_WITH_TOTP_SETUP':
+          setTotpDetails(nextStep.totpSetupDetails)
+          setStep('SETUP_MFA')
+          break
+
+        case 'CONFIRM_SIGN_UP':
+          setStep('CONFIRM')
+          setResendTimer(60)
+          break
+
+        default:
+          console.log('Unhandled step:', nextStep)
       }
     } finally {
       setIsLoading(false)
@@ -122,6 +133,41 @@ export function AuthScreen() {
     }
   }
 
+  // là bước cuối cùng trong luồng xác thực hai lớp (MFA)
+  const handleConfirmMFA = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      // confirmSignIn() gửi mã OTP lên Cognito
+      const { isSignedIn } = await confirmSignIn({
+        challengeResponse: code, // 'code' là mã 6 số người dùng nhập
+      })
+      console.log('MFA result:', isSignedIn)
+      if (isSignedIn) {
+        console.log('Redirecting...')
+        router.replace('/chat')
+      }
+    } catch (error: any) {
+      setError(getMFAErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  // bat mot so loi
+  const getMFAErrorMessage = (error: any) => {
+    switch (error.name) {
+      case 'CodeMismatchException':
+        return 'Mã OTP không đúng. Vui lòng thử lại.'
+      case 'ExpiredCodeException':
+        return 'Mã OTP đã hết hạn. Vui lòng nhập mã mới.'
+      case 'TooManyRequestsException':
+        return 'Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau.'
+      case 'InvalidSessionException':
+        return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+      default:
+        return error.message || 'Đã xảy ra lỗi.'
+    }
+  }
   const handleResendCode = async () => {
     setIsLoading(true)
     setError(null)
@@ -372,6 +418,57 @@ export function AuthScreen() {
                   {resendTimer > 0 ? `Gửi lại (${resendTimer}s)` : 'Gửi lại mã'}
                 </Button>
               </XStack>
+            </YStack>
+          ) : step === 'CONFIRM_MFA' ? (
+            // Giao diện nhập mã OTP cho MFA
+            <YStack space="$3">
+              <Text textAlign="center" fontWeight="bold">
+                Nhập mã xác thực (MFA)
+              </Text>
+              <Input
+                placeholder="Mã OTP 6 số"
+                value={code}
+                onChangeText={setCode}
+                keyboardType="number-pad"
+                size="$4"
+              />
+              <Button onPress={handleConfirmMFA} disabled={isLoading}>
+                {isLoading ? <Spinner /> : <Text color="white">Xác nhận đăng nhập</Text>}
+              </Button>
+              <Button variant="outline" onPress={() => setStep('LOGIN')}>
+                Quay lại
+              </Button>
+            </YStack>
+          ) : step === 'SETUP_MFA' ? (
+            <YStack space="$3">
+              <Text textAlign="center" fontWeight="bold">
+                Thiết lập Google Authenticator
+              </Text>
+
+              {totpDetails && (
+                <YStack space="$2">
+                  <Text size="$2" color="$color8">
+                    Bước 1: Quét mã này bằng Google Authenticator
+                  </Text>
+                  <QRCodeSVG value={totpDetails.getSetupUri('ToboChat').toString()} size={180} />
+                </YStack>
+              )}
+
+              <Input
+                placeholder="Nhập mã OTP 6 số sau khi quét"
+                value={code}
+                onChangeText={setCode}
+                keyboardType="number-pad"
+                size="$4"
+              />
+
+              <Button onPress={handleConfirmMFA} disabled={isLoading}>
+                {isLoading ? <Spinner /> : <Text>Xác nhận kích hoạt</Text>}
+              </Button>
+
+              <Button variant="outline" onPress={() => setStep('LOGIN')}>
+                Hủy
+              </Button>
             </YStack>
           ) : (
             // Form đăng nhập/đăng ký
