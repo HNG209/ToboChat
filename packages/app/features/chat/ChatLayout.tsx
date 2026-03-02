@@ -56,7 +56,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           </YStack>
         </YStack>
 
-        {/* CỘT 3: CHI TIẾT TIN NHẮN - Ẩn khi màn hình nhỏ */}
+        {/* CỘT 3: CHI TIẾT TIN NHẮN - Ẩn khi màn hình nhỏ * * Desktop → luôn hiện * Man hinh nho isChatting == true hien full man hinh * neu chua chon thi an */}
         <YStack
           flex={1}
           $sm={{

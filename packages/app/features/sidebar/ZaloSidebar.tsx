@@ -1,4 +1,4 @@
-import { Text, Theme } from '@my/ui'
+import { Dialog, Switch, Text, Theme, XStack } from '@my/ui'
 import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
 import {
   Contact2,
@@ -8,17 +8,25 @@ import {
   Settings,
   Sun,
   User,
+  X,
 } from '@tamagui/lucide-icons'
 import { signOut } from 'aws-amplify/auth'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'solito/navigation'
 import { useTranslation } from 'react-i18next'
 import { useAppTheme } from '../../provider/ThemeContext'
+
 export const ZaloSidebar = () => {
   const { push } = useRouter()
   const router = useRouter()
   const [openSignOut, setOpenSignOut] = useState(false)
   const [openSetting, setOpenSetting] = useState(false)
+
+  // Mo full phan cai dat
+  const [showFullSettings, setShowFullSettings] = useState(false)
+  const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>('general')
+  const [isMobileView, setIsMobileView] = React.useState(false)
+  const [isTwoFactorAuth, setIsTwoFactorAuth] = useState(false) // Mặc định là dang tat
   // 1. Dùng light/dark đồng bộ với Context mới
   const { theme, setTheme } = useAppTheme()
   const handleGoToUser = () => {
@@ -44,101 +52,253 @@ export const ZaloSidebar = () => {
     }
   }
   return (
-    <YStack
-      width={64}
-      height="100vh"
-      backgroundColor="$background" // Màu xanh đặc trưng của Zalo
-      alignItems="center"
-      paddingVertical="$4"
-    >
-      {/* Avatar */}
-
-      <View
-        width={45}
-        height={45}
-        borderRadius={100}
-        borderWidth={1}
-        borderColor="$color"
-        overflow="hidden"
+    <>
+      <YStack
+        width={64}
+        height="100vh"
+        backgroundColor="$background" // Màu xanh đặc trưng của Zalo
+        alignItems="center"
+        paddingVertical="$4"
       >
-        <Image source={{ uri: 'https://your-avatar-link.png', width: 45, height: 45 }} />
-      </View>
+        {/* Avatar */}
 
-      {/* Icon Tin nhan */}
+        <View
+          width={45}
+          height={45}
+          borderRadius={100}
+          borderWidth={1}
+          borderColor="$color"
+          overflow="hidden"
+        >
+          <Image source={{ uri: 'https://your-avatar-link.png', width: 45, height: 45 }} />
+        </View>
 
-      <Button
-        marginTop={20}
-        size="$5"
-        title={t('messages')}
-        backgroundColor="#005ae0" // Màu xanh đậm hơn khi được chọn
-        icon={<MessageSquare size={24} color="$color" />}
-        borderRadius={0} // Zalo thường dùng dạng khối vuông cho item đang chọn
-      />
-      <Button
-        size="$5"
-        backgroundColor="transparent"
-        icon={<Contact2 size={24} color="$color" />}
-      />
-      <Spacer flex={1} />
+        {/* Icon Tin nhan */}
 
-      <YStack space="$2" alignItems="center" paddingBottom="$4">
         <Button
-          title={t('profile')}
-          backgroundColor="transparent"
-          onPress={() => handleGoToUser()}
-          icon={<User size={24} color="$color" />}
+          marginTop={20}
+          size="$5"
+          title={t('messages')}
+          backgroundColor="#005ae0" // Màu xanh đậm hơn khi được chọn
+          icon={<MessageSquare size={24} color="$color" />}
+          borderRadius={0} // Zalo thường dùng dạng khối vuông cho item đang chọn
         />
-        {/* Cai dat phan chuyen mau cho phan setting */}
-        <Popover open={openSetting} onOpenChange={setOpenSetting} placement="right">
-          <Popover.Trigger asChild>
-            <Button
-              title={t('settings')}
-              backgroundColor="transparent"
-              icon={<Settings size={24} color="$color" />}
-            />
-          </Popover.Trigger>
-          <Theme name={theme}>
-            <Popover.Content elevate backgroundColor="$background">
+        <Button
+          size="$5"
+          backgroundColor="transparent"
+          icon={<Contact2 size={24} color="$color" />}
+        />
+        <Spacer flex={1} />
+
+        <YStack space="$2" alignItems="center" paddingBottom="$4">
+          <Button
+            title={t('profile')}
+            backgroundColor="transparent"
+            onPress={() => handleGoToUser()}
+            icon={<User size={24} color="$color" />}
+          />
+          {/* Cai dat phan chuyen mau cho phan setting */}
+          <Popover open={openSetting} onOpenChange={setOpenSetting} placement="right">
+            <Popover.Trigger asChild>
+              <Button
+                title={t('settings')}
+                backgroundColor="transparent"
+                icon={<Settings size={24} color="$color" />}
+              />
+            </Popover.Trigger>
+            <Theme name={theme}>
+              <Popover.Content elevate backgroundColor="$background">
+                <YStack width={160}>
+                  <Popover.Close asChild>
+                    <ListItem
+                      pressTheme
+                      icon={Sun}
+                      title={theme === 'light' ? t('darkMode') : t('lightMode')}
+                      onPress={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+                    />
+                  </Popover.Close>
+                  {/* nut chuyen doi ngon ngu */}
+                  <Popover.Close asChild>
+                    <ListItem
+                      pressTheme
+                      icon={Languages}
+                      title={i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
+                      onPress={toggleLanguage}
+                    ></ListItem>
+                  </Popover.Close>
+                  {/* Phan cai dat */}
+                  <Popover.Close asChild>
+                    <ListItem
+                      pressTheme
+                      icon={Settings}
+                      title={t('settings')}
+                      onPress={() => {
+                        setOpenSetting(false) // Đóng cái popover nhỏ
+                        setShowFullSettings(true) // Mở cái khung cài đặt lớn
+                      }}
+                    />
+                  </Popover.Close>
+                </YStack>
+              </Popover.Content>
+            </Theme>
+          </Popover>
+          <Popover open={openSignOut} onOpenChange={setOpenSignOut} placement="right">
+            <Popover.Trigger asChild>
+              <Button
+                title={t('logout')}
+                backgroundColor="transparent"
+                icon={<LogOut size={24} color="$color" />}
+              />
+            </Popover.Trigger>
+
+            <Popover.Content elevate>
               <YStack width={160}>
                 <Popover.Close asChild>
-                  <ListItem
-                    pressTheme
-                    icon={Sun}
-                    title={theme === 'light' ? t('darkMode') : t('lightMode')}
-                    onPress={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
-                  />
-                </Popover.Close>
-                {/* nut chuyen doi ngon ngu */}
-                <Popover.Close asChild>
-                  <ListItem
-                    pressTheme
-                    icon={Languages}
-                    title={i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
-                    onPress={toggleLanguage}
-                  ></ListItem>
+                  <ListItem pressTheme icon={LogOut} title={t('logout')} onPress={handleLogout} />
                 </Popover.Close>
               </YStack>
             </Popover.Content>
-          </Theme>
-        </Popover>
-        <Popover open={openSignOut} onOpenChange={setOpenSignOut} placement="right">
-          <Popover.Trigger asChild>
-            <Button
-              title={t('logout')}
-              backgroundColor="transparent"
-              icon={<LogOut size={24} color="$color" />}
-            />
-          </Popover.Trigger>
-
-          <Popover.Content elevate>
-            <YStack width={160}>
-              <Popover.Close asChild>
-                <ListItem pressTheme icon={LogOut} title={t('logout')} onPress={handleLogout} />
-              </Popover.Close>
-            </YStack>
-          </Popover.Content>
-        </Popover>
+          </Popover>
+        </YStack>
       </YStack>
-    </YStack>
+      {/* Phan mo full cai dat */}
+      <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
+        <Dialog.Portal>
+          <Dialog.Overlay
+            key="overlay"
+            animation="quick"
+            opacity={0.5}
+            backgroundColor="#000"
+            zIndex={100000} // Ép số thật lớn để chặn mọi cú click
+          />
+
+          <Dialog.Content
+            onInteractOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            bordered
+            elevate
+            animation="quick"
+            width={800}
+            height={600}
+            padding={0}
+            overflow="hidden"
+            backgroundColor="$background"
+            $sm={{
+              width: '80vw',
+              height: '80vh',
+              borderRadius: 0,
+            }}
+          >
+            <XStack height="100%">
+              {/* ===== LEFT MENU ===== */}
+              <YStack
+                width={250}
+                flexShrink={0}
+                backgroundColor="$background"
+                padding="$4"
+                borderRightWidth={1}
+                borderColor="$borderColor"
+                $sm={{
+                  width: '100%',
+                  height: '100%',
+                  display: activeTab ? 'none' : 'flex',
+                }}
+              >
+                <Text fontSize={18} fontWeight="bold" mb="$4">
+                  Cài đặt
+                </Text>
+
+                <ListItem
+                  title="Cài đặt chung"
+                  hoverStyle={{ backgroundColor: '$backgroundHover', cursor: 'pointer' }}
+                  onPress={() => setActiveTab('general')}
+                />
+
+                <ListItem
+                  title="Tài khoản & bảo mật"
+                  hoverStyle={{ backgroundColor: '$backgroundHover', cursor: 'pointer' }}
+                  onPress={() => setActiveTab('security')}
+                />
+              </YStack>
+              <Dialog.Close asChild>
+                <Button
+                  position="absolute"
+                  top="$3"
+                  right="$3"
+                  zIndex={1000} // Đảm bảo nằm trên các thành phần khác
+                  size="$3"
+                  circular
+                  icon={X} // Icon X từ lucide-icons bạn đã import
+                  backgroundColor="transparent"
+                  hoverStyle={{ backgroundColor: '$backgroundHover' }}
+                  pressStyle={{ opacity: 0.5 }}
+                  borderWidth={0}
+                />
+              </Dialog.Close>
+
+              {/* ===== RIGHT CONTENT ===== */}
+              <YStack
+                flex={1}
+                padding="$5"
+                $sm={{
+                  display: activeTab ? 'flex' : 'none',
+                  width: '100%',
+                }}
+              >
+                {/* MOBILE BACK BUTTON */}
+                <XStack alignItems="center" mb="$4" $sm={{ display: 'none' }}>
+                  <Button size="$2" onPress={() => setActiveTab(null)}>
+                    ← Quay lại
+                  </Button>
+                </XStack>
+
+                {activeTab === 'general' && (
+                  <>
+                    <Text fontSize={18} fontWeight="bold">
+                      Cài đặt chung
+                    </Text>
+                  </>
+                )}
+
+                {activeTab === 'security' && (
+                  <>
+                    {/* Section: Bảo mật 2 lớp (Phần bạn yêu cầu) */}
+                    <YStack space="$3">
+                      <Text fontWeight="bold">Bảo mật 2 lớp</Text>
+
+                      <XStack
+                        backgroundColor="$backgroundHover"
+                        padding="$4"
+                        borderRadius="$4"
+                        jc="space-between"
+                        ai="flex-start" // Để text dài không bị lệch nút
+                        space="$4"
+                      >
+                        <YStack flex={1} space="$1">
+                          <Text lineHeight={20}>
+                            Sau khi bật, bạn sẽ được yêu cầu nhập mã OTP hoặc xác thực từ thiết bị
+                            di động sau khi đăng nhập trên thiết bị lạ.
+                          </Text>
+                        </YStack>
+
+                        {/* Nút Switch xanh chuẩn Zalo */}
+                        <Switch
+                          size="$3"
+                          checked={isTwoFactorAuth} // Quyết định nút đang nằm bên trái hay phải
+                          onCheckedChange={(val) => setIsTwoFactorAuth(val)} // Cập nhật state khi bấm
+                          backgroundColor={isTwoFactorAuth ? '#0068ff' : '$backgroundPress'} // Đổi màu nền khi tắt
+                        >
+                          <Switch.Thumb animation="quick" />
+                        </Switch>
+                      </XStack>
+                    </YStack>
+                  </>
+                )}
+              </YStack>
+            </XStack>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
+    </>
   )
 }
