@@ -11,24 +11,38 @@ import {
   X,
 } from '@tamagui/lucide-icons'
 import { signOut } from 'aws-amplify/auth'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'solito/navigation'
 import { useTranslation } from 'react-i18next'
 import { useAppTheme } from '../../provider/ThemeContext'
-
+import { fetchMFAPreference } from 'aws-amplify/auth'
+import { useConfirmMFAMutation, useInitMFAMutation } from 'app/store/api'
+import { useGetProfileQuery } from 'app/store/api'
 export const ZaloSidebar = () => {
   const { push } = useRouter()
   const router = useRouter()
+
+  const [initMFA] = useInitMFAMutation()
+  const [confirmMFA] = useConfirmMFAMutation()
+
   const [openSignOut, setOpenSignOut] = useState(false)
   const [openSetting, setOpenSetting] = useState(false)
 
+  const { data: profileData } = useGetProfileQuery()
+  const userId = profileData?.result?.pk?.replace('USER#', '')
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
-  const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>('general')
-  const [isMobileView, setIsMobileView] = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
+
+  // Su dung cho phan bac xac thuc
   const [isTwoFactorAuth, setIsTwoFactorAuth] = useState(false) // Mặc định là dang tat
+  const [openEnableMFA, setOpenEnableMFA] = useState(false)
+  const [password, setPassword] = useState('')
+  const [secretCode, setSecretCode] = useState<string | null>(null)
+  const [otpCode, setOtpCode] = useState('')
   // 1. Dùng light/dark đồng bộ với Context mới
   const { theme, setTheme } = useAppTheme()
+
   const handleGoToUser = () => {
     push(`/user/me`)
   }
@@ -41,6 +55,107 @@ export const ZaloSidebar = () => {
     console.log('Switching to:', newLang)
     i18n.changeLanguage(newLang)
   }
+
+  useEffect(() => {
+    if (showFullSettings && activeTab === 'security') {
+      checkMFA()
+    }
+  }, [showFullSettings, activeTab])
+
+  const openEnableMFADialog = () => {
+    setPassword('')
+    setSecretCode(null)
+    setOtpCode('')
+    setOpenEnableMFA(true)
+  }
+
+  const handleSubmitPassword = async () => {
+    try {
+      const res = await initMFA({
+        userId: userId!,
+        password,
+      }).unwrap()
+
+      setSecretCode(res.secret)
+    } catch (err) {
+      console.error('Sai mật khẩu', err)
+    }
+  }
+
+  // Ham kiem tra ma OTP
+  const [isVerifying, setIsVerifying] = useState(false)
+
+  const handleVerifyOTP = async () => {
+    if (isVerifying) return
+
+    try {
+      setIsVerifying(true)
+
+      await confirmMFA({
+        userId,
+        otp: otpCode,
+      }).unwrap()
+
+      setIsTwoFactorAuth(true)
+      setOpenEnableMFA(false)
+      setSecretCode(null)
+      setPassword('')
+      setOtpCode('')
+    } catch (err) {
+      console.error('OTP sai', err)
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  const disableMFA = async () => {
+    console.log('Disable MFA chưa implement')
+  }
+
+  const handleToggleMFA = async (val: boolean) => {
+    // Nếu bật MFA
+    if (val) {
+      openEnableMFADialog()
+      return
+    }
+
+    // Nếu tắt MFA → Optimistic update
+    const prev = isTwoFactorAuth
+    setIsTwoFactorAuth(false)
+
+    try {
+      await disableMFA()
+    } catch (err) {
+      console.error('Disable MFA failed', err)
+      // rollback nếu lỗi
+      setIsTwoFactorAuth(prev)
+    }
+  }
+
+  // xac dinh trang thai MFA
+  const checkMFA = async () => {
+    try {
+      const mfa = await fetchMFAPreference()
+
+      console.log('MFA preference:', mfa)
+      const enabled = mfa?.enabled ?? []
+      /*
+      mfa sẽ trả về dạng:
+      {
+        enabled: ['SMS', 'TOTP'],
+        preferred: 'TOTP'
+      }
+    */
+
+      if (enabled.length > 0) {
+        setIsTwoFactorAuth(true)
+      } else {
+        setIsTwoFactorAuth(false)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
   // ham dang xuat
   const handleLogout = async () => {
     try {
@@ -51,6 +166,7 @@ export const ZaloSidebar = () => {
       console.log('Logout error', err)
     }
   }
+
   return (
     <>
       <YStack
@@ -162,10 +278,15 @@ export const ZaloSidebar = () => {
         </YStack>
       </YStack>
       {/* Phan mo full cai dat */}
-      <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
+      <Dialog
+        key="settings-dialog"
+        modal
+        open={showFullSettings}
+        onOpenChange={setShowFullSettings}
+      >
         <Dialog.Portal>
           <Dialog.Overlay
-            key="overlay"
+            key="settings-overlay"
             animation="quick"
             opacity={0.5}
             backgroundColor="#000"
@@ -246,7 +367,7 @@ export const ZaloSidebar = () => {
                 }}
               >
                 {/* MOBILE BACK BUTTON */}
-                <XStack alignItems="center" mb="$4" $sm={{ display: 'none' }}>
+                <XStack display="none" alignItems="center" mb="$4" $sm={{ display: 'flex' }}>
                   <Button size="$2" onPress={() => setActiveTab(null)}>
                     ← Quay lại
                   </Button>
@@ -284,9 +405,9 @@ export const ZaloSidebar = () => {
                         {/* Nút Switch xanh chuẩn Zalo */}
                         <Switch
                           size="$3"
-                          checked={isTwoFactorAuth} // Quyết định nút đang nằm bên trái hay phải
-                          onCheckedChange={(val) => setIsTwoFactorAuth(val)} // Cập nhật state khi bấm
-                          backgroundColor={isTwoFactorAuth ? '#0068ff' : '$backgroundPress'} // Đổi màu nền khi tắt
+                          checked={isTwoFactorAuth}
+                          onCheckedChange={handleToggleMFA}
+                          backgroundColor={isTwoFactorAuth ? '#0068ff' : '$backgroundPress'}
                         >
                           <Switch.Thumb animation="quick" />
                         </Switch>
@@ -296,6 +417,65 @@ export const ZaloSidebar = () => {
                 )}
               </YStack>
             </XStack>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
+      <Dialog
+        key="enable-mfa-dialog"
+        open={openEnableMFA}
+        onOpenChange={(open) => {
+          if (!open) {
+            // nếu user đóng dialog mà chưa verify → giữ switch OFF
+            if (!isTwoFactorAuth) {
+              setSecretCode(null)
+              setPassword('')
+              setOtpCode('')
+            }
+          }
+          setOpenEnableMFA(open)
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay key="mfa-overlay" opacity={0.5} backgroundColor="#000" />
+
+          <Dialog.Content padding="$5" width={400}>
+            {!secretCode && (
+              <YStack space="$3">
+                <Text fontWeight="bold">Nhập lại mật khẩu</Text>
+
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+
+                <Button onPress={handleSubmitPassword}>Xác nhận</Button>
+              </YStack>
+            )}
+
+            {secretCode && (
+              <YStack space="$3">
+                <Text fontWeight="bold">Quét mã bằng Google Authenticator</Text>
+
+                <Image
+                  source={{
+                    uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=otpauth://totp/YourApp?secret=${secretCode}&issuer=YourApp`,
+                  }}
+                  style={{ width: 200, height: 200 }}
+                />
+
+                <input
+                  type="text"
+                  placeholder="Nhập mã OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                />
+
+                <Button onPress={handleVerifyOTP} disabled={isVerifying}>
+                  {isVerifying ? 'Đang xử lý...' : 'Xác nhận OTP'}
+                </Button>
+              </YStack>
+            )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog>
