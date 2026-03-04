@@ -18,14 +18,6 @@ const authSlice = createSlice({
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    builder.addMatcher(
-      api.endpoints.logout.matchFulfilled, // logout
-      (state) => {
-        state.user = null
-        state.isAuthenticated = false
-      }
-    )
-
     builder.addMatcher(api.endpoints.getProfile.matchFulfilled, (state, action) => {
       // action.payload chính là thông tin user từ backend trả về
       state.user = action.payload

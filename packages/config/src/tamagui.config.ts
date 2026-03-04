@@ -5,6 +5,14 @@ import { animations } from './animations'
 
 export const config = createTamagui({
   ...defaultConfig,
+  media: {
+    xs: { maxWidth: 660 },
+    sm: { maxWidth: 800 },
+    md: { maxWidth: 1020 },
+    lg: { maxWidth: 1280 },
+
+    smallScreen: { maxWidth: 768 },
+  },
   animations,
   fonts: {
     body: bodyFont,
