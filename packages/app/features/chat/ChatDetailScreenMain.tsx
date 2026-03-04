@@ -5,8 +5,9 @@ import { useRouter } from 'solito/navigation'
 export function ChatDetailScreenMain({ id }: { id: string }) {
   const router = useRouter()
   return (
-    <YStack flex={1} justifyContent="center" alignItems="center">
+    <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor="$primary">
       <XStack
+        backgroundColor="$primary"
         alignItems="center"
         padding="$2.5"
         borderBottomWidth={1}

@@ -63,7 +63,7 @@ export function AuthScreen() {
     try {
       const { isSignedIn, nextStep } = await signIn({ username: email, password })
       if (isSignedIn) {
-        router.push('/')
+        router.push('/chat')
       } else if (nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
         setStep('CONFIRM')
         setResendTimer(60)

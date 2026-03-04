@@ -22,7 +22,7 @@ export function Home() {
   const linkProps = useLink({
     href: '/user/nate',
   })
-   
+
   return (
     <YStack flex={1} justify="center" items="center" gap="$8" p="$4" bg="$background">
       <XStack

@@ -1,6 +1,6 @@
 import 'react-native-get-random-values'
 import { useEffect } from 'react'
-import { useColorScheme } from 'react-native'
+import { StatusBar, useColorScheme } from 'react-native'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
 import { SplashScreen, Stack, Tabs } from 'expo-router'
@@ -11,6 +11,7 @@ import config from 'app/config/amplifyconfiguration.json'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { useAppTheme } from 'app/provider/ThemeContext'
 
 Amplify.configure(config)
 
@@ -46,22 +47,35 @@ export default function App() {
     return null
   }
 
-  return <RootLayoutNav />
+  return (
+    <Provider>
+      <RootLayoutNav />
+    </Provider>
+  )
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme()
+  const { theme } = useAppTheme()
+  const isDark = theme === 'dark'
 
   return (
-    <Provider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(main)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-        </Stack>
-        <NativeToast />
-      </ThemeProvider>
-    </Provider>
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+      {/* Fix StatusBar theo theme của App */}
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+
+      <Stack
+        screenOptions={{
+          contentStyle: {
+            // Fix lỗi hở trắng trên Android
+            backgroundColor: isDark ? '#000000' : '#FFFFFF',
+          },
+        }}
+      >
+        <Stack.Screen name="(main)" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+      </Stack>
+      <NativeToast />
+    </ThemeProvider>
   )
 }

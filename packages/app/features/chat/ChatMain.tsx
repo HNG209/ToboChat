@@ -2,7 +2,6 @@ import { useRouter } from 'solito/navigation'
 import SearchHeader from '../search/SearchHeader'
 import { Avatar, ListItem, ScrollView, Text, View, YStack } from '@my/ui'
 import { Pin } from '@tamagui/lucide-icons'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 const CHAT_DATA = [
   {
     id: '1',
@@ -35,11 +34,13 @@ export default function ChatMain() {
   return (
     <YStack flex={1}>
       <SearchHeader />
-      <ScrollView backgroundColor="white">
+      <ScrollView backgroundColor="$color2">
         {CHAT_DATA.map((item) => (
           <ListItem
             key={item.id}
             pressTheme
+            // Phan chinh mau cho mau nen
+            backgroundColor="$color3"
             onPress={() => router.push(`/chat/${item.id}`)}
             hoverStyle={{ background: '$gray3' }} // Hiệu ứng khi di chuột qua
             paddingVertical="$3"
