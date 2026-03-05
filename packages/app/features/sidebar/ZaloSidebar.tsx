@@ -471,7 +471,7 @@ export const ZaloSidebar = () => {
             )}
 
             {secretCode && (
-              <YStack spasce="$3">
+              <YStack space="$3">
                 <Text fontWeight="bold">Quét mã bằng Google Authenticator</Text>
 
                 <Image

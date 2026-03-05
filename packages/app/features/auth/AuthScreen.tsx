@@ -40,7 +40,8 @@ export function AuthScreen() {
   const [error, setError] = useState<string | null>(null)
   const [resendTimer, setResendTimer] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-
+  // Input nhập lại mật khẩu cho phần signup
+  const [confirmPassword, setConfirmPassword] = useState('')
   // Thêm các state cho quên mật khẩu
   const [forgotStep, setForgotStep] = useState<
     'NONE' | 'SEND_CODE' | 'CONFIRM_CODE' | 'RESET_PASSWORD'
@@ -104,6 +105,11 @@ export function AuthScreen() {
           userAttributes: { email, name }, // Bắt buộc phải có email để xác thực
         },
       })
+      // kiem tra xem mat khau vs phan xac nhan mat khau khop hay khong
+      if (password !== confirmPassword) {
+        setError('Password did not match when re-entered.')
+        return
+      }
       if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
         // Chuyển sang bước xác nhận
         setStep('CONFIRM')
@@ -500,6 +506,17 @@ export function AuthScreen() {
                 size="$4"
                 borderRadius="$4"
               />
+              {isSignUp && (
+                <Input
+                  placeholder="Nhập lại mật khẩu"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  size="$4"
+                  borderRadius="$4"
+                />
+              )}
+              {/* Input nhap lai mat khau */}
               <Button
                 onPress={isSignUp ? handleSignUp : handleSignIn}
                 disabled={isLoading}
