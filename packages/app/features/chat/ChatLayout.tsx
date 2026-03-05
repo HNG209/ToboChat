@@ -3,13 +3,16 @@ import React from 'react'
 import { Platform } from 'react-native'
 import ChatMain from './ChatMain'
 import { ZaloSidebar } from '../sidebar/ZaloSidebar'
-import { useParams, useRouter } from 'solito/navigation'
+import { useParams, usePathname, useRouter } from 'solito/navigation'
 import { useAppTheme } from 'app/provider/ThemeContext'
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
   const router = useRouter()
   const { theme } = useAppTheme()
+  const pathname = usePathname()
+
+  const isChatPage = pathname?.startsWith('/chat')
   const isChatting = !!params.id // Kiểm tra xem có đang chọn tin nhắn không
 
   // Neu la mobile: Chi hien noi dung trang, khong hien ba cot
