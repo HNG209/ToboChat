@@ -16,7 +16,7 @@ import { useRouter } from 'solito/navigation'
 import { useTranslation } from 'react-i18next'
 import { useAppTheme } from '../../provider/ThemeContext'
 import { fetchMFAPreference } from 'aws-amplify/auth'
-import { useConfirmMFAMutation, useInitMFAMutation } from 'app/store/api'
+import { useConfirmMFAMutation, useDisableMFAMutation, useInitMFAMutation } from 'app/store/api'
 import { useGetProfileQuery } from 'app/store/api'
 export const ZaloSidebar = () => {
   const { push } = useRouter()
@@ -40,6 +40,13 @@ export const ZaloSidebar = () => {
   const [password, setPassword] = useState('')
   const [secretCode, setSecretCode] = useState<string | null>(null)
   const [otpCode, setOtpCode] = useState('')
+
+  // Tat phan MFA
+  const [disableMFAApi] = useDisableMFAMutation()
+  const [isDisabling, setIsDisabling] = useState(false)
+  const [openDisableMFA, setOpenDisableMFA] = useState(false)
+  const [disablePassword, setDisablePassword] = useState('')
+
   // 1. Dùng light/dark đồng bộ với Context mới
   const { theme, setTheme } = useAppTheme()
 
@@ -92,7 +99,7 @@ export const ZaloSidebar = () => {
       setIsVerifying(true)
 
       await confirmMFA({
-        userId,
+        userId: userId!,
         otp: otpCode,
       }).unwrap()
 
@@ -108,8 +115,28 @@ export const ZaloSidebar = () => {
     }
   }
 
-  const disableMFA = async () => {
-    console.log('Disable MFA chưa implement')
+  const handleDisableMFA = async () => {
+    if (isDisabling) return
+
+    try {
+      setIsDisabling(true)
+
+      await disableMFAApi({
+        userId: userId!,
+        password: disablePassword,
+      }).unwrap()
+
+      // cập nhật UI
+      setIsTwoFactorAuth(false)
+
+      // reset state
+      setOpenDisableMFA(false)
+      setDisablePassword('')
+    } catch (err) {
+      console.error('Disable MFA failed', err)
+    } finally {
+      setIsDisabling(false)
+    }
   }
 
   const handleToggleMFA = async (val: boolean) => {
@@ -119,17 +146,7 @@ export const ZaloSidebar = () => {
       return
     }
 
-    // Nếu tắt MFA → Optimistic update
-    const prev = isTwoFactorAuth
-    setIsTwoFactorAuth(false)
-
-    try {
-      await disableMFA()
-    } catch (err) {
-      console.error('Disable MFA failed', err)
-      // rollback nếu lỗi
-      setIsTwoFactorAuth(prev)
-    }
+    setOpenDisableMFA(true)
   }
 
   // xac dinh trang thai MFA
@@ -454,7 +471,7 @@ export const ZaloSidebar = () => {
             )}
 
             {secretCode && (
-              <YStack space="$3">
+              <YStack spasce="$3">
                 <Text fontWeight="bold">Quét mã bằng Google Authenticator</Text>
 
                 <Image
@@ -471,11 +488,39 @@ export const ZaloSidebar = () => {
                   onChange={(e) => setOtpCode(e.target.value)}
                 />
 
-                <Button onPress={handleVerifyOTP} disabled={isVerifying}>
-                  {isVerifying ? 'Đang xử lý...' : 'Xác nhận OTP'}
-                </Button>
+                <Button onPress={handleVerifyOTP}>Xác nhận OTP</Button>
               </YStack>
             )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
+      <Dialog
+        open={openDisableMFA}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDisablePassword('')
+            setIsTwoFactorAuth(true) // rollback switch
+          }
+          setOpenDisableMFA(open)
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay opacity={0.5} backgroundColor="#000" />
+
+          <Dialog.Content padding="$5" width={400}>
+            <YStack space="$3">
+              <Text fontWeight="bold">Nhập mật khẩu để tắt xác thực 2 lớp</Text>
+
+              <input
+                type="password"
+                value={disablePassword}
+                onChange={(e) => setDisablePassword(e.target.value)}
+              />
+
+              <Button onPress={handleDisableMFA} disabled={isDisabling}>
+                {isDisabling ? 'Đang xử lý...' : 'Xác nhận'}
+              </Button>
+            </YStack>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog>

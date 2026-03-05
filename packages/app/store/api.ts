@@ -29,6 +29,14 @@ export const api = createApi({
         data: body,
       }),
     }),
+    // ham tat
+    disableMFA: builder.mutation<void, { userId: string; password: string }>({
+      query: (body) => ({
+        url: 'users/mfa',
+        method: 'DELETE',
+        data: body,
+      }),
+    }),
   }),
 })
 
@@ -37,4 +45,5 @@ export const {
   useLazyGetProfileQuery,
   useInitMFAMutation,
   useConfirmMFAMutation,
+  useDisableMFAMutation,
 } = api
