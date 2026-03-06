@@ -5,72 +5,63 @@ import ChatMain from './ChatMain'
 import { ZaloSidebar } from '../sidebar/ZaloSidebar'
 import { useParams, usePathname, useRouter } from 'solito/navigation'
 import { useAppTheme } from 'app/provider/ThemeContext'
+import FriendMenu from '../friend/FriendMenu'
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
-  const router = useRouter()
   const { theme } = useAppTheme()
   const pathname = usePathname()
 
-  const isChatPage = pathname?.startsWith('/chat')
-  const isChatting = !!params.id // Kiểm tra xem có đang chọn tin nhắn không
+  // Kiểm tra chính xác trang Bạn bè (dùng bằng khớp hoàn toàn hoặc check kỹ hơn)
+  const isFriendPage = pathname === '/chat/friend' || pathname?.startsWith('/chat/friend/')
 
-  // Neu la mobile: Chi hien noi dung trang, khong hien ba cot
-  if (Platform.OS !== 'web')
+  // Trang Chat chỉ hiện khi bắt đầu bằng /chat và CHẮC CHẮN không phải là trang friend
+  const isChatPage = pathname?.startsWith('/chat') && !isFriendPage
+
+  // Thêm một biến kiểm tra trang chủ chat để reset list
+  const isMainChat = pathname === '/chat'
+
+  if (Platform.OS !== 'web') {
     return (
       <YStack marginTop={20} flex={1}>
         {children}
       </YStack>
     )
+  }
+
   return (
     <Theme name={theme}>
-      <XStack
-        height="100vh"
-        width="100vw"
-        alignItems="center"
-        overflow="hidden"
-        backgroundColor="$background"
-      >
-        {/* CỘT 1: SIDEBAR (Màu xanh Zalo) - Cố định 64px */}
+      <XStack height="100vh" width="100vw" overflow="hidden" backgroundColor="$background">
+        {/* CỘT 1: SIDEBAR - Luôn cố định bên trái */}
         <YStack
-          $sm={{ display: isChatting ? 'none' : 'flex' }}
           width={64}
-          backgroundColor="$primary"
-          alignItems="center"
-          py="$5"
-          justifyContent="space-between"
-        >
-          <YStack alignItems="center">
-            {/* Thêm Icon Chat, Danh bạ ở đây */}
-            <ZaloSidebar />
-          </YStack>
-        </YStack>
-        {/* CỘT 2: DANH SÁCH CHAT - Rộng 340px */}
-        <YStack
-          $sm={{ display: isChatting ? 'none' : 'flex', width: '100%' }}
-          width={340}
+          minWidth={64}
+          height="100%"
           borderRightWidth={1}
           borderColor="$borderColor"
-          color="$color"
-          height="100%"
+          $sm={{ display: isChatPage ? 'none' : 'flex' }}
         >
-          <YStack flex={1}>
-            <ChatMain />
-          </YStack>
+          <ZaloSidebar />
         </YStack>
 
-        {/* CỘT 3: CHI TIẾT TIN NHẮN - Ẩn khi màn hình nhỏ * * Desktop → luôn hiện * Man hinh nho isChatting == true hien full man hinh * neu chua chon thi an */}
+        {/* CỘT 2: LIST DỰA TRÊN ROUTE */}
+        <YStack
+          width={340}
+          minWidth={340}
+          height="100%"
+          borderRightWidth={1}
+          borderColor="$borderColor"
+          $sm={{ display: isChatPage ? 'none' : 'flex', width: '100%' }}
+        >
+          {isFriendPage ? <FriendMenu /> : <ChatMain />}
+        </YStack>
+
+        {/* CỘT 3: CHI TIẾT (Children) */}
         <YStack
           flex={1}
-          $sm={{
-            display: isChatting ? 'flex' : 'none',
-            position: 'absolute', // Đè lên toàn bộ nếu cần
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: '$background',
-          }}
+          height="100%"
+          backgroundColor="$background"
+          $sm={{ display: isChatPage ? 'flex' : 'none' }}
         >
           {children}
         </YStack>

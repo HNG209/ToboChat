@@ -12,7 +12,7 @@ import {
 } from '@tamagui/lucide-icons'
 import { signOut } from 'aws-amplify/auth'
 import React, { useEffect, useState } from 'react'
-import { useRouter } from 'solito/navigation'
+import { usePathname, useRouter } from 'solito/navigation'
 import { useTranslation } from 'react-i18next'
 import { FullSettingsDialog, EnableMFADialog, DisableMFADialog } from '@my/ui'
 import { useAppTheme } from '../../provider/ThemeContext'
@@ -22,7 +22,10 @@ import { useGetProfileQuery } from 'app/store/api'
 export const ZaloSidebar = () => {
   const { push } = useRouter()
   const router = useRouter()
+  const pathname = usePathname()
 
+  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/friend')
+  const isFriend = pathname?.includes('/friend')
   const [initMFA] = useInitMFAMutation()
   const [confirmMFA] = useConfirmMFAMutation()
 
@@ -185,6 +188,12 @@ export const ZaloSidebar = () => {
     }
   }
 
+  const handleGoToFriend = () => {
+    push('/chat/friend')
+  }
+  const handleGoToChat = () => {
+    push('/chat')
+  }
   return (
     <>
       <YStack
@@ -211,16 +220,19 @@ export const ZaloSidebar = () => {
 
         <Button
           marginTop={20}
-          size="$5"
+          size="$4"
           title={t('messages')}
-          backgroundColor="#005ae0" // Màu xanh đậm hơn khi được chọn
+          backgroundColor={isChat ? '#005ae0' : 'transparent'}
           icon={<MessageSquare size={24} color="$color" />}
-          borderRadius={0} // Zalo thường dùng dạng khối vuông cho item đang chọn
+          onPress={handleGoToChat}
+          marginBottom={10}
         />
         <Button
-          size="$5"
-          backgroundColor="transparent"
+          size="$4"
+          title={t('contacts')}
+          backgroundColor={isFriend ? '#005ae0' : 'transparent'}
           icon={<Contact2 size={24} color="$color" />}
+          onPress={() => handleGoToFriend()}
         />
         <Spacer flex={1} />
 

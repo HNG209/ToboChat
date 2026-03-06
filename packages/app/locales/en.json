@@ -7,7 +7,7 @@
   "darkMode": "Dark Mode",
   "lightMode": "Light Mode",
   "sidebar": {
-    "message": "Messages",
-    "contacts": "Contacts"
-  }
+    "message": "Messages"
+  },
+  "contacts": "Contacts"
 }
