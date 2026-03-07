@@ -22,8 +22,11 @@ export const api = createApi({
   baseQuery: axiosBaseQuery(),
   tagTypes: ['FriendList', 'FriendRequests', 'UserSearch'],
   endpoints: (builder) => ({
-    getProfile: builder.query({
-      query: (id?: string) =>
+    getProfile: builder.query<
+      any, // response type (tạm để any, lát mình tối ưu sau)
+      string | void // argument type
+    >({
+      query: (id) =>
         id ? { url: `/users/${id}`, method: 'GET' } : { url: '/users/me', method: 'GET' },
     }),
 
@@ -92,6 +95,30 @@ export const api = createApi({
         params: { accepted },
       }),
       invalidatesTags: ['FriendRequests', 'FriendList'],
+    // Ham bat mfa
+    initMFA: builder.mutation<{ secret: string }, { userId: string; password: string }>({
+      query: (body) => ({
+        url: 'users/mfa/init',
+        method: 'POST',
+        data: body,
+      }),
+    }),
+
+    // Xac nhan ma OTP
+    confirmMFA: builder.mutation<void, { userId: string; otp: string }>({
+      query: (body) => ({
+        url: 'users/mfa/confirm',
+        method: 'POST',
+        data: body,
+      }),
+    }),
+    // ham tat
+    disableMFA: builder.mutation<void, { userId: string; password: string }>({
+      query: (body) => ({
+        url: 'users/mfa',
+        method: 'DELETE',
+        data: body,
+      }),
     }),
   }),
 })
@@ -108,4 +135,7 @@ export const {
   useSendFriendRequestMutation,
   useCancelFriendRequestMutation,
   useRespondFriendRequestMutation,
+  useInitMFAMutation,
+  useConfirmMFAMutation,
+  useDisableMFAMutation,
 } = api

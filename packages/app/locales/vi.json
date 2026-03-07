@@ -7,7 +7,7 @@
   "darkMode": "Chế độ tối",
   "lightMode": "Chế độ sáng",
   "sidebar": {
-    "message": "Tin nhắn",
-    "contacts": "Danh bạ"
-  }
+    "message": "Tin nhắn"
+  },
+  "contacts": "Danh bạ"
 }

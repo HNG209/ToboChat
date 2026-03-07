@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (login && isPublicPage) {
       // Đã đăng nhập mà vào trang public (login, signup) -> Đá về Home
-      router.replace('/')
+      router.replace('/chat')
     } else if (!login && !isPublicPage) {
       // Chưa đăng nhập mà vào trang trong -> Đá về Login
       router.replace('/login')
