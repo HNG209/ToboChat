@@ -95,6 +95,7 @@ export const api = createApi({
         params: { accepted },
       }),
       invalidatesTags: ['FriendRequests', 'FriendList'],
+    }),
     // Ham bat mfa
     initMFA: builder.mutation<{ secret: string }, { userId: string; password: string }>({
       query: (body) => ({

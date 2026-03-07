@@ -5,7 +5,6 @@ import ChatMain from './ChatMain'
 import { ZaloSidebar } from '../sidebar/ZaloSidebar'
 import { useParams, usePathname, useRouter } from 'solito/navigation'
 import { useAppTheme } from 'app/provider/ThemeContext'
-import FriendMenu from '../friend/FriendMenu'
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
@@ -45,16 +44,19 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         </YStack>
 
         {/* CỘT 2: LIST DỰA TRÊN ROUTE */}
-        <YStack
-          width={340}
-          minWidth={340}
-          height="100%"
-          borderRightWidth={1}
-          borderColor="$borderColor"
-          $sm={{ display: isChatPage ? 'none' : 'flex', width: '100%' }}
-        >
-          {isFriendPage ? <FriendMenu /> : <ChatMain />}
-        </YStack>
+        {!isFriendPage && (
+          <YStack
+            width={340}
+            minWidth={340}
+            height="100%"
+            borderRightWidth={1}
+            borderColor="$borderColor"
+            $sm={{ display: isChatPage ? 'none' : 'flex', width: '100%' }}
+          >
+            {/* {isFriendPage ? <FriendMenu /> : <ChatMain />} */}
+            <ChatMain />
+          </YStack>
+        )}
 
         {/* CỘT 3: CHI TIẾT (Children) */}
         <YStack

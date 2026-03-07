@@ -17,8 +17,8 @@ import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
 type TabType = 'FriendList' | 'FriendRequest'
 
-export function Friend() {
-  const currentUserId = useSelector((state: RootState) => state.auth.user?.result?.id)
+export default function Friend() {
+  // const currentUserId = useSelector((state: RootState) => state.auth.user?.result?.id)
   const [activeTab, setActiveTab] = useState<TabType>('FriendList')
   const [requestFilter, setRequestFilter] = useState<FriendRequestType>(FriendRequestType.PENDING)
   const [searchFocus, setSearchFocus] = useState(false)
