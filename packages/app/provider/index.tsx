@@ -1,5 +1,11 @@
 import { useColorScheme } from 'react-native'
-import { TamaguiProvider, type TamaguiProviderProps, config } from '@my/ui'
+import {
+  CustomToast,
+  TamaguiProvider,
+  type TamaguiProviderProps,
+  ToastProvider,
+  config,
+} from '@my/ui'
 import { ToastViewport } from './ToastViewport'
 import { AuthProvider } from './AuthProvider'
 import { Provider as ReduxProvider } from 'react-redux'
@@ -36,7 +42,17 @@ export function Provider({ children }) {
             {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
             <YStack flex={1} backgroundColor="$background">
               <ReduxProvider store={store}>
-                <AuthProvider>{children}</AuthProvider>
+                <AuthProvider>
+                  <ToastProvider
+                    swipeDirection="horizontal"
+                    duration={6000}
+                    native={[]}
+                    // native={isWeb ? [] : ['mobile']}
+                  >
+                    {children}
+                    <CustomToast />
+                  </ToastProvider>
+                </AuthProvider>
               </ReduxProvider>
             </YStack>
           </Theme>
