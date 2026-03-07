@@ -1,8 +1,8 @@
 {
   "aws_project_region": "ap-southeast-1",
   "aws_cognito_region": "ap-southeast-1",
-  "aws_user_pools_id": "ap-southeast-1_pfl8Nfxx7",
-  "aws_user_pools_web_client_id": "4omkqrokd0lcg3pk14hvoqllmh",
+  "aws_user_pools_id": "us-east-1_lw0wGEoOC",
+  "aws_user_pools_web_client_id": "f4l6v79br1qsjgv3e6ndb8erl",
   "oauth": {},
   "aws_cognito_username_attributes": ["EMAIL"],
   "aws_cognito_social_providers": [],

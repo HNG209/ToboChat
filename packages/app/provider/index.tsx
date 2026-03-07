@@ -23,14 +23,23 @@ export function Provider({ children }) {
   const systemScheme = useColorScheme()
 
   // 2. Sử dụng 'light' | 'dark' làm giá trị mặc định (đúng chuẩn Tamagui Starter)
-  const [theme, setTheme] = useState<'light' | 'dark'>(systemScheme || 'light')
+  // const [theme, setTheme] = useState<'light' | 'dark'>(systemScheme || 'light')
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   // 3. (Tùy chọn) Tự động đổi theme khi người dùng đổi chế độ máy
+  // useEffect(() => {
+  //   if (systemScheme) {
+  //     setTheme(systemScheme)
+  //   }
+  // }, [systemScheme])
+
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
-    if (systemScheme) {
-      setTheme(systemScheme)
-    }
-  }, [systemScheme])
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
