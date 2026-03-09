@@ -3,7 +3,7 @@ import { NextTamaguiProvider } from 'app/provider/NextTamaguiProvider'
 import ConfigureAmplify from './ConfigureAmplify'
 
 export const metadata: Metadata = {
-  title: 'Tamagui • App Router',
+  title: 'ToboChat',
   description: 'Tamagui, Solito, Expo & Next.js',
   icons: '/favicon.ico',
 }

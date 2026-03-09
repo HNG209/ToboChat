@@ -1,10 +1,12 @@
 import { Theme, XStack, YStack } from '@my/ui'
 import React from 'react'
 import { Platform } from 'react-native'
-import ChatMain from './ChatMain'
 import { ZaloSidebar } from '../sidebar/ZaloSidebar'
 import { useParams, usePathname, useRouter } from 'solito/navigation'
 import { useAppTheme } from 'app/provider/ThemeContext'
+import FriendMenu from '@my/ui/src/FriendMenu'
+import SearchHeader from '@my/ui/src/SearchHeader'
+import ChatInbox from '@my/ui/src/ChatInbox'
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
@@ -44,19 +46,19 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         </YStack>
 
         {/* CỘT 2: LIST DỰA TRÊN ROUTE */}
-        {!isFriendPage && (
-          <YStack
-            width={340}
-            minWidth={340}
-            height="100%"
-            borderRightWidth={1}
-            borderColor="$borderColor"
-            $sm={{ display: isChatPage ? 'none' : 'flex', width: '100%' }}
-          >
-            {/* {isFriendPage ? <FriendMenu /> : <ChatMain />} */}
-            <ChatMain />
+        <YStack
+          width={340}
+          minWidth={340}
+          height="100%"
+          borderRightWidth={1}
+          borderColor="$borderColor"
+          $sm={{ display: isChatPage ? 'none' : 'flex', width: '100%' }}
+        >
+          <YStack flex={1} backgroundColor="$color2">
+            <SearchHeader />
+            {isFriendPage ? <FriendMenu /> : <ChatInbox />}
           </YStack>
-        )}
+        </YStack>
 
         {/* CỘT 3: CHI TIẾT (Children) */}
         <YStack
