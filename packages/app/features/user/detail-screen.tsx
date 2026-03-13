@@ -1,22 +1,40 @@
 'use client'
 
-import { Avatar, Button, Image, Popover, Text, Theme, XStack, YStack } from '@my/ui'
+import {
+  Avatar,
+  Button,
+  DisableMFADialog,
+  EnableMFADialog,
+  FullSettingsDialog,
+  Image,
+  Popover,
+  Text,
+  Theme,
+  XStack,
+  YStack,
+} from '@my/ui'
 import { ArrowLeft, Languages, MoreVertical, Sun } from '@tamagui/lucide-icons'
-import { useRouter } from 'solito/navigation'
+import { usePathname, useRouter } from 'solito/navigation'
 
-import { useGetProfileQuery } from '../../store/api'
+import {
+  useConfirmMFAMutation,
+  useDisableMFAMutation,
+  useGetProfileQuery,
+  useInitMFAMutation,
+} from '../../store/api'
 // Su dung cho dang xuat
 import { LogOut } from '@tamagui/lucide-icons'
-import { ListItem, Separator } from '@my/ui'
+import { Separator } from '@my/ui'
 
-import { useState } from 'react'
-import { signOut } from 'aws-amplify/auth'
+import React, { useEffect, useState } from 'react'
+import { fetchMFAPreference, signOut } from 'aws-amplify/auth'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { useTranslation } from 'react-i18next'
 
 export default function UserDetailScreen({ id }: { id?: string }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   // 1. Dùng light/dark đồng bộ với Context mới
   const { theme, setTheme } = useAppTheme()
   // id	          API gọi
@@ -24,15 +42,15 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   // "abc123"	    /users/abc123
   const { data } = useGetProfileQuery(id)
 
-  const handleLogout = async () => {
-    try {
-      await signOut()
-      setOpen(false)
-      router.replace('/')
-    } catch (err) {
-      console.log('Logout error', err)
-    }
-  }
+  // const handleLogout = async () => {
+  //   try {
+  //     await signOut()
+  //     setOpen(false)
+  //     router.replace('/')
+  //   } catch (err) {
+  //     console.log('Logout error', err)
+  //   }
+  // }
 
   // Chuyen doi ngon ngu
 
@@ -43,6 +61,162 @@ export default function UserDetailScreen({ id }: { id?: string }) {
     console.log('Switching to:', newLang)
     i18n.changeLanguage(newLang)
   }
+
+  // Phan xu li cho cai dat chung
+  const { push } = useRouter()
+
+  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/friend')
+  const isFriend = pathname?.includes('/friend')
+  const [initMFA] = useInitMFAMutation()
+  const [confirmMFA] = useConfirmMFAMutation()
+
+  const [openSignOut, setOpenSignOut] = useState(false)
+  const [openSetting, setOpenSetting] = useState(false)
+
+  const { data: profileData } = useGetProfileQuery()
+  const userId = profileData?.result?.pk?.replace('USER#', '')
+  // Mo full phan cai dat
+  const [showFullSettings, setShowFullSettings] = useState(false)
+  const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
+
+  // Su dung cho phan bac xac thuc
+  const [isTwoFactorAuth, setIsTwoFactorAuth] = useState(false) // Mặc định là dang tat
+  const [openEnableMFA, setOpenEnableMFA] = useState(false)
+  const [password, setPassword] = useState('')
+  const [secretCode, setSecretCode] = useState<string | null>(null)
+  const [otpCode, setOtpCode] = useState('')
+
+  // Tat phan MFA
+  const [disableMFAApi] = useDisableMFAMutation()
+  const [isDisabling, setIsDisabling] = useState(false)
+  const [openDisableMFA, setOpenDisableMFA] = useState(false)
+  const [disablePassword, setDisablePassword] = useState('')
+
+  const handleGoToUser = () => {
+    push(`/user/me`)
+  }
+
+  useEffect(() => {
+    if (showFullSettings && activeTab === 'security') {
+      checkMFA()
+    }
+  }, [showFullSettings, activeTab])
+
+  const openEnableMFADialog = () => {
+    setPassword('')
+    setSecretCode(null)
+    setOtpCode('')
+    setOpenEnableMFA(true)
+  }
+
+  const handleSubmitPassword = async () => {
+    try {
+      const res = await initMFA({
+        userId: userId!,
+        password,
+      }).unwrap()
+
+      setSecretCode(res.secret)
+    } catch (err) {
+      console.error('Sai mật khẩu', err)
+    }
+  }
+
+  // Ham kiem tra ma OTP
+  const [isVerifying, setIsVerifying] = useState(false)
+
+  const handleVerifyOTP = async () => {
+    if (isVerifying) return
+
+    try {
+      setIsVerifying(true)
+
+      await confirmMFA({
+        userId: userId!,
+        otp: otpCode,
+      }).unwrap()
+
+      setIsTwoFactorAuth(true)
+      setOpenEnableMFA(false)
+      setSecretCode(null)
+      setPassword('')
+      setOtpCode('')
+    } catch (err) {
+      console.error('OTP sai', err)
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  const handleDisableMFA = async () => {
+    if (isDisabling) return
+
+    try {
+      setIsDisabling(true)
+
+      await disableMFAApi({
+        userId: userId!,
+        password: disablePassword,
+      }).unwrap()
+
+      // cập nhật UI
+      setIsTwoFactorAuth(false)
+
+      // reset state
+      setOpenDisableMFA(false)
+      setDisablePassword('')
+    } catch (err) {
+      console.error('Disable MFA failed', err)
+    } finally {
+      setIsDisabling(false)
+    }
+  }
+
+  const handleToggleMFA = async (val: boolean) => {
+    // Nếu bật MFA
+    if (val) {
+      openEnableMFADialog()
+      return
+    }
+
+    setOpenDisableMFA(true)
+  }
+
+  // xac dinh trang thai MFA
+  const checkMFA = async () => {
+    try {
+      const mfa = await fetchMFAPreference()
+
+      console.log('MFA preference:', mfa)
+      const enabled = mfa?.enabled ?? []
+      /*
+        mfa sẽ trả về dạng:
+        {
+          enabled: ['SMS', 'TOTP'],
+          preferred: 'TOTP'
+        }
+      */
+
+      if (enabled.length > 0) {
+        setIsTwoFactorAuth(true)
+      } else {
+        setIsTwoFactorAuth(false)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  // ham dang xuat
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      setOpenSignOut(false)
+      router.replace('/') // dùng replace để không back lại được
+    } catch (err) {
+      console.log('Logout error', err)
+    }
+  }
+
   return (
     <YStack flex={1} backgroundColor="$background">
       {/* COVER */}
@@ -94,6 +268,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
 
                 {/* Nút Đổi Theme */}
                 <XStack
+                  key="theme"
                   paddingHorizontal="$4"
                   height={48}
                   alignItems="center"
@@ -109,6 +284,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
                 <Separator marginVertical="$2" />
                 {/* chuyen doi ngon ngu */}
                 <XStack
+                  key="language"
                   paddingHorizontal="$4"
                   height={48}
                   alignItems="center"
@@ -119,6 +295,25 @@ export default function UserDetailScreen({ id }: { id?: string }) {
                   </YStack>
                   <Text color="$color" fontSize="$4" lineHeight={20} marginLeft="$2">
                     {i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
+                  </Text>
+                </XStack>
+                <Separator marginVertical="$2" />
+                {/* Cai dat chung */}
+                <XStack
+                  key="fullSetting"
+                  paddingHorizontal="$4"
+                  height={48}
+                  alignItems="center"
+                  onPress={() => {
+                    setOpenSetting(false) // Đóng cái popover nhỏ
+                    setShowFullSettings(true) // Mở cái khung cài đặt lớn
+                  }}
+                >
+                  <YStack width={30} alignItems="center">
+                    <Languages size={20} color="$color" />
+                  </YStack>
+                  <Text color="$color" fontSize="$4" lineHeight={20} marginLeft="$2">
+                    {t('settings')}
                   </Text>
                 </XStack>
                 <Separator marginVertical="$2" />
@@ -183,6 +378,36 @@ export default function UserDetailScreen({ id }: { id?: string }) {
           </Button>
         </XStack>
       </YStack>
+      <FullSettingsDialog
+        showFullSettings={showFullSettings}
+        setShowFullSettings={setShowFullSettings}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isTwoFactorAuth={isTwoFactorAuth}
+        handleToggleMFA={handleToggleMFA}
+      />
+      <EnableMFADialog
+        openEnableMFA={openEnableMFA}
+        setOpenEnableMFA={setOpenEnableMFA}
+        isTwoFactorAuth={isTwoFactorAuth}
+        secretCode={secretCode}
+        password={password}
+        otpCode={otpCode}
+        setPassword={setPassword}
+        setOtpCode={setOtpCode}
+        setSecretCode={setSecretCode}
+        handleSubmitPassword={handleSubmitPassword}
+        handleVerifyOTP={handleVerifyOTP}
+      />
+      <DisableMFADialog
+        openDisableMFA={openDisableMFA}
+        setOpenDisableMFA={setOpenDisableMFA}
+        disablePassword={disablePassword}
+        setDisablePassword={setDisablePassword}
+        handleDisableMFA={handleDisableMFA}
+        isDisabling={isDisabling}
+        setIsTwoFactorAuth={setIsTwoFactorAuth}
+      />
     </YStack>
   )
 }

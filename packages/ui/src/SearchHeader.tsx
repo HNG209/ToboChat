@@ -33,7 +33,7 @@ export default function SearchHeader() {
   return (
     <YStack
       padding="$3"
-      marginTop="$2"
+      marginTop="$5"
       space="$2"
       backgroundColor="$background"
       position="relative"

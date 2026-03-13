@@ -1,6 +1,6 @@
 'use client'
 
-import { ChatDetailScreenMain } from './ChatDetailScreenMain'
+import ChatDetailScreenMain from './ChatDetailScreenMain'
 import { createParam } from 'solito'
 import { useParams } from 'next/navigation'
 import { Platform } from 'react-native' // Import thêm cái này

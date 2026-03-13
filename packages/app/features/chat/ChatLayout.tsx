@@ -13,18 +13,16 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const { theme } = useAppTheme()
   const pathname = usePathname()
 
-  // Kiểm tra chính xác trang Bạn bè (dùng bằng khớp hoàn toàn hoặc check kỹ hơn)
+  // 1. Kiểm tra xem đã "vào trong" một cuộc hội thoại cụ thể chưa
+  // Giả sử URL của bạn là /chat/[id], nếu có id nghĩa là đang xem chi tiết
+  const isViewingDetail = params.id || (pathname !== '/chat' && pathname !== '/chat/friend')
+
   const isFriendPage = pathname === '/chat/friend' || pathname?.startsWith('/chat/friend/')
-
-  // Trang Chat chỉ hiện khi bắt đầu bằng /chat và CHẮC CHẮN không phải là trang friend
   const isChatPage = pathname?.startsWith('/chat') && !isFriendPage
-
-  // Thêm một biến kiểm tra trang chủ chat để reset list
-  const isMainChat = pathname === '/chat'
-
   if (Platform.OS !== 'web') {
     return (
       <YStack marginTop={20} flex={1}>
+        <ZaloSidebar />
         {children}
       </YStack>
     )
@@ -40,7 +38,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           height="100%"
           borderRightWidth={1}
           borderColor="$borderColor"
-          $sm={{ display: isChatPage ? 'none' : 'flex' }}
+          $sm={{ display: isViewingDetail ? 'none' : 'flex' }}
         >
           <ZaloSidebar />
         </YStack>
@@ -52,7 +50,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           height="100%"
           borderRightWidth={1}
           borderColor="$borderColor"
-          $sm={{ display: isChatPage ? 'none' : 'flex', width: '100%' }}
+          $sm={{ display: isViewingDetail ? 'none' : 'flex', width: '100%' }}
         >
           <YStack flex={1} backgroundColor="$color2">
             <SearchHeader />
@@ -65,7 +63,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           flex={1}
           height="100%"
           backgroundColor="$background"
-          $sm={{ display: isChatPage ? 'flex' : 'none' }}
+          $sm={{ display: isViewingDetail ? 'flex' : 'none' }}
         >
           {children}
         </YStack>

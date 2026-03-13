@@ -1,3 +1,5 @@
-import ChatMain from 'app/features/chat/ChatMain'
+import ChatInbox from '@my/ui/src/ChatInbox'
 
-export default ChatMain
+export default function Chat() {
+  return <ChatInbox />
+}

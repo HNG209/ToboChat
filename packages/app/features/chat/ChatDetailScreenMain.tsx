@@ -2,7 +2,7 @@ import { Button, Text, XStack, YStack } from '@my/ui'
 import { ChevronLeft } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 
-export function ChatDetailScreenMain({ id }: { id: string }) {
+export default function ChatDetailScreenMain({ id }: { id: string }) {
   const router = useRouter()
   return (
     <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor="$primary">

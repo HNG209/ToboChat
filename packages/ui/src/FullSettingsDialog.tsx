@@ -19,10 +19,10 @@ export const FullSettingsDialog = ({
   handleToggleMFA,
 }) => {
   return (
-    <Dialog key="settings-dialog" modal open={showFullSettings} onOpenChange={setShowFullSettings}>
+    <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
       <Dialog.Portal>
         <Dialog.Overlay
-          key="settings-overlay"
+          key="overlay"
           animation="quick"
           opacity={0.5}
           backgroundColor="#000"
@@ -30,6 +30,7 @@ export const FullSettingsDialog = ({
         />
 
         <Dialog.Content
+          key="content"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           bordered
@@ -41,8 +42,8 @@ export const FullSettingsDialog = ({
           overflow="hidden"
           backgroundColor="$background"
           $sm={{
-            width: '80vw',
-            height: '80vh',
+            width: '80%',
+            height: '70%',
             borderRadius: 0,
           }}
         >

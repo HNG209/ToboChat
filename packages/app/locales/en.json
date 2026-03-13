@@ -9,5 +9,7 @@
   "sidebar": {
     "message": "Messages"
   },
-  "contacts": "Contacts"
+  "contacts": "Contacts",
+  "chats": "Chat",
+  "friends": "Friend"
 }
