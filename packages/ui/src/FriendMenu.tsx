@@ -1,12 +1,29 @@
-import { YStack, Text, XStack, Button } from '@my/ui'
+import { YStack, Button } from '@my/ui'
+import { useRouter, usePathname } from 'solito/navigation'
 
 export default function FriendMenu() {
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const menuItems = [
+    { label: 'Danh sách bạn bè', path: '/chat/friend/list' },
+    { label: 'Danh sách nhóm', path: '/chat/friend/groups' },
+    { label: 'Lời mời kết bạn', path: '/chat/friend/requests' },
+    { label: 'Lời mời vào nhóm', path: '/chat/friend/group-requests' },
+  ]
+
   return (
     <YStack padding="$3" space="$3">
-      <Button justifyContent="flex-start">Danh sách bạn bè</Button>
-      <Button justifyContent="flex-start">Danh sách nhóm</Button>
-      <Button justifyContent="flex-start">Lời mời kết bạn</Button>
-      <Button justifyContent="flex-start">Lời mời vào nhóm</Button>
+      {menuItems.map((item) => (
+        <Button
+          key={item.path}
+          justifyContent="flex-start"
+          theme={pathname === item.path ? 'blue' : undefined}
+          onPress={() => router.push(item.path)} // Chuyển URL ở đây
+        >
+          {item.label}
+        </Button>
+      ))}
     </YStack>
   )
 }

@@ -1,0 +1,113 @@
+import React, { useEffect, useState } from 'react'
+import { YStack, XStack, Input, Button, H3, Text, Image, ScrollView } from 'tamagui'
+import { Search, ChevronLeft } from '@tamagui/lucide-icons'
+import { useMedia } from 'tamagui'
+import { UserCard } from '@my/ui'
+import {
+  useGetMyFriendListQuery,
+  useLazyFindUserByEmailQuery,
+} from '../../store/api'
+import { useRouter } from 'solito/navigation'
+
+export default function Friend() {
+  const router = useRouter();
+  const [keyword, setKeyword] = useState('')
+  const media = useMedia()
+
+  const {
+    data: friendsData,
+    isLoading: friendsLoading,
+    error: friendsError,
+  } = useGetMyFriendListQuery({ limit: 10 })
+
+  const [findUser, { data: searchData, isLoading: searchLoading }] = useLazyFindUserByEmailQuery()
+
+  // Logic Search Debounce
+  useEffect(() => {
+    if (!keyword.trim()) return
+    const timeout = setTimeout(() => findUser({ email: keyword, limit: 10 }), 400)
+    return () => clearTimeout(timeout)
+  }, [keyword, findUser])
+
+  return (
+    <XStack flex={1} height="100vh" padding="$4" gap="$4" alignItems="stretch">
+      <YStack flex={1} gap="$4">
+        {/* HEADER */}
+        <XStack
+          alignItems="center"
+          padding="$4"
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$6"
+          backgroundColor="$background"
+          gap="$3"
+        >
+          <Button
+            icon={<ChevronLeft size={24} />}
+            height = {40}
+            width = {40}
+            padding = {0}
+            chromeless
+            display="none" // Mặc định ẩn trên Desktop
+            $sm={{ display: 'flex' }} // Chỉ hiện khi màn hình nhỏ
+            onPress={() => router.push('/chat/friend')}
+            paddingLeft={0}
+            />
+          <YStack flex={1}>
+            <H3>Danh sách bạn bè</H3>
+            <Text color="$gray10" fontSize="$3">
+              {(friendsData?.items?.length ?? 0)} bạn bè
+            </Text>
+          </YStack>
+        </XStack>
+
+        {/* NỘI DUNG DANH SÁCH */}
+        <YStack
+          flex={1}
+          padding="$2"
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$6"
+          gap="$2"
+        >
+          {/* Thanh Search tích hợp luôn vào trang List */}
+          <XStack alignItems="center" paddingHorizontal="$3" marginBottom="$2" backgroundColor="$background" borderRadius="$4" borderWidth={1} borderColor="$borderColor">
+            <Search size={18} color="$gray10" />
+            <Input 
+              flex={1} 
+              borderWidth={0} 
+              placeholder="Tìm kiếm bạn qua email..." 
+              value={keyword} 
+              onChangeText={setKeyword}
+              backgroundColor="transparent"
+            />
+          </XStack>
+
+          <ScrollView gap="$3" flex={1}>
+            {keyword.trim() !== '' ? (
+              // Kết quả Search
+              <>
+                {searchLoading && <Text>Đang tìm...</Text>}
+                {searchData?.items?.map((user) => (
+                  <UserCard key={user.id} user={user} />
+                ))}
+              </>
+            ) : (
+              // Danh sách bạn bè
+              <>
+                {friendsLoading && <Text>Đang tải...</Text>}
+                {friendsError && <Text color="red">Lỗi tải dữ liệu</Text>}
+                {friendsData?.items?.map((user) => (
+                  <UserCard key={user.id} user={user} />
+                ))}
+                {!friendsLoading && (friendsData?.items?.length ?? 0) === 0 && (
+                  <Text color="$gray10" textAlign="center" marginTop="$10">Chưa có bạn bè nào</Text>
+                )}
+              </>
+            )}
+          </ScrollView>
+        </YStack>
+      </YStack>
+    </XStack>
+  )
+}

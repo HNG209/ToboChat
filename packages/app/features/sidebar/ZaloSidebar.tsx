@@ -25,7 +25,7 @@ export const ZaloSidebar = () => {
   const pathname = usePathname()
 
   const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/friend')
-  const isFriend = pathname?.includes('/friend')
+  const isFriend = pathname?.includes('/list')
   const [initMFA] = useInitMFAMutation()
   const [confirmMFA] = useConfirmMFAMutation()
 
@@ -189,7 +189,7 @@ export const ZaloSidebar = () => {
   }
 
   const handleGoToFriend = () => {
-    push('/chat/friend')
+    push('/chat/friend/list')
   }
   const handleGoToChat = () => {
     push('/chat')

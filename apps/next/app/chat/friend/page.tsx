@@ -1,6 +1,10 @@
 'use client'
-import Friend from 'app/features/friend/Friend'
+import { YStack, Text } from 'tamagui'
 
 export default function Page() {
-  return <Friend />
+  return (
+    <YStack flex={1} alignItems="center" justifyContent="center" bg="#F4F5F7">
+      <Text color="$color10">Chọn một danh bạ để quản lý bạn bè </Text>
+    </YStack>
+  )
 }
