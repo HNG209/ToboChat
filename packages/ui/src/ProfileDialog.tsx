@@ -2,6 +2,7 @@ import { Camera, Edit3, Pen, Settings, X } from '@tamagui/lucide-icons'
 import { useState } from 'react'
 import { Button, Dialog, Image, Text, View, XStack, YStack, Spacer } from '@my/ui'
 import { EditProfileDialog } from './EditProfileDialog'
+import { EditAvatar } from './EditAvatar'
 
 interface ProfileDialogProps {
   open: boolean
@@ -15,7 +16,7 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
   const [openEditName, setOpenEditName] = useState(false)
   const [displayName, setDisplayName] = useState(userData?.name)
   const [displayAvatar, setDisplayAvatar] = useState(userData?.avatarUrl)
-
+  const [openEditAvatar, setOpenEditAvatar] = useState(false)
   return (
     <Dialog modal open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -93,6 +94,7 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
                   backgroundColor="$background"
                   borderWidth={1}
                   borderColor="$borderColor"
+                  onPress={() => setOpenEditAvatar(true)}
                 />
               </View>
             </View>
@@ -143,6 +145,13 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
           </YStack>
         </Dialog.Content>
       </Dialog.Portal>
+      <EditAvatar
+        open={openEditAvatar}
+        onOpenChange={setOpenEditAvatar}
+        currentAvatar={userData?.avatarUrl}
+        currentName={userData?.name}
+        onSave={onSave}
+      />
       <EditProfileDialog
         open={openEditName}
         onOpenChange={setOpenEditName}
