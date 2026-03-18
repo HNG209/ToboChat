@@ -37,6 +37,7 @@
     "@tamagui/cli": "^1.144.0",
     "@tamagui/react-native-svg": "^1.144.0",
     "@tamagui/react-native-web-lite": "^1.144.0",
+    "antd": "^6.3.3",
     "aws-amplify": "6.16.0",
     "check-dependency-version-consistency": "^4.1.0",
     "expo-constants": "^18.0.13",

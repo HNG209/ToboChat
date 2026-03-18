@@ -1,4 +1,4 @@
-import { Dialog, Switch, Text, Theme, XStack } from '@my/ui'
+import { Dialog, Switch, Text, Theme, Tooltip, XStack } from '@my/ui'
 import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
 import {
   Contact2,
@@ -10,11 +10,12 @@ import {
   User,
   X,
 } from '@tamagui/lucide-icons'
+
 import { signOut } from 'aws-amplify/auth'
 import React, { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'solito/navigation'
 import { useTranslation } from 'react-i18next'
-import { FullSettingsDialog, EnableMFADialog, DisableMFADialog } from '@my/ui'
+import { FullSettingsDialog, EnableMFADialog, DisableMFADialog, ProfileDialog } from '@my/ui'
 import { useAppTheme } from '../../provider/ThemeContext'
 import { fetchMFAPreference } from 'aws-amplify/auth'
 import { useConfirmMFAMutation, useDisableMFAMutation, useInitMFAMutation } from 'app/store/api'
@@ -37,6 +38,8 @@ export const ZaloSidebar = () => {
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
   const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
+  // Mo phan edit profile
+  const [openProfile, setOpenProfile] = useState(false)
 
   // Su dung cho phan bac xac thuc
   const [isTwoFactorAuth, setIsTwoFactorAuth] = useState(false) // Mặc định là dang tat
@@ -255,6 +258,41 @@ export const ZaloSidebar = () => {
             <Theme name={theme}>
               <Popover.Content elevate backgroundColor="$background">
                 <YStack width={160}>
+                  {/* chinh sua thong tin nguoi dung */}
+                  {/* <Popover.Close asChild>
+                    <ListItem
+                      pressTheme
+                      icon={User}
+                      title={t('informationAccount')}
+                    />
+                  </Popover.Close> */}
+                  <Tooltip delay={0} placement="right">
+                    <Tooltip.Trigger asChild>
+                      <View>
+                        <ListItem
+                          pressTheme
+                          icon={User}
+                          title={t('informationAccount')}
+                          onPress={() => {
+                            setOpenSetting(false)
+                            setOpenProfile(true)
+                          }}
+                        />
+                      </View>
+                    </Tooltip.Trigger>
+
+                    <Tooltip.Content
+                      sideOffset={10} // 👉 đẩy tooltip ra xa 1 chút
+                      zIndex={9999}
+                      elevate
+                      backgroundColor="$background"
+                      padding="$2"
+                      borderRadius="$2"
+                    >
+                      <Tooltip.Arrow />
+                      <Text>{t('informationAccount')}</Text>
+                    </Tooltip.Content>
+                  </Tooltip>
                   <Popover.Close asChild>
                     <ListItem
                       pressTheme
@@ -307,6 +345,9 @@ export const ZaloSidebar = () => {
           </Popover>
         </YStack>
       </YStack>
+      {/* Phan mo cai dat cho cho chinh account */}
+      <ProfileDialog open={openProfile} onOpenChange={setOpenProfile} profileData={profileData} />
+
       {/* Phan mo full cai dat */}
       <FullSettingsDialog
         showFullSettings={showFullSettings}
