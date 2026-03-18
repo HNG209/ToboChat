@@ -7,12 +7,14 @@ interface ProfileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   profileData?: any
+  onSave: (data: { name?: string; avatar?: File }) => void
 }
 
-export const ProfileDialog = ({ open, onOpenChange, profileData }: ProfileDialogProps) => {
+export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: ProfileDialogProps) => {
   const userData = profileData?.result
   const [openEditName, setOpenEditName] = useState(false)
-  const [displayName, setDisplayName] = useState(userData?.name || 'Le Ngoc Dung')
+  const [displayName, setDisplayName] = useState(userData?.name)
+  const [displayAvatar, setDisplayAvatar] = useState(userData?.avatarUrl)
 
   return (
     <Dialog modal open={open} onOpenChange={onOpenChange}>
@@ -77,7 +79,7 @@ export const ProfileDialog = ({ open, onOpenChange, profileData }: ProfileDialog
                   overflow="hidden"
                   backgroundColor="$background"
                 >
-                  <Image source={{ uri: userData?.avatar }} width="100%" height="100%" />
+                  <Image source={{ uri: userData?.avatarUrl }} width="100%" height="100%" />
                 </View>
                 {/* Nút camera sửa avatar */}
                 <Button
@@ -144,8 +146,9 @@ export const ProfileDialog = ({ open, onOpenChange, profileData }: ProfileDialog
       <EditProfileDialog
         open={openEditName}
         onOpenChange={setOpenEditName}
-        currentName={displayName}
-        onSave={(newName: string) => setDisplayName(newName)}
+        currentAvatar={userData?.avatarUrl}
+        currentName={userData?.name}
+        onSave={onSave}
       ></EditProfileDialog>
     </Dialog>
   )

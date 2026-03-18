@@ -18,7 +18,12 @@ import { useTranslation } from 'react-i18next'
 import { FullSettingsDialog, EnableMFADialog, DisableMFADialog, ProfileDialog } from '@my/ui'
 import { useAppTheme } from '../../provider/ThemeContext'
 import { fetchMFAPreference } from 'aws-amplify/auth'
-import { useConfirmMFAMutation, useDisableMFAMutation, useInitMFAMutation } from 'app/store/api'
+import {
+  useConfirmMFAMutation,
+  useDisableMFAMutation,
+  useInitMFAMutation,
+  useUpdateProfileMutation,
+} from 'app/store/api'
 import { useGetProfileQuery } from 'app/store/api'
 export const ZaloSidebar = () => {
   const { push } = useRouter()
@@ -61,6 +66,18 @@ export const ZaloSidebar = () => {
     push(`/user/me`)
   }
 
+  //dung cho phan update
+  const [updateProfile] = useUpdateProfileMutation()
+  const { refetch } = useGetProfileQuery()
+  const handleSave = async (data: { name?: string; avatar?: File }) => {
+    try {
+      await updateProfile(data).unwrap()
+      await refetch() // 👈 force reload
+      console.log('Update success')
+    } catch (err) {
+      console.error(err)
+    }
+  }
   // Phan chuyen doi ngon ngu
   const { t, i18n } = useTranslation()
   const toggleLanguage = () => {
@@ -216,7 +233,7 @@ export const ZaloSidebar = () => {
           borderColor="$color"
           overflow="hidden"
         >
-          <Image source={{ uri: 'https://your-avatar-link.png', width: 45, height: 45 }} />
+          <Image source={{ uri: profileData?.result?.avatarUrl }} width={45} height={45} />
         </View>
 
         {/* Icon Tin nhan */}
@@ -346,7 +363,12 @@ export const ZaloSidebar = () => {
         </YStack>
       </YStack>
       {/* Phan mo cai dat cho cho chinh account */}
-      <ProfileDialog open={openProfile} onOpenChange={setOpenProfile} profileData={profileData} />
+      <ProfileDialog
+        onSave={handleSave}
+        open={openProfile}
+        onOpenChange={setOpenProfile}
+        profileData={profileData}
+      />
 
       {/* Phan mo full cai dat */}
       <FullSettingsDialog

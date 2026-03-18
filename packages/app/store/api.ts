@@ -20,7 +20,7 @@ import {
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['FriendList', 'FriendRequests', 'UserSearch'],
+  tagTypes: ['FriendList', 'FriendRequests', 'UserSearch', 'Profile'],
   endpoints: (builder) => ({
     getProfile: builder.query<
       any, // response type (tạm để any, lát mình tối ưu sau)
@@ -28,6 +28,7 @@ export const api = createApi({
     >({
       query: (id) =>
         id ? { url: `/users/${id}`, method: 'GET' } : { url: '/users/me', method: 'GET' },
+      providesTags: ['Profile'],
     }),
 
     getMyFriendList: builder.query<PageResponse<FriendResponse>, GetMyFriendsRequest | void>({
@@ -121,6 +122,32 @@ export const api = createApi({
         data: body,
       }),
     }),
+
+    updateProfile: builder.mutation<any, { name?: string; avatar?: File }>({
+      query: ({ name, avatar }) => {
+        const formData = new FormData()
+
+        if (name) {
+          formData.append('name', name)
+        }
+
+        if (avatar) {
+          formData.append('avatar', avatar)
+        }
+
+        return {
+          url: '/users/me',
+          method: 'PUT',
+          data: formData,
+
+          // 🔥 QUAN TRỌNG: KHÔNG set Content-Type
+          // để axios tự xử lý multipart/form-data
+          headers: undefined,
+        }
+      },
+
+      invalidatesTags: ['Profile'],
+    }),
   }),
 })
 
@@ -139,4 +166,5 @@ export const {
   useInitMFAMutation,
   useConfirmMFAMutation,
   useDisableMFAMutation,
+  useUpdateProfileMutation,
 } = api

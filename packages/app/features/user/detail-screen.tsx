@@ -40,7 +40,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   // id	          API gọi
   // undefined	  /users/me
   // "abc123"	    /users/abc123
-  const { data } = useGetProfileQuery(id)
+  const { data: userProfile, refetch } = useGetProfileQuery(id ?? 'me')
 
   // const handleLogout = async () => {
   //   try {
@@ -345,7 +345,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
           borderWidth={4}
           borderColor="white"
         >
-          <Avatar.Image src="https://i.pravatar.cc/300" />
+          <Avatar.Image src={profileData?.result.avatarUrl || 'https://i.pravatar.cc/300'} />
         </Avatar>
       </YStack>
 
@@ -360,7 +360,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
         borderTopRightRadius="$6"
       >
         <Text fontSize="$8" fontWeight="700">
-          {data?.result?.name ?? 'No name'}
+          {profileData?.result?.name ?? 'No name'}
         </Text>
 
         <Text fontSize="$4" color="$color10" textAlign="center">
