@@ -33,12 +33,12 @@ export default function SearchHeader() {
   return (
     <YStack
       padding="$3"
-      marginTop="$5"
       space="$2"
+      paddingTop="$4"
       backgroundColor="$background"
       position="relative"
     >
-      <XStack alignItems="center" space="$2">
+      <XStack alignItems="center" space="$2" flexWrap="nowrap">
         <XStack
           flex={1}
           backgroundColor="$color3"

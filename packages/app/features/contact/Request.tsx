@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { YStack, XStack, H3, Text, Select, ScrollView, Button } from 'tamagui'
 import { ChevronDown, ChevronLeft } from '@tamagui/lucide-icons'
-import { UserCard } from '@my/ui'
+import { ContactHeader, UserCard } from '@my/ui'
 import {
   useGetMyFriendRequestsQuery,
   useCancelFriendRequestMutation,
@@ -39,33 +39,12 @@ export default function RequestPage() {
     <XStack flex={1} height="100vh" padding="$4" gap="$4" alignItems="stretch">
       <YStack flex={1} gap="$4">
         {/* HEADER */}
-        <XStack
-          alignItems="center"
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          borderRadius="$6"
-          backgroundColor="$background"
-          gap="$3"
-        >
-          <Button
-          icon={<ChevronLeft size={24} />}
-          height = {40}
-          width = {40}
-          padding = {0}
-          chromeless
-          display="none" // Mặc định ẩn trên Desktop
-          $sm={{ display: 'flex' }} // Chỉ hiện khi màn hình nhỏ
-          onPress={() => router.push('/chat/friend')}
-          />
-          <YStack flex={1}>
-            <H3>Lời mời kết bạn</H3>
-            <Text color="$gray10" fontSize="$3">
-              {(requestsData?.items?.length ?? 0)} lời mời
-            </Text>
-          </YStack>
-
-          {/* BỘ LỌC (Filter) */}
+        <ContactHeader
+          title="Lời mời kết bạn"
+          subtitle={`${requestsData?.items?.length ?? 0} lời mời`}
+          onBackPath="/contact"
+          actionElement={
+          // BỘ LỌC (Filter) 
           <Select
             value={requestFilter}
             onValueChange={(val) => setRequestFilter(val as FriendRequestType)}
@@ -85,7 +64,8 @@ export default function RequestPage() {
               </Select.Viewport>
             </Select.Content>
           </Select>
-        </XStack>
+          }
+        />
 
         {/* NỘI DUNG DANH SÁCH LỜI MỜI */}
         <YStack

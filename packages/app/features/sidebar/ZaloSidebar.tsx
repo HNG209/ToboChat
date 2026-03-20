@@ -1,3 +1,5 @@
+"use client"
+
 import { Dialog, Switch, Text, Theme, XStack } from '@my/ui'
 import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
 import {
@@ -24,8 +26,8 @@ export const ZaloSidebar = () => {
   const router = useRouter()
   const pathname = usePathname()
 
-  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/friend')
-  const isFriend = pathname?.includes('/list')
+  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/contact')
+  const isFriend = pathname?.includes('/friends')
   const [initMFA] = useInitMFAMutation()
   const [confirmMFA] = useConfirmMFAMutation()
 
@@ -189,7 +191,7 @@ export const ZaloSidebar = () => {
   }
 
   const handleGoToFriend = () => {
-    push('/chat/friend/list')
+    push('/contact/friends')
   }
   const handleGoToChat = () => {
     push('/chat')

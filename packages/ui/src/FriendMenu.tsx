@@ -6,10 +6,10 @@ export default function FriendMenu() {
   const pathname = usePathname()
 
   const menuItems = [
-    { label: 'Danh sách bạn bè', path: '/chat/friend/list' },
-    { label: 'Danh sách nhóm', path: '/chat/friend/groups' },
-    { label: 'Lời mời kết bạn', path: '/chat/friend/requests' },
-    { label: 'Lời mời vào nhóm', path: '/chat/friend/group-requests' },
+    { label: 'Danh sách bạn bè', path: '/contact/friends' },
+    { label: 'Danh sách nhóm', path: '/contact/groups' },
+    { label: 'Lời mời kết bạn', path: '/contact/friend-requests' },
+    { label: 'Lời mời vào nhóm', path: '/contact/group-requests' },
   ]
 
   return (

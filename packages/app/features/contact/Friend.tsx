@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { YStack, XStack, Input, Button, H3, Text, Image, ScrollView } from 'tamagui'
-import { Search, ChevronLeft } from '@tamagui/lucide-icons'
+import { Search, ChevronLeft, Contact } from '@tamagui/lucide-icons'
 import { useMedia } from 'tamagui'
-import { UserCard } from '@my/ui'
+import { ContactHeader, UserCard } from '@my/ui'
 import {
   useGetMyFriendListQuery,
   useLazyFindUserByEmailQuery,
@@ -33,33 +33,11 @@ export default function Friend() {
     <XStack flex={1} height="100vh" padding="$4" gap="$4" alignItems="stretch">
       <YStack flex={1} gap="$4">
         {/* HEADER */}
-        <XStack
-          alignItems="center"
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          borderRadius="$6"
-          backgroundColor="$background"
-          gap="$3"
-        >
-          <Button
-            icon={<ChevronLeft size={24} />}
-            height = {40}
-            width = {40}
-            padding = {0}
-            chromeless
-            display="none" // Mặc định ẩn trên Desktop
-            $sm={{ display: 'flex' }} // Chỉ hiện khi màn hình nhỏ
-            onPress={() => router.push('/chat/friend')}
-            paddingLeft={0}
-            />
-          <YStack flex={1}>
-            <H3>Danh sách bạn bè</H3>
-            <Text color="$gray10" fontSize="$3">
-              {(friendsData?.items?.length ?? 0)} bạn bè
-            </Text>
-          </YStack>
-        </XStack>
+        <ContactHeader
+          title="Danh sách bạn bè"
+          subtitle={`${friendsData?.items?.length ?? 0} bạn bè`}
+          onBackPath="/contact"
+        />
 
         {/* NỘI DUNG DANH SÁCH */}
         <YStack

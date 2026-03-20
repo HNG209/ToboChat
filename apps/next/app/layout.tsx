@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { NextTamaguiProvider } from 'app/provider/NextTamaguiProvider'
 import ConfigureAmplify from './ConfigureAmplify'
+import ChatLayout from 'app/features/chat/ChatLayout'
 
 export const metadata: Metadata = {
   title: 'ToboChat',
@@ -14,7 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <ConfigureAmplify />
-        <NextTamaguiProvider>{children}</NextTamaguiProvider>
+        <NextTamaguiProvider>
+          <ChatLayout>
+          {children}
+          </ChatLayout>
+        </NextTamaguiProvider>
       </body>
     </html>
   )

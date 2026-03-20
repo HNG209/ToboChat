@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { YStack, XStack, Input, Button, H3, Text, ScrollView, Avatar } from 'tamagui'
 import { Search, Plus, Users, ChevronLeft } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation';
+import { ContactHeader, UserCard } from '@my/ui';
 
 // Dữ liệu giả để hiển thị giao diện
 const MOCK_GROUPS = [
@@ -14,39 +15,25 @@ export default function GroupPage() {
   const router = useRouter();
   const [keyword, setKeyword] = useState('')
 
+  // Logic lọc tìm kiếm đơn giản cho Mock Data
+  const filteredGroups = MOCK_GROUPS.filter(group => 
+    group.name.toLowerCase().includes(keyword.toLowerCase())
+  )
+
   return (
     <XStack flex={1} height="100vh" padding="$4" gap="$4" alignItems="stretch">
       <YStack flex={1} gap="$4">
         {/* HEADER */}
-        <XStack
-          alignItems="center"
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          borderRadius="$6"
-          backgroundColor="$background"
-          gap="$3"
-        >
-          <Button
-            icon={<ChevronLeft size={24} />}
-            height = {40}
-            width = {40}
-            padding = {0}
-            chromeless
-            display="none" // Mặc định ẩn trên Desktop
-            $sm={{ display: 'flex' }} // Chỉ hiện khi màn hình nhỏ
-            onPress={() => router.push('/chat/friend')}
-            paddingLeft={0}
-            />
-          <YStack flex={1}>
-            <H3>Danh sách nhóm</H3>
-            <Text color="$gray10" fontSize="$3">{MOCK_GROUPS.length} nhóm đã tham gia</Text>
-          </YStack>
-          
-          <Button theme="blue" icon={<Plus size={18} />} borderRadius="$4">
-            Tạo nhóm
-          </Button>
-        </XStack>
+        <ContactHeader 
+          title="Danh sách nhóm"
+          subtitle={`${MOCK_GROUPS.length} nhóm đã tham gia`}
+          onBackPath="/contact"
+          actionElement={
+            <Button theme="blue" icon={<Plus size={18} />} borderRadius="$4">
+              Tạo nhóm
+            </Button>
+          }
+        />
 
         {/* NỘI DUNG */}
         <YStack flex={1} padding="$2" borderWidth={1} borderColor="$borderColor" borderRadius="$6" gap="$2">
@@ -63,35 +50,24 @@ export default function GroupPage() {
             />
           </XStack>
 
-          <ScrollView gap="$2" flex={1}>
-            {MOCK_GROUPS.map((group) => (
-              <XStack 
-                key={group.id} 
-                padding="$3" 
-                backgroundColor="$background" 
-                borderRadius="$4" 
-                hoverStyle={{ backgroundColor: '$gray3' }}
-                alignItems="center"
-                gap="$3"
-                borderBottomWidth={1}
-                borderBottomColor="$borderColor"
-              >
-                <Avatar circular size="$4">
-                  <Avatar.Image src={`https://ui-avatars.com/api/?name=${group.name}&background=random`} />
-                  <Avatar.Fallback backgroundColor="$gray5" />
-                </Avatar>
-                
-                <YStack flex={1}>
-                  <Text fontWeight="bold" fontSize="$4">{group.name}</Text>
-                  <XStack alignItems="center" gap="$1">
-                    <Users size={12} color="$gray10" />
-                    <Text color="$gray10" fontSize="$2">{group.members} thành viên</Text>
-                  </XStack>
-                </YStack>
-                
-                <Button size="$2" variant="outline">Vào nhóm</Button>
-              </XStack>
-            ))}
+          <ScrollView flex={1}>
+            <YStack gap="$2" padding="$1">
+              {filteredGroups.map((group) => (
+                <UserCard
+                  key={group.id}
+                  isGroup={true} // Báo cho component biết đây là Nhóm
+                  description={`${group.members} thành viên`} // Đổ dữ liệu thành viên vào description
+                  user={{
+                    id: group.id,
+                    name: group.name,
+                    avatarUrl: '' // Để trống để tự tạo avatar theo tên
+                  } as any}
+                  onAction={(action) => {
+                    if (action === 'join') console.log('Đang vào nhóm:', group.name) //cái join này để coi sau
+                  }}
+                />
+              ))}
+            </YStack>
           </ScrollView>
         </YStack>
       </YStack>
