@@ -16,9 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ConfigureAmplify />
         <NextTamaguiProvider>
-          <ChatLayout>
           {children}
-          </ChatLayout>
         </NextTamaguiProvider>
       </body>
     </html>
