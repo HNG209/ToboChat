@@ -33,7 +33,7 @@ export default function GroupRequestPage() {
         <ContactHeader
           title="Lời mời vào nhóm"
           subtitle={`${data?.items?.length ?? 0} lời mời`}
-          onBackPath="/contact"
+          onBackPath="/contacts"
           actionElement={
             <Select value={filter} onValueChange={(val) => setFilter(val)}>
               <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>

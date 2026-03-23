@@ -68,13 +68,15 @@ export const FullSettingsDialog = ({
 
               <ListItem
                 title="Cài đặt chung"
-                hoverStyle={{ backgroundColor: '$backgroundHover', cursor: 'pointer' }}
+                theme='white'
+                hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
                 onPress={() => setActiveTab('general')}
               />
 
               <ListItem
                 title="Tài khoản & bảo mật"
-                hoverStyle={{ backgroundColor: '$backgroundHover', cursor: 'pointer' }}
+                theme='white'
+                hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
                 onPress={() => setActiveTab('security')}
               />
             </YStack>

@@ -26,7 +26,7 @@ export const ZaloSidebar = () => {
   const router = useRouter()
   const pathname = usePathname()
 
-  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/contact')
+  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/contacts')
   const isFriend = pathname?.includes('/friends')
   const [initMFA] = useInitMFAMutation()
   const [confirmMFA] = useConfirmMFAMutation()
@@ -191,7 +191,7 @@ export const ZaloSidebar = () => {
   }
 
   const handleGoToFriend = () => {
-    push('/contact/friends')
+    push('/contacts')
   }
   const handleGoToChat = () => {
     push('/chat')
@@ -223,15 +223,18 @@ export const ZaloSidebar = () => {
         <Button
           marginTop={20}
           size="$4"
+          borderRadius={0}
+          paddingVertical={30}
           title={t('messages')}
           backgroundColor={isChat ? '#005ae0' : 'transparent'}
           icon={<MessageSquare size={24} color="$color" />}
           onPress={handleGoToChat}
-          marginBottom={10}
         />
         <Button
           size="$4"
+          borderRadius={0}
           title={t('contacts')}
+          paddingVertical={30}
           backgroundColor={isFriend ? '#005ae0' : 'transparent'}
           icon={<Contact2 size={24} color="$color" />}
           onPress={() => handleGoToFriend()}

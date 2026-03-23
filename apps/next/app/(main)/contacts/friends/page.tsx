@@ -1,5 +1,5 @@
 'use client'
-import Friend from 'app/features/contact/Friend'
+import Friend from 'app/features/contacts/Friend'
 
 export default function Page() {
   return <Friend/>

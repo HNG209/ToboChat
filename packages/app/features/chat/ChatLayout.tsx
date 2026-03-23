@@ -17,9 +17,9 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
   // 1. Kiểm tra xem đã "vào trong" một cuộc hội thoại cụ thể chưa
   // Giả sử URL của bạn là /chat/[id], nếu có id nghĩa là đang xem chi tiết
-  const isViewingDetail = params.id || (pathname !== '/chat' && pathname !== '/contact')
+  const isViewingDetail = params.id || (pathname !== '/chat' && pathname !== '/contacts')
 
-  const isFriendPage = pathname === '/contact' || pathname?.startsWith('/contact/')
+  const isFriendPage = pathname === '/contacts' || pathname?.startsWith('/contacts/')
   const isChatPage = pathname?.startsWith('/chat') && !isFriendPage
   if (Platform.OS !== 'web') {
     return (

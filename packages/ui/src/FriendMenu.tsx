@@ -6,10 +6,10 @@ export default function FriendMenu() {
   const pathname = usePathname()
 
   const menuItems = [
-    { label: 'Danh sách bạn bè', path: '/contact/friends' },
-    { label: 'Danh sách nhóm', path: '/contact/groups' },
-    { label: 'Lời mời kết bạn', path: '/contact/friend-requests' },
-    { label: 'Lời mời vào nhóm', path: '/contact/group-requests' },
+    { label: 'Danh sách bạn bè', path: '/contacts/friends' },
+    { label: 'Danh sách nhóm', path: '/contacts/groups' },
+    { label: 'Lời mời kết bạn', path: '/contacts/friend-requests' },
+    { label: 'Lời mời vào nhóm', path: '/contacts/group-requests' },
   ]
 
   return (
@@ -18,6 +18,8 @@ export default function FriendMenu() {
         <Button
           key={item.path}
           justifyContent="flex-start"
+          backgroundColor="$color2"
+          hoverStyle={{backgroundColor: "$color4"}}
           theme={pathname === item.path ? 'blue' : undefined}
           onPress={() => router.push(item.path)} // Chuyển URL ở đây
         >

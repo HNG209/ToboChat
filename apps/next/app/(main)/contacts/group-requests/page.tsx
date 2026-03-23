@@ -1,5 +1,5 @@
 'use client'
-import GroupRequest from 'app/features/contact/GroupRequest'
+import GroupRequest from 'app/features/contacts/GroupRequest'
 
 export default function Page() {
   return <GroupRequest />

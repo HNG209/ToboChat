@@ -27,7 +27,7 @@ export default function GroupPage() {
         <ContactHeader 
           title="Danh sách nhóm"
           subtitle={`${MOCK_GROUPS.length} nhóm đã tham gia`}
-          onBackPath="/contact"
+          onBackPath="/contacts"
           actionElement={
             <Button theme="blue" icon={<Plus size={18} />} borderRadius="$4">
               Tạo nhóm

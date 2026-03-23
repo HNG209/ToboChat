@@ -42,7 +42,7 @@ export default function RequestPage() {
         <ContactHeader
           title="Lời mời kết bạn"
           subtitle={`${requestsData?.items?.length ?? 0} lời mời`}
-          onBackPath="/contact"
+          onBackPath="/contacts"
           actionElement={
           // BỘ LỌC (Filter) 
           <Select

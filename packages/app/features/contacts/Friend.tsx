@@ -36,7 +36,7 @@ export default function Friend() {
         <ContactHeader
           title="Danh sách bạn bè"
           subtitle={`${friendsData?.items?.length ?? 0} bạn bè`}
-          onBackPath="/contact"
+          onBackPath="/contacts"
         />
 
         {/* NỘI DUNG DANH SÁCH */}
