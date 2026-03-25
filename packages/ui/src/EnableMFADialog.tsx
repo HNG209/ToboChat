@@ -1,4 +1,4 @@
-import { Dialog, Text, Button, Image, YStack } from '@my/ui'
+import { Dialog, Text, Button, Image, YStack, Input, InputFrame } from '@my/ui'
 import React from 'react'
 
 export const EnableMFADialog = ({
@@ -29,18 +29,14 @@ export const EnableMFADialog = ({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay opacity={0.5} backgroundColor="#000" />
+        <Dialog.Overlay key="overlay" opacity={0.5} backgroundColor="#000" />
 
-        <Dialog.Content padding="$5" width={400}>
+        <Dialog.Content key="content" padding="$5" width={400}>
           {!secretCode && (
             <YStack space="$3">
               <Text fontWeight="bold">Nhập lại mật khẩu</Text>
 
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <Input secureTextEntry value={password} onChangeText={setPassword} />
 
               <Button onPress={handleSubmitPassword}>Xác nhận</Button>
             </YStack>
@@ -57,12 +53,7 @@ export const EnableMFADialog = ({
                 style={{ width: 200, height: 200 }}
               />
 
-              <input
-                type="text"
-                placeholder="Nhập mã OTP"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-              />
+              <Input placeholder="Nhập mã OTP" value={otpCode} onChangeText={setOtpCode} />
 
               <Button onPress={handleVerifyOTP}>Xác nhận OTP</Button>
             </YStack>

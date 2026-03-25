@@ -1,5 +1,5 @@
 import { useParams } from 'solito/navigation'
-import { ChatDetailScreenMain } from 'app/features/chat/ChatDetailScreenMain'
+import ChatDetailScreenMain from 'app/features/chat/ChatDetailScreenMain'
 import { Stack } from 'expo-router'
 
 export default function ChatScreen() {

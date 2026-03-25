@@ -1,5 +1,5 @@
 'use client'
-import { ChatDetailScreenMain } from 'app/features/chat/ChatDetailScreenMain'
+import ChatDetailScreenMain from 'app/features/chat/ChatDetailScreenMain'
 import { useParams } from 'next/navigation'
 
 export default function Page() {

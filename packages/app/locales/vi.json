@@ -9,5 +9,8 @@
   "sidebar": {
     "message": "Tin nhắn"
   },
-  "contacts": "Danh bạ"
+  "contacts": "Danh bạ",
+  "chats": "Tin nhắn",
+  "friends": "Bạn bè",
+  "informationAccount": "Thông tin tài khoản"
 }
