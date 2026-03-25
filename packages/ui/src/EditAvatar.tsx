@@ -68,7 +68,7 @@ export const EditAvatar = ({
             borderColor="$borderColor"
           >
             <Dialog.Title fontSize="$5" fontWeight="600">
-              Thông tin tài khoản
+              Chỉnh sửa hình ảnh
             </Dialog.Title>
             <Dialog.Close asChild>
               <Button size="$2" circular icon={X} chromeless />

@@ -1,6 +1,7 @@
 import { X } from '@tamagui/lucide-icons'
 import { useEffect, useState } from 'react'
 import { Button, Dialog, XStack, YStack, Label, Input, Image } from 'tamagui'
+import { Platform } from 'react-native'
 interface ProfileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -67,7 +68,7 @@ export const EditProfileDialog = ({
             borderColor="$borderColor"
           >
             <Dialog.Title fontSize="$5" fontWeight="600">
-              Thông tin tài khoản
+              Chỉnh sửa thông tin cá nhân
             </Dialog.Title>
             <Dialog.Close asChild>
               <Button size="$2" circular icon={X} chromeless />
@@ -87,7 +88,7 @@ export const EditProfileDialog = ({
                 borderRadius={50}
               />
 
-              <input type="file" onChange={handleChooseFile} />
+              {Platform.OS === 'web' && <input type="file" onChange={handleChooseFile} />}
             </YStack>
 
             {/* Name */}

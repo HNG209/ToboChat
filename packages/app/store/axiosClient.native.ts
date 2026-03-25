@@ -4,11 +4,13 @@ import Constants from 'expo-constants'
 
 const getBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl) return envUrl
+  if (envUrl) {
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`
+  }
 
   const debuggerHost = Constants.expoConfig?.hostUri
   const localhost = debuggerHost?.split(':')[0]
-  return localhost ? `http://${localhost}:8080` : 'https://api-prod.com'
+  return localhost ? `http://${localhost}:8081/api` : 'http://localhost:8081/api'
 }
 
 let clientInstance: any = null
@@ -18,7 +20,7 @@ export const getAxiosClient = async () => {
 
   const client = axios.create({
     baseURL: getBaseUrl(),
-    headers: { 'Content-Type': 'application/json' },
+    withCredentials: false,
   })
 
   // --- 1. REQUEST INTERCEPTOR ---
@@ -30,6 +32,12 @@ export const getAxiosClient = async () => {
 
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
+        }
+
+        if (!(config.data instanceof FormData)) {
+          config.headers['Content-Type'] = 'application/json'
+        } else {
+          delete config.headers['Content-Type']
         }
       } catch (e) {
         console.log('Chưa đăng nhập')
