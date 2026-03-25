@@ -8,12 +8,14 @@ import {
   FullSettingsDialog,
   Image,
   Popover,
+  ProfileDialog,
   Text,
   Theme,
+  Tooltip,
   XStack,
   YStack,
 } from '@my/ui'
-import { ArrowLeft, Languages, MoreVertical, Sun } from '@tamagui/lucide-icons'
+import { ArrowLeft, Languages, MoreVertical, Sun, User } from '@tamagui/lucide-icons'
 import { usePathname, useRouter } from 'solito/navigation'
 
 import {
@@ -21,6 +23,7 @@ import {
   useDisableMFAMutation,
   useGetProfileQuery,
   useInitMFAMutation,
+  useUpdateProfileMutation,
 } from '../../store/api'
 // Su dung cho dang xuat
 import { LogOut } from '@tamagui/lucide-icons'
@@ -40,7 +43,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   // id	          API gọi
   // undefined	  /users/me
   // "abc123"	    /users/abc123
-  const { data } = useGetProfileQuery(id)
+  const { data: userProfile, refetch } = useGetProfileQuery(id ?? 'me')
 
   // const handleLogout = async () => {
   //   try {
@@ -92,6 +95,10 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   const [openDisableMFA, setOpenDisableMFA] = useState(false)
   const [disablePassword, setDisablePassword] = useState('')
 
+  // Mo phan edit profile
+  const [openProfile, setOpenProfile] = useState(false)
+  //dung cho phan update
+  const [updateProfile] = useUpdateProfileMutation()
   const handleGoToUser = () => {
     push(`/user/me`)
   }
@@ -181,7 +188,15 @@ export default function UserDetailScreen({ id }: { id?: string }) {
 
     setOpenDisableMFA(true)
   }
-
+  const handleSave = async (data: { name?: string; avatar?: File }) => {
+    try {
+      await updateProfile(data).unwrap()
+      await refetch() // 👈 force reload
+      console.log('Update success')
+    } catch (err) {
+      console.error(err)
+    }
+  }
   // xac dinh trang thai MFA
   const checkMFA = async () => {
     try {
@@ -238,34 +253,58 @@ export default function UserDetailScreen({ id }: { id?: string }) {
           </Button>
 
           {/* SỬ DỤNG POPOVER TẠI ĐÂY */}
-          <Popover size="$5" allowFlip placement="bottom-end">
+          <Popover
+            size="$5"
+            allowFlip
+            placement="bottom-end"
+            open={openSetting}
+            onOpenChange={setOpenSetting}
+          >
             <Popover.Trigger asChild>
-              <Button chromeless icon={MoreVertical} color="white" />
+              <Button
+                chromeless
+                icon={MoreVertical}
+                color="white"
+                onPress={() => setOpenSetting(true)}
+              />
             </Popover.Trigger>
             <Popover.Content elevate backgroundColor="$background" padding={0}>
               <YStack width={200} paddingVertical="$2">
-                {/* Nút Đăng xuất */}
-                <XStack
-                  paddingHorizontal="$4"
-                  height={48} // Ép chiều cao hàng cố định
-                  alignItems="center" // Căn giữa theo chiều dọc
-                  onPress={handleLogout}
-                >
-                  <YStack width={30} alignItems="center">
-                    <LogOut size={20} color="$color" />
-                  </YStack>
-                  <Text
-                    color="$color"
-                    fontSize="$4"
-                    lineHeight={20} // Ép độ cao dòng bằng đúng size icon
-                    marginLeft="$2"
+                {/* thong tin ca nhan */}
+                <Tooltip delay={0} placement="right">
+                  <Tooltip.Trigger asChild>
+                    <XStack
+                      paddingHorizontal="$4"
+                      height={48}
+                      alignItems="center"
+                      onPress={() => {
+                        setOpenSetting(false)
+                        setOpenProfile(true)
+                      }}
+                    >
+                      <YStack width={30} alignItems="center">
+                        <User size={20} color="$color" />
+                      </YStack>
+
+                      <Text color="$color" fontSize="$4" lineHeight={20} marginLeft="$2">
+                        {t('informationAccount')}
+                      </Text>
+                    </XStack>
+                  </Tooltip.Trigger>
+
+                  {/* <Tooltip.Content
+                    sideOffset={10}
+                    zIndex={9999}
+                    elevate
+                    backgroundColor="$background"
+                    padding="$2"
+                    borderRadius="$2"
                   >
-                    {t('logout')}
-                  </Text>
-                </XStack>
-
+                    <Tooltip.Arrow />
+                    <Text>{t('informationAccount')}</Text>
+                  </Tooltip.Content> */}
+                </Tooltip>
                 <Separator marginVertical="$2" />
-
                 {/* Nút Đổi Theme */}
                 <XStack
                   key="theme"
@@ -297,7 +336,9 @@ export default function UserDetailScreen({ id }: { id?: string }) {
                     {i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
                   </Text>
                 </XStack>
+
                 <Separator marginVertical="$2" />
+
                 {/* Cai dat chung */}
                 <XStack
                   key="fullSetting"
@@ -314,6 +355,26 @@ export default function UserDetailScreen({ id }: { id?: string }) {
                   </YStack>
                   <Text color="$color" fontSize="$4" lineHeight={20} marginLeft="$2">
                     {t('settings')}
+                  </Text>
+                </XStack>
+                <Separator marginVertical="$2" />
+                {/* Nút Đăng xuất */}
+                <XStack
+                  paddingHorizontal="$4"
+                  height={48} // Ép chiều cao hàng cố định
+                  alignItems="center" // Căn giữa theo chiều dọc
+                  onPress={handleLogout}
+                >
+                  <YStack width={30} alignItems="center">
+                    <LogOut size={20} color="$color" />
+                  </YStack>
+                  <Text
+                    color="$color"
+                    fontSize="$4"
+                    lineHeight={20} // Ép độ cao dòng bằng đúng size icon
+                    marginLeft="$2"
+                  >
+                    {t('logout')}
                   </Text>
                 </XStack>
                 <Separator marginVertical="$2" />
@@ -345,7 +406,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
           borderWidth={4}
           borderColor="white"
         >
-          <Avatar.Image src="https://i.pravatar.cc/300" />
+          <Avatar.Image src={profileData?.result.avatarUrl || 'https://i.pravatar.cc/300'} />
         </Avatar>
       </YStack>
 
@@ -360,7 +421,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
         borderTopRightRadius="$6"
       >
         <Text fontSize="$8" fontWeight="700">
-          {data?.result?.name ?? 'No name'}
+          {profileData?.result?.name ?? 'No name'}
         </Text>
 
         <Text fontSize="$4" color="$color10" textAlign="center">
@@ -407,6 +468,13 @@ export default function UserDetailScreen({ id }: { id?: string }) {
         handleDisableMFA={handleDisableMFA}
         isDisabling={isDisabling}
         setIsTwoFactorAuth={setIsTwoFactorAuth}
+      />
+      {/* Phan mo cai dat cho cho chinh account */}
+      <ProfileDialog
+        onSave={handleSave}
+        open={openProfile}
+        onOpenChange={setOpenProfile}
+        profileData={profileData}
       />
     </YStack>
   )

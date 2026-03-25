@@ -12,7 +12,7 @@ export const getAxiosClient = async () => {
 
   const client = axios.create({
     baseURL: getBaseUrl(),
-    headers: { 'Content-Type': 'application/json' },
+    // headers: { 'Content-Type': 'application/json' }, xoa bo de khong loi
     // Cognito dùng Bearer Token, không dùng Cookie nên withCredentials thường là false
     withCredentials: false,
   })
@@ -27,6 +27,12 @@ export const getAxiosClient = async () => {
 
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
+        }
+        // phan fix them de khong loi
+        if (!(config.data instanceof FormData)) {
+          config.headers['Content-Type'] = 'application/json'
+        } else {
+          delete config.headers['Content-Type']
         }
       } catch (error) {
         console.log('User chưa đăng nhập hoặc lỗi lấy token')
