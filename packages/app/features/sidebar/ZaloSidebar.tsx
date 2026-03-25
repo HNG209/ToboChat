@@ -1,3 +1,4 @@
+'use client'
 import { Dialog, Switch, Text, Theme, Tooltip, XStack } from '@my/ui'
 import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
 import {
@@ -30,8 +31,8 @@ export const ZaloSidebar = () => {
   const router = useRouter()
   const pathname = usePathname()
 
-  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/friend')
-  const isFriend = pathname?.includes('/friend')
+  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/contacts')
+  const isFriend = pathname?.includes('/friends')
   const [initMFA] = useInitMFAMutation()
   const [confirmMFA] = useConfirmMFAMutation()
 
@@ -209,7 +210,7 @@ export const ZaloSidebar = () => {
   }
 
   const handleGoToFriend = () => {
-    push('/chat/friend')
+    push('/contacts')
   }
   const handleGoToChat = () => {
     push('/chat')
@@ -241,15 +242,18 @@ export const ZaloSidebar = () => {
         <Button
           marginTop={20}
           size="$4"
+          borderRadius={0}
+          paddingVertical={30}
           title={t('messages')}
           backgroundColor={isChat ? '#005ae0' : 'transparent'}
           icon={<MessageSquare size={24} color="$color" />}
           onPress={handleGoToChat}
-          marginBottom={10}
         />
         <Button
           size="$4"
+          borderRadius={0}
           title={t('contacts')}
+          paddingVertical={30}
           backgroundColor={isFriend ? '#005ae0' : 'transparent'}
           icon={<Contact2 size={24} color="$color" />}
           onPress={() => handleGoToFriend()}

@@ -3,7 +3,7 @@ import { Button, Image, Text, XStack } from '@my/ui'
 import { Input } from '@my/ui'
 import { YStack } from '@my/ui'
 import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
-import { UserSimpleCard } from '@my/ui'
+import { SearchUserCard } from '@my/ui'
 import {
   useCancelFriendRequestMutation,
   useLazyFindUserByEmailQuery,
@@ -33,12 +33,12 @@ export default function SearchHeader() {
   return (
     <YStack
       padding="$3"
-      marginTop="$5"
       space="$2"
+      paddingTop="$4"
       backgroundColor="$background"
       position="relative"
     >
-      <XStack alignItems="center" space="$2">
+      <XStack alignItems="center" space="$2" flexWrap="wrap">
         <XStack
           flex={1}
           backgroundColor="$color3"
@@ -118,7 +118,7 @@ export default function SearchHeader() {
           {hasResults && (
             <YStack gap="$2">
               {searchData?.items?.map((user) => (
-                <UserSimpleCard
+                <SearchUserCard
                   key={user.id}
                   user={user}
                   requestSent={sentRequests.has(user.id)}

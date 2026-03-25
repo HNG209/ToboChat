@@ -1,120 +1,124 @@
-import { Button, Image, ListItem, YStack, XStack, Text } from '@my/ui'
+import React from 'react'
+import { Button, XStack, YStack, Text, Avatar } from 'tamagui'
+import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
 import { FriendResponse } from '../../app/types/Response'
 import { FriendRequestType } from '../../app/types/Request'
 
 type Props = {
   user: FriendResponse
+  description?: string
+  isGroup?: boolean
   requestId?: string
   type?: FriendRequestType
-  onAction?: (action: 'accept' | 'reject' | 'cancel', id: string) => void
+  onAction?: (action: 'accept' | 'reject' | 'cancel' | 'join', id: string) => void
 }
 
-export function UserCard({ user, type, requestId, onAction }: Props) {
+export function UserCard({ user, description, isGroup = false, type, requestId, onAction }: Props) {
   const isPending = type === FriendRequestType.PENDING
   const isSent = type === FriendRequestType.SENT
 
   return (
-    <ListItem
+    <XStack
       width="100%"
-      paddingVertical="$2"
-      paddingHorizontal="$4"
+      padding="$3"
+      alignItems="center"
+      justifyContent="space-between"
       borderWidth={1}
       borderColor="$borderColor"
       borderRadius="$6"
       backgroundColor="$background"
-      elevation="$2"
-      hoverStyle={{
-        backgroundColor: '$gray2',
-        elevation: '$4',
-      }}
-      pressStyle={{ scale: 0.98 }}
+      hoverStyle={{ backgroundColor: '$gray2' }}
+      pressStyle={{ scale: 0.99 }}
+      gap="$3"
     >
-      <XStack
-        width="100%"
-        alignItems="center"
-        justifyContent="space-between"
-        gap="$4"
-        flexWrap="wrap"
-      >
-        {/* LEFT: Avatar + Info */}
-        <XStack alignItems="center" gap="$4" flex={1} minWidth={220}>
-          <Image
-            source={{
-              uri: user?.avatarUrl || 'https://via.placeholder.com/64x64?text=Avatar',
-            }}
-            width={64}
-            height={64}
-            borderRadius={32}
+      {/* LEFT: Avatar + Thông tin người dùng */}
+      <XStack alignItems="center" gap="$3" flex={1}>
+        <Avatar circular size="$5">
+          <Avatar.Image
+            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
           />
+          <Avatar.Fallback backgroundColor="$gray5" />
+        </Avatar>
 
-          <YStack flex={1} gap="$1">
-            <Text fontWeight="700" fontSize="$6">
-              {user.name}
+        <YStack flex={1}>
+          <Text fontWeight="700" fontSize="$4" color="$color">
+            {user.name}
+          </Text>
+          <XStack alignItems="center" gap="$1.5">
+            {/* CHỖ NÀY: Chỉ hiện icon Users nếu prop isGroup là true */}
+            {isGroup && <Users size={12} color="$gray10" />}
+            
+            <Text color="$gray10" fontSize="$2" numberOfLines={1}>
+              {description || user.email}
             </Text>
-            <Text color="$gray10" fontSize="$4">
-              {'abc@gmail.com'}
-            </Text>
-          </YStack>
-        </XStack>
+          </XStack>
+        </YStack>
+      </XStack>
 
-        {/* RIGHT: Nút hành động */}
-        <XStack alignItems="center" gap="$3" flexWrap="wrap" justifyContent="flex-end">
+      {/* RIGHT: Các nút hành động */}
+      <XStack gap="$2" alignItems="center">
+        {isGroup ? (
+          <Button 
+            size="$3" 
+            variant="outline" 
+            borderRadius="$4"
+            onPress={() => onAction?.('join', user.id)}
+          >
+            Vào nhóm
+          </Button>
+        ) : (
+          <>
+          {/* Trường hợp: Danh sách bạn bè bình thường */}
           {!isPending && !isSent && (
             <Button
-              size="$4"
+              size="$3"
               circular
-              width={44}
-              height={44}
-              backgroundColor="$gray3"
-              hoverStyle={{ backgroundColor: '$gray5' }}
-              pressStyle={{ scale: 0.95 }}
-            >
-              <Text fontSize="$6">⋯</Text>
-            </Button>
+              chromeless
+              icon={<MoreHorizontal size={20} color="$gray10" />}
+              hoverStyle={{ backgroundColor: '$gray4' }}
+            />
           )}
 
+          {/* Trường hợp: Lời mời ĐÃ NHẬN (Pending) */}
           {isPending && (
-            <XStack gap="$3">
+            <XStack gap="$2">
               <Button
                 size="$3"
-                theme="green"
-                borderRadius="$8"
-                paddingHorizontal="$4"
-                onPress={() => {
-                  onAction?.('accept')
-                }}
+                theme="blue"
+                borderRadius="$4"
+                icon={<Check size={16} />}
+                onPress={() => onAction?.('accept', user.id)}
               >
                 Chấp nhận
               </Button>
-
               <Button
                 size="$3"
-                theme="red"
-                borderRadius="$8"
-                paddingHorizontal="$4"
-                onPress={() => {
-                  onAction?.('reject')
-                }}
+                variant="outline"
+                borderRadius="$4"
+                icon={<X size={16} />}
+                onPress={() => onAction?.('reject', user.id)}
               >
                 Từ chối
               </Button>
             </XStack>
           )}
+
+          {/* Trường hợp: Lời mời ĐÃ GỬI (Sent) */}
           {isSent && (
             <Button
               size="$3"
               theme="red"
-              borderRadius="$8"
-              paddingHorizontal="$4"
-              onPress={() => {
-                onAction?.('cancel', requestId!)
-              }}
+              variant="outline"
+              borderRadius="$4"
+              icon={<UserMinus size={16} />}
+              onPress={() => onAction?.('cancel', requestId || user.id)}
             >
-              Hủy gửi
+              Hủy yêu cầu
             </Button>
           )}
-        </XStack>
+          </>
+        )}
       </XStack>
-    </ListItem>
+    </XStack>
   )
 }

@@ -1,3 +1,5 @@
+"use client"
+
 import { Theme, XStack, YStack } from '@my/ui'
 import React from 'react'
 import { Platform } from 'react-native'
@@ -15,9 +17,9 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
   // 1. Kiểm tra xem đã "vào trong" một cuộc hội thoại cụ thể chưa
   // Giả sử URL của bạn là /chat/[id], nếu có id nghĩa là đang xem chi tiết
-  const isViewingDetail = params.id || (pathname !== '/chat' && pathname !== '/chat/friend')
+  const isViewingDetail = params.id || (pathname !== '/chat' && pathname !== '/contacts')
 
-  const isFriendPage = pathname === '/chat/friend' || pathname?.startsWith('/chat/friend/')
+  const isFriendPage = pathname === '/contacts' || pathname?.startsWith('/contacts/')
   const isChatPage = pathname?.startsWith('/chat') && !isFriendPage
   if (Platform.OS !== 'web') {
     return (
@@ -50,7 +52,11 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           height="100%"
           borderRightWidth={1}
           borderColor="$borderColor"
-          $sm={{ display: isViewingDetail ? 'none' : 'flex', width: '100%' }}
+          $sm={{ display: isViewingDetail ? 'none' : 'flex', 
+            width: "100%",
+            flex: 1, 
+            minWidth: 0,
+          }}
         >
           <YStack flex={1} backgroundColor="$color2">
             <SearchHeader />
