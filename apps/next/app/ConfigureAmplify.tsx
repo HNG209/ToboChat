@@ -2,10 +2,10 @@
 'use client'
 
 import { Amplify } from 'aws-amplify'
-import config from 'app/config/amplifyconfiguration.json'
+import { amplifyConfig } from 'app/config/amplify-config'
 
 // Chạy cấu hình ngay khi component được load
-Amplify.configure(config, { ssr: true })
+Amplify.configure(amplifyConfig, { ssr: true })
 
 export default function ConfigureAmplify() {
   return null

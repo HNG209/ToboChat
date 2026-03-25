@@ -7,13 +7,13 @@ import { SplashScreen, Stack, Tabs } from 'expo-router'
 import { Provider } from 'app/provider'
 import { NativeToast } from '@my/ui/src/NativeToast'
 import { Amplify } from 'aws-amplify'
-import config from 'app/config/amplifyconfiguration.json'
+import { amplifyConfig } from 'app/config/amplify-config'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useAppTheme } from 'app/provider/ThemeContext'
 
-Amplify.configure(config)
+Amplify.configure(amplifyConfig)
 
 cognitoUserPoolsTokenProvider.setKeyValueStorage({
   setItem: AsyncStorage.setItem,
