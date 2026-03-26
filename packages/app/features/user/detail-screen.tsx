@@ -33,7 +33,7 @@ import {
   useInitMFAMutation,
 } from 'app/services/authApi'
 
-export default function UserDetailScreen({ id }: { id?: string }) {
+export default function UserDetailScreen() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -42,7 +42,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   // id	          API gọi
   // undefined	  /users/me
   // "abc123"	    /users/abc123
-  const { data: userProfile, refetch } = useGetProfileQuery(id ?? 'me')
+  const { data: userProfile, refetch } = useGetProfileQuery()
 
   // Chuyen doi ngon ngu
 
@@ -65,7 +65,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   const [openSetting, setOpenSetting] = useState(false)
 
   const { data: profileData } = useGetProfileQuery()
-  const userId = profileData?.result?.pk?.replace('USER#', '')
+  const userId = profileData?.id
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
   const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
@@ -382,7 +382,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
           borderWidth={4}
           borderColor="white"
         >
-          <Avatar.Image src={profileData?.result.avatarUrl || 'https://i.pravatar.cc/300'} />
+          <Avatar.Image src={profileData?.avatarUrl || 'https://i.pravatar.cc/300'} />
         </Avatar>
       </YStack>
 
@@ -397,7 +397,7 @@ export default function UserDetailScreen({ id }: { id?: string }) {
         borderTopRightRadius="$6"
       >
         <Text fontSize="$8" fontWeight="700">
-          {profileData?.result?.name ?? 'No name'}
+          {profileData?.name ?? 'No name'}
         </Text>
 
         <Text fontSize="$4" color="$color10" textAlign="center">

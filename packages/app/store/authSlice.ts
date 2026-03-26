@@ -1,10 +1,11 @@
 // packages/app/store/authSlice.ts
 import { createSlice } from '@reduxjs/toolkit'
 import { userApi } from 'app/services/userApi'
+import { UserResponse } from 'app/types/Response'
 import { User } from 'app/types/User'
 
 export interface AuthState {
-  user: User | null
+  user: UserResponse | null
   isAuthenticated: boolean
 }
 

@@ -40,7 +40,7 @@ export const ZaloSidebar = () => {
   const [openSetting, setOpenSetting] = useState(false)
 
   const { data: profileData } = useGetProfileQuery()
-  const userId = profileData?.result?.pk?.replace('USER#', '')
+  const userId = profileData?.id
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
   const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
@@ -73,7 +73,7 @@ export const ZaloSidebar = () => {
   const handleSave = async (data: { name?: string; avatar?: File }) => {
     try {
       await updateProfile(data).unwrap()
-      await refetch() // 👈 force reload
+      await refetch()
       console.log('Update success')
     } catch (err) {
       console.error(err)
@@ -234,7 +234,7 @@ export const ZaloSidebar = () => {
           borderColor="$color"
           overflow="hidden"
         >
-          <Image source={{ uri: profileData?.result?.avatarUrl }} width={45} height={45} />
+          <Image source={{ uri: profileData?.avatarUrl }} width={45} height={45} />
         </View>
 
         {/* Icon Tin nhan */}

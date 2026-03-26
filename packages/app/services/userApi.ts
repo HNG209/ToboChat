@@ -4,12 +4,8 @@ import { FindUserByEmailRequest } from 'app/types/Request'
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getProfile: builder.query<
-      any, // response type (tạm để any, lát mình tối ưu sau)
-      string | void // argument type
-    >({
-      query: (id) =>
-        id ? { url: `/users/${id}`, method: 'GET' } : { url: '/users/me', method: 'GET' },
+    getProfile: builder.query<UserResponse, void>({
+      query: () => ({ url: '/users/me', method: 'GET' }),
       providesTags: ['Profile'],
     }),
 
@@ -38,9 +34,6 @@ export const userApi = baseApi.injectEndpoints({
           url: '/users/me',
           method: 'PUT',
           data: formData,
-
-          // 🔥 QUAN TRỌNG: KHÔNG set Content-Type
-          // để axios tự xử lý multipart/form-data
           headers: undefined,
         }
       },
