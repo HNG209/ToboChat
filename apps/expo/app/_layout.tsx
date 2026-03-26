@@ -59,21 +59,17 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      {/* Fix StatusBar theo theme của App */}
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <Stack
         screenOptions={{
+          headerShown: false,
           contentStyle: {
             // Fix lỗi hở trắng trên Android
             backgroundColor: isDark ? '#000000' : '#FFFFFF',
           },
         }}
-      >
-        <Stack.Screen name="(main)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-      </Stack>
+      />
       <NativeToast />
     </ThemeProvider>
   )

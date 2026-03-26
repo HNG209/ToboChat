@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { Theme, XStack, YStack } from '@my/ui'
 import React from 'react'
@@ -10,6 +10,7 @@ import FriendMenu from '@my/ui/src/FriendMenu'
 import SearchHeader from '@my/ui/src/SearchHeader'
 import ChatInbox from '@my/ui/src/ChatInbox'
 
+// Chỉ dùng cho next, expo sẽ dùng trực tiếp trong _layout.tsx
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
   const { theme } = useAppTheme()
@@ -18,9 +19,8 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   // 1. Kiểm tra xem đã "vào trong" một cuộc hội thoại cụ thể chưa
   // Giả sử URL của bạn là /chat/[id], nếu có id nghĩa là đang xem chi tiết
   const isViewingDetail = params.id || (pathname !== '/chat' && pathname !== '/contacts')
+  const isContactsPage = pathname === '/contacts' || pathname?.startsWith('/contacts/')
 
-  const isFriendPage = pathname === '/contacts' || pathname?.startsWith('/contacts/')
-  const isChatPage = pathname?.startsWith('/chat') && !isFriendPage
   if (Platform.OS !== 'web') {
     return (
       <YStack marginTop={20} flex={1}>
@@ -52,15 +52,11 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           height="100%"
           borderRightWidth={1}
           borderColor="$borderColor"
-          $sm={{ display: isViewingDetail ? 'none' : 'flex', 
-            width: "100%",
-            flex: 1, 
-            minWidth: 0,
-          }}
+          $sm={{ display: isViewingDetail ? 'none' : 'flex', width: '100%', flex: 1, minWidth: 0 }}
         >
           <YStack flex={1} backgroundColor="$color2">
             <SearchHeader />
-            {isFriendPage ? <FriendMenu /> : <ChatInbox />}
+            {isContactsPage ? <FriendMenu /> : <ChatInbox />}
           </YStack>
         </YStack>
 
