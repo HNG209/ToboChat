@@ -10,7 +10,6 @@ import { Amplify } from 'aws-amplify'
 import { amplifyConfig } from 'app/config/amplify-config'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useAppTheme } from 'app/provider/ThemeContext'
 
 Amplify.configure(amplifyConfig)

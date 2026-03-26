@@ -1,5 +1,5 @@
 'use client'
 
-import { TestRefreshScreen } from 'app/features/test/TestRefreshScreen'
+import { UploadProfile } from 'app/features/test/UploadProfile'
 
-export default TestRefreshScreen
+export default UploadProfile
