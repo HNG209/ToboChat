@@ -1,17 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
-import { api } from './api' // Cái api RTK Query bạn tạo lúc nãy
 import authReducer from './authSlice'
+import { baseApi } from 'app/services/baseApi'
 
 export const store = configureStore({
   reducer: {
+    [baseApi.reducerPath]: baseApi.reducer,
     // Quản lý Auth
     auth: authReducer,
-    // Quản lý API caching
-    [api.reducerPath]: api.reducer,
   },
   // Thêm middleware của RTK Query
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(baseApi.middleware),
 })
 
 setupListeners(store.dispatch)

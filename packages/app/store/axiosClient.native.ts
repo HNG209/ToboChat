@@ -1,6 +1,7 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import Constants from 'expo-constants'
+import { ApiResponse } from 'app/types/Response'
 
 const getBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_URL
@@ -23,7 +24,6 @@ export const getAxiosClient = async () => {
     withCredentials: false,
   })
 
-  // --- 1. REQUEST INTERCEPTOR ---
   client.interceptors.request.use(
     async (config) => {
       try {
@@ -47,13 +47,38 @@ export const getAxiosClient = async () => {
     (error) => Promise.reject(error)
   )
 
-  // --- 2. RESPONSE INTERCEPTOR ---
   client.interceptors.response.use(
     (response) => response,
     (error) => {
       if (error.response?.status === 401) {
         console.log('Token hết hạn, user cần đăng nhập lại')
       }
+      return Promise.reject(error)
+    }
+  )
+
+  client.interceptors.response.use(
+    (response) => {
+      // Lấy data gốc từ server
+      const data = response.data as ApiResponse
+
+      // Kiểm tra xem có đúng format Spring Boot không (có field code và result)
+      if (data && typeof data.code === 'number') {
+        if (data.code === 1000) {
+          response.data = data.result
+          return response
+        }
+
+        return Promise.reject({
+          response: response,
+          message: data.message || 'Lỗi nghiệp vụ không xác định',
+          code: data.code, // Lưu lại mã lỗi để hiển thị nếu cần
+        })
+      }
+
+      return response
+    },
+    (error: AxiosError) => {
       return Promise.reject(error)
     }
   )

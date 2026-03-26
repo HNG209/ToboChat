@@ -4,7 +4,7 @@ import { getCurrentUser } from 'aws-amplify/auth'
 import { Hub } from 'aws-amplify/utils'
 import { useRouter, usePathname } from 'solito/navigation'
 import { Spinner, YStack } from 'tamagui' // Đã đổi sang Tamagui
-import { useLazyGetProfileQuery } from 'app/store/api'
+import { useLazyGetProfileQuery } from 'app/services/userApi'
 
 // Danh sách các đường dẫn KHÔNG cần đăng nhập (Public)
 const PUBLIC_PATHS = ['/login', '/auth/forgot-password']

@@ -23,9 +23,9 @@ import {
   useConfirmMFAMutation,
   useDisableMFAMutation,
   useInitMFAMutation,
-  useUpdateProfileMutation,
-} from 'app/store/api'
-import { useGetProfileQuery } from 'app/store/api'
+} from 'app/services/authApi'
+import { useGetProfileQuery, useUpdateProfileMutation } from 'app/services/userApi'
+
 export const ZaloSidebar = () => {
   const { push } = useRouter()
   const router = useRouter()

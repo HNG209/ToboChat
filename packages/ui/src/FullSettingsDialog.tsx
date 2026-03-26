@@ -1,13 +1,5 @@
 import { Dialog, Text, XStack, YStack, ListItem, Button, Switch } from '@my/ui'
-import React from 'react'
 import {
-  Contact2,
-  Languages,
-  LogOut,
-  MessageSquare,
-  Settings,
-  Sun,
-  User,
   X,
 } from '@tamagui/lucide-icons'
 export const FullSettingsDialog = ({

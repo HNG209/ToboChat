@@ -18,13 +18,6 @@ import {
 import { ArrowLeft, Languages, MoreVertical, Sun, User } from '@tamagui/lucide-icons'
 import { usePathname, useRouter } from 'solito/navigation'
 
-import {
-  useConfirmMFAMutation,
-  useDisableMFAMutation,
-  useGetProfileQuery,
-  useInitMFAMutation,
-  useUpdateProfileMutation,
-} from '../../store/api'
 // Su dung cho dang xuat
 import { LogOut } from '@tamagui/lucide-icons'
 import { Separator } from '@my/ui'
@@ -33,6 +26,12 @@ import React, { useEffect, useState } from 'react'
 import { fetchMFAPreference, signOut } from 'aws-amplify/auth'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { useTranslation } from 'react-i18next'
+import { useGetProfileQuery, useUpdateProfileMutation } from 'app/services/userApi'
+import {
+  useConfirmMFAMutation,
+  useDisableMFAMutation,
+  useInitMFAMutation,
+} from 'app/services/authApi'
 
 export default function UserDetailScreen({ id }: { id?: string }) {
   const [open, setOpen] = useState(false)
