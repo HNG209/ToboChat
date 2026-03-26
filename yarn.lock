@@ -10564,6 +10564,7 @@ __metadata:
     async-mutex: "npm:^0.5.0"
     axios: "npm:^1.13.2"
     burnt: "npm:^0.12.2"
+    expo-document-picker: "npm:^55.0.9"
     expo-linking: "npm:~7.1.4"
     expo-secure-store: "npm:^15.0.8"
     react-native-safe-area-context: "npm:5.4.0"
@@ -13619,6 +13620,15 @@ __metadata:
   peerDependencies:
     expo: "*"
   checksum: 10/7d50ca3f33a374bb805fc2997526d3654a04f95cadf756ec2e4cdf149eb9b29317c4a2dc7ac2e29c2928034690b257bb9227c4a22f0f5aa8912ef8974df6cc10
+  languageName: node
+  linkType: hard
+
+"expo-document-picker@npm:^55.0.9":
+  version: 55.0.9
+  resolution: "expo-document-picker@npm:55.0.9"
+  peerDependencies:
+    expo: "*"
+  checksum: 10/8ba7f64f6060595dc86c8349cd9341b0e4832d9ddc02b852abff1d13a55908e916045a7074481e6da30a971b635b3b7714b605f3a7992ee9f67d5aae510c8e20
   languageName: node
   linkType: hard
 

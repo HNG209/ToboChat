@@ -3,16 +3,12 @@ import { YStack, XStack, Input, Button, H3, Text, Image, ScrollView } from 'tama
 import { Search, ChevronLeft, Contact } from '@tamagui/lucide-icons'
 import { useMedia } from 'tamagui'
 import { ContactHeader, UserCard } from '@my/ui'
-import {
-  useGetMyFriendListQuery,
-  useLazyFindUserByEmailQuery,
-} from '../../store/api'
 import { useRouter } from 'solito/navigation'
+import { useGetMyFriendListQuery } from 'app/services/contactApi'
+import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
 
 export default function Friend() {
-  const router = useRouter();
   const [keyword, setKeyword] = useState('')
-  const media = useMedia()
 
   const {
     data: friendsData,
@@ -49,13 +45,21 @@ export default function Friend() {
           gap="$2"
         >
           {/* Thanh Search tích hợp luôn vào trang List */}
-          <XStack alignItems="center" paddingHorizontal="$3" marginBottom="$2" backgroundColor="$background" borderRadius="$4" borderWidth={1} borderColor="$borderColor">
+          <XStack
+            alignItems="center"
+            paddingHorizontal="$3"
+            marginBottom="$2"
+            backgroundColor="$background"
+            borderRadius="$4"
+            borderWidth={1}
+            borderColor="$borderColor"
+          >
             <Search size={18} color="$gray10" />
-            <Input 
-              flex={1} 
-              borderWidth={0} 
-              placeholder="Tìm kiếm bạn qua email..." 
-              value={keyword} 
+            <Input
+              flex={1}
+              borderWidth={0}
+              placeholder="Tìm kiếm bạn qua email..."
+              value={keyword}
               onChangeText={setKeyword}
               backgroundColor="transparent"
             />
@@ -79,7 +83,9 @@ export default function Friend() {
                   <UserCard key={user.id} user={user} />
                 ))}
                 {!friendsLoading && (friendsData?.items?.length ?? 0) === 0 && (
-                  <Text color="$gray10" textAlign="center" marginTop="$10">Chưa có bạn bè nào</Text>
+                  <Text color="$gray10" textAlign="center" marginTop="$10">
+                    Chưa có bạn bè nào
+                  </Text>
                 )}
               </>
             )}

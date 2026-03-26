@@ -3,7 +3,8 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "**/*.json"
+    "**/*.json",
+    "../ui/src/**/*"
   ],
   "compilerOptions": {
     "composite": true,

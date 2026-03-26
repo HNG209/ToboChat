@@ -23,7 +23,8 @@ export const axiosBaseQuery =
         data,
         params,
       })
-      return { data: result.data }
+
+      return { data: result.data } // Trả về data hoặc results nếu có
     } catch (axiosError) {
       const err = axiosError as AxiosError
       return {

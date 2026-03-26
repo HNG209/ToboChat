@@ -4,11 +4,11 @@ import { Input } from '@my/ui'
 import { YStack } from '@my/ui'
 import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
 import { SearchUserCard } from '@my/ui'
+import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
 import {
-  useCancelFriendRequestMutation,
-  useLazyFindUserByEmailQuery,
   useSendFriendRequestMutation,
-} from 'app/store/api'
+  useCancelFriendRequestMutation,
+} from 'app/services/contactApi'
 
 export default function SearchHeader() {
   const [searchFocus, setSearchFocus] = useState(false)

@@ -1,6 +1,6 @@
 // packages/app/store/authSlice.ts
 import { createSlice } from '@reduxjs/toolkit'
-import { api } from './api'
+import { userApi } from 'app/services/userApi'
 import { User } from 'app/types/User'
 
 export interface AuthState {
@@ -18,12 +18,12 @@ const authSlice = createSlice({
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    builder.addMatcher(api.endpoints.getProfile.matchFulfilled, (state, action) => {
+    builder.addMatcher(userApi.endpoints.getProfile.matchFulfilled, (state, action) => {
       // action.payload chính là thông tin user từ backend trả về
       state.user = action.payload
       state.isAuthenticated = true
     })
-    builder.addMatcher(api.endpoints.getProfile.matchRejected, (state) => {
+    builder.addMatcher(userApi.endpoints.getProfile.matchRejected, (state) => {
       state.user = null
       state.isAuthenticated = false
     })

@@ -1,7 +1,7 @@
 import { Avatar, YStack, XStack, Text, Button } from 'tamagui'
-import { UserResponse } from '../../app/types/Response'
+import { UserResponse } from 'app/types/Response'
 import { useSelector } from 'react-redux'
-import { RootState } from '../../app/store'
+import { RootState } from 'app/store'
 import { UserPlus, UserMinus, Check } from '@tamagui/lucide-icons'
 
 type Props = {
@@ -20,7 +20,7 @@ export function SearchUserCard({
   onCancelRequest,
 }: Props) {
   const currentUser = useSelector((state: RootState) => state.auth.user)
-  const currentUserId = currentUser?.result?.id
+  const currentUserId = currentUser?.id
   const isSelf = String(user.id) === String(currentUserId)
 
   return (

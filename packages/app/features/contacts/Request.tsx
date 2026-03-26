@@ -2,16 +2,16 @@ import React, { useState } from 'react'
 import { YStack, XStack, H3, Text, Select, ScrollView, Button } from 'tamagui'
 import { ChevronDown, ChevronLeft } from '@tamagui/lucide-icons'
 import { ContactHeader, UserCard } from '@my/ui'
-import {
-  useGetMyFriendRequestsQuery,
-  useCancelFriendRequestMutation,
-  useRespondFriendRequestMutation,
-} from '../../store/api'
 import { FriendRequestType } from '../../types/Request'
 import { useRouter } from 'solito/navigation'
+import {
+  useCancelFriendRequestMutation,
+  useGetMyFriendRequestsQuery,
+  useRespondFriendRequestMutation,
+} from 'app/services/contactApi'
 
 export default function RequestPage() {
-  const router = useRouter();
+  const router = useRouter()
   const [requestFilter, setRequestFilter] = useState<FriendRequestType>(FriendRequestType.PENDING)
 
   const [cancelFriendRequest] = useCancelFriendRequestMutation()
@@ -21,14 +21,14 @@ export default function RequestPage() {
     data: requestsData,
     isLoading: requestsLoading,
     error: requestsError,
-  } = useGetMyFriendRequestsQuery(
-    { type: requestFilter, limit: 10 }
-  )
+  } = useGetMyFriendRequestsQuery({ type: requestFilter, limit: 10 })
 
   const handleAction = async (action: string, targetId: string) => {
     try {
-      if (action === 'accept') await respondFriendRequest({ otherId: targetId, accepted: true }).unwrap()
-      if (action === 'reject') await respondFriendRequest({ otherId: targetId, accepted: false }).unwrap()
+      if (action === 'accept')
+        await respondFriendRequest({ otherId: targetId, accepted: true }).unwrap()
+      if (action === 'reject')
+        await respondFriendRequest({ otherId: targetId, accepted: false }).unwrap()
       if (action === 'cancel') await cancelFriendRequest({ otherId: targetId }).unwrap()
     } catch (err) {
       console.error('API error:', err)
@@ -44,26 +44,26 @@ export default function RequestPage() {
           subtitle={`${requestsData?.items?.length ?? 0} lời mời`}
           onBackPath="/contacts"
           actionElement={
-          // BỘ LỌC (Filter) 
-          <Select
-            value={requestFilter}
-            onValueChange={(val) => setRequestFilter(val as FriendRequestType)}
-            disablePreventBodyScroll
-          >
-            <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>
-              <Select.Value placeholder="Chọn loại lời mời" />
-            </Select.Trigger>
-            <Select.Content zIndex={200000}>
-              <Select.Viewport>
-                <Select.Item index={0} value={FriendRequestType.PENDING}>
-                  <Select.ItemText>Lời mời đã nhận</Select.ItemText>
-                </Select.Item>
-                <Select.Item index={1} value={FriendRequestType.SENT}>
-                  <Select.ItemText>Lời mời đã gửi</Select.ItemText>
-                </Select.Item>
-              </Select.Viewport>
-            </Select.Content>
-          </Select>
+            // BỘ LỌC (Filter)
+            <Select
+              value={requestFilter}
+              onValueChange={(val) => setRequestFilter(val as FriendRequestType)}
+              disablePreventBodyScroll
+            >
+              <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>
+                <Select.Value placeholder="Chọn loại lời mời" />
+              </Select.Trigger>
+              <Select.Content zIndex={200000}>
+                <Select.Viewport>
+                  <Select.Item index={0} value={FriendRequestType.PENDING}>
+                    <Select.ItemText>Lời mời đã nhận</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item index={1} value={FriendRequestType.SENT}>
+                    <Select.ItemText>Lời mời đã gửi</Select.ItemText>
+                  </Select.Item>
+                </Select.Viewport>
+              </Select.Content>
+            </Select>
           }
         />
 
@@ -79,7 +79,7 @@ export default function RequestPage() {
           <ScrollView gap="$3" flex={1}>
             {requestsLoading && <Text>Đang tải...</Text>}
             {requestsError && <Text color="red">Lỗi tải dữ liệu</Text>}
-            
+
             {requestsData?.items?.map((request, index) => (
               <UserCard
                 key={`${request.id}-${index}`}

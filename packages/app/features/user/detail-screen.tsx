@@ -18,13 +18,6 @@ import {
 import { ArrowLeft, Languages, MoreVertical, Sun, User } from '@tamagui/lucide-icons'
 import { usePathname, useRouter } from 'solito/navigation'
 
-import {
-  useConfirmMFAMutation,
-  useDisableMFAMutation,
-  useGetProfileQuery,
-  useInitMFAMutation,
-  useUpdateProfileMutation,
-} from '../../store/api'
 // Su dung cho dang xuat
 import { LogOut } from '@tamagui/lucide-icons'
 import { Separator } from '@my/ui'
@@ -33,6 +26,12 @@ import React, { useEffect, useState } from 'react'
 import { fetchMFAPreference, signOut } from 'aws-amplify/auth'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { useTranslation } from 'react-i18next'
+import { useGetProfileQuery, useUpdateProfileMutation } from 'app/services/userApi'
+import {
+  useConfirmMFAMutation,
+  useDisableMFAMutation,
+  useInitMFAMutation,
+} from 'app/services/authApi'
 
 export default function UserDetailScreen({ id }: { id?: string }) {
   const [open, setOpen] = useState(false)
@@ -45,23 +44,12 @@ export default function UserDetailScreen({ id }: { id?: string }) {
   // "abc123"	    /users/abc123
   const { data: userProfile, refetch } = useGetProfileQuery(id ?? 'me')
 
-  // const handleLogout = async () => {
-  //   try {
-  //     await signOut()
-  //     setOpen(false)
-  //     router.replace('/')
-  //   } catch (err) {
-  //     console.log('Logout error', err)
-  //   }
-  // }
-
   // Chuyen doi ngon ngu
 
   const { t, i18n } = useTranslation()
   const toggleLanguage = () => {
     const currentLang = i18n.language || 'vi'
     const newLang = currentLang.includes('vi') ? 'en' : 'vi'
-    console.log('Switching to:', newLang)
     i18n.changeLanguage(newLang)
   }
 
@@ -202,7 +190,6 @@ export default function UserDetailScreen({ id }: { id?: string }) {
     try {
       const mfa = await fetchMFAPreference()
 
-      console.log('MFA preference:', mfa)
       const enabled = mfa?.enabled ?? []
       /*
         mfa sẽ trả về dạng:
@@ -226,7 +213,8 @@ export default function UserDetailScreen({ id }: { id?: string }) {
     try {
       await signOut()
       setOpenSignOut(false)
-      router.replace('/') // dùng replace để không back lại được
+      setOpenSetting(false)
+      router.replace('/login') // dùng replace để không back lại được
     } catch (err) {
       console.log('Logout error', err)
     }
@@ -291,18 +279,6 @@ export default function UserDetailScreen({ id }: { id?: string }) {
                       </Text>
                     </XStack>
                   </Tooltip.Trigger>
-
-                  {/* <Tooltip.Content
-                    sideOffset={10}
-                    zIndex={9999}
-                    elevate
-                    backgroundColor="$background"
-                    padding="$2"
-                    borderRadius="$2"
-                  >
-                    <Tooltip.Arrow />
-                    <Text>{t('informationAccount')}</Text>
-                  </Tooltip.Content> */}
                 </Tooltip>
                 <Separator marginVertical="$2" />
                 {/* Nút Đổi Theme */}

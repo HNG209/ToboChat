@@ -2,24 +2,17 @@ import { Tabs } from 'expo-router'
 import { MessageCircle, User, List } from '@tamagui/lucide-icons'
 import SearchHeader from '@my/ui/src/SearchHeader'
 import { useTranslation } from 'react-i18next'
+import ChatLayout from 'app/features/chat/ChatLayout'
+
 export default function MainLayout() {
   const { t } = useTranslation()
   return (
+    // <ChatLayout>
     <Tabs
       screenOptions={{
         header: () => <SearchHeader />,
       }}
     >
-      {/* <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle color={color} size={size} />
-          ),
-        }}
-      /> */}
-
       <Tabs.Screen
         name="chat"
         options={{
@@ -36,12 +29,13 @@ export default function MainLayout() {
         }}
       />
       <Tabs.Screen
-        name="friend"
+        name="contacts"
         options={{
-          title: t('friends'),
+          title: 'Kết nối',
           tabBarIcon: ({ color, size }) => <List color={color} size={size} />,
         }}
       />
     </Tabs>
+    // </ChatLayout>
   )
 }

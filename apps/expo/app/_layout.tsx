@@ -10,7 +10,6 @@ import { Amplify } from 'aws-amplify'
 import { amplifyConfig } from 'app/config/amplify-config'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useAppTheme } from 'app/provider/ThemeContext'
 
 Amplify.configure(amplifyConfig)
@@ -60,21 +59,17 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      {/* Fix StatusBar theo theme của App */}
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <Stack
         screenOptions={{
+          headerShown: false,
           contentStyle: {
             // Fix lỗi hở trắng trên Android
             backgroundColor: isDark ? '#000000' : '#FFFFFF',
           },
         }}
-      >
-        <Stack.Screen name="(main)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-      </Stack>
+      />
       <NativeToast />
     </ThemeProvider>
   )
