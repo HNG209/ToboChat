@@ -1,4 +1,4 @@
-import { FriendStatus } from './Enums'
+import { FriendStatus, RoomType } from './Enums'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -11,7 +11,6 @@ export interface PageResponse<T> {
   nextCursor?: string
 }
 
-// ===== Response item =====
 export interface FriendResponse {
   id: string
   name: string
@@ -33,5 +32,12 @@ export interface FriendRequestResponse {
   id: string
   name: string
   avatarUrl?: string
+  createdAt: string
+}
+
+export interface RoomResponse {
+  id: string
+  roomName: string
+  roomType: RoomType
   createdAt: string
 }
