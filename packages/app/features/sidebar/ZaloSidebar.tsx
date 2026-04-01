@@ -1,5 +1,5 @@
 'use client'
-import { Dialog, Switch, Text, Theme, Tooltip, XStack } from '@my/ui'
+import { Avatar, Dialog, Switch, Text, Theme, Tooltip, XStack } from '@my/ui'
 import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
 import {
   Contact2,
@@ -226,16 +226,15 @@ export const ZaloSidebar = () => {
       >
         {/* Avatar */}
 
-        <View
-          width={45}
-          height={45}
-          borderRadius={100}
-          borderWidth={1}
-          borderColor="$color"
-          overflow="hidden"
-        >
-          <Image source={{ uri: profileData?.avatarUrl }} width={45} height={45} />
-        </View>
+        <Avatar circular size="$4">
+          <Avatar.Image
+            src={
+              profileData?.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${profileData?.name}&background=random`
+            }
+          />
+          <Avatar.Fallback backgroundColor="$gray5" />
+        </Avatar>
 
         {/* Icon Tin nhan */}
 

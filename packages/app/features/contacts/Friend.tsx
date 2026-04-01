@@ -44,27 +44,6 @@ export default function Friend() {
           borderRadius="$6"
           gap="$2"
         >
-          {/* Thanh Search tích hợp luôn vào trang List */}
-          <XStack
-            alignItems="center"
-            paddingHorizontal="$3"
-            marginBottom="$2"
-            backgroundColor="$background"
-            borderRadius="$4"
-            borderWidth={1}
-            borderColor="$borderColor"
-          >
-            <Search size={18} color="$gray10" />
-            <Input
-              flex={1}
-              borderWidth={0}
-              placeholder="Tìm kiếm bạn qua email..."
-              value={keyword}
-              onChangeText={setKeyword}
-              backgroundColor="transparent"
-            />
-          </XStack>
-
           <ScrollView gap="$3" flex={1}>
             {keyword.trim() !== '' ? (
               // Kết quả Search

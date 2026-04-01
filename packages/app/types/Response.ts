@@ -1,3 +1,5 @@
+import { FriendStatus } from './Enums'
+
 export interface ApiResponse<T = unknown> {
   code: number
   message?: string
@@ -24,6 +26,7 @@ export interface UserResponse {
   avatarUrl?: string
   createdAt: string
   friend: boolean
+  friendStatus: FriendStatus
 }
 
 export interface FriendRequestResponse {

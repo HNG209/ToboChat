@@ -1,8 +1,8 @@
 import React from 'react'
 import { Button, XStack, YStack, Text, Avatar } from 'tamagui'
 import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
-import { FriendResponse } from '../../app/types/Response'
-import { FriendRequestType } from '../../app/types/Request'
+import { FriendResponse } from 'app/types/Response'
+import { FriendRequestType } from 'app/types/Request'
 
 type Props = {
   user: FriendResponse
@@ -33,9 +33,11 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
     >
       {/* LEFT: Avatar + Thông tin người dùng */}
       <XStack alignItems="center" gap="$3" flex={1}>
-        <Avatar circular size="$5">
+        <Avatar circular size="$4">
           <Avatar.Image
-            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
+            src={
+              user?.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}&background=random`
+            }
           />
           <Avatar.Fallback backgroundColor="$gray5" />
         </Avatar>
@@ -47,7 +49,7 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
           <XStack alignItems="center" gap="$1.5">
             {/* CHỖ NÀY: Chỉ hiện icon Users nếu prop isGroup là true */}
             {isGroup && <Users size={12} color="$gray10" />}
-            
+
             <Text color="$gray10" fontSize="$2" numberOfLines={1}>
               {description || user.email}
             </Text>
@@ -58,9 +60,9 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
       {/* RIGHT: Các nút hành động */}
       <XStack gap="$2" alignItems="center">
         {isGroup ? (
-          <Button 
-            size="$3" 
-            variant="outline" 
+          <Button
+            size="$3"
+            variant="outline"
             borderRadius="$4"
             onPress={() => onAction?.('join', user.id)}
           >
@@ -68,54 +70,54 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
           </Button>
         ) : (
           <>
-          {/* Trường hợp: Danh sách bạn bè bình thường */}
-          {!isPending && !isSent && (
-            <Button
-              size="$3"
-              circular
-              chromeless
-              icon={<MoreHorizontal size={20} color="$gray10" />}
-              hoverStyle={{ backgroundColor: '$gray4' }}
-            />
-          )}
+            {/* Trường hợp: Danh sách bạn bè bình thường */}
+            {!isPending && !isSent && (
+              <Button
+                size="$3"
+                circular
+                chromeless
+                icon={<MoreHorizontal size={20} color="$gray10" />}
+                hoverStyle={{ backgroundColor: '$gray4' }}
+              />
+            )}
 
-          {/* Trường hợp: Lời mời ĐÃ NHẬN (Pending) */}
-          {isPending && (
-            <XStack gap="$2">
+            {/* Trường hợp: Lời mời ĐÃ NHẬN (Pending) */}
+            {isPending && (
+              <XStack gap="$2">
+                <Button
+                  size="$3"
+                  theme="blue"
+                  borderRadius="$4"
+                  icon={<Check size={16} />}
+                  onPress={() => onAction?.('accept', user.id)}
+                >
+                  Chấp nhận
+                </Button>
+                <Button
+                  size="$3"
+                  variant="outline"
+                  borderRadius="$4"
+                  icon={<X size={16} />}
+                  onPress={() => onAction?.('reject', user.id)}
+                >
+                  Từ chối
+                </Button>
+              </XStack>
+            )}
+
+            {/* Trường hợp: Lời mời ĐÃ GỬI (Sent) */}
+            {isSent && (
               <Button
                 size="$3"
-                theme="blue"
-                borderRadius="$4"
-                icon={<Check size={16} />}
-                onPress={() => onAction?.('accept', user.id)}
-              >
-                Chấp nhận
-              </Button>
-              <Button
-                size="$3"
+                theme="red"
                 variant="outline"
                 borderRadius="$4"
-                icon={<X size={16} />}
-                onPress={() => onAction?.('reject', user.id)}
+                icon={<UserMinus size={16} />}
+                onPress={() => onAction?.('cancel', requestId || user.id)}
               >
-                Từ chối
+                Hủy yêu cầu
               </Button>
-            </XStack>
-          )}
-
-          {/* Trường hợp: Lời mời ĐÃ GỬI (Sent) */}
-          {isSent && (
-            <Button
-              size="$3"
-              theme="red"
-              variant="outline"
-              borderRadius="$4"
-              icon={<UserMinus size={16} />}
-              onPress={() => onAction?.('cancel', requestId || user.id)}
-            >
-              Hủy yêu cầu
-            </Button>
-          )}
+            )}
           </>
         )}
       </XStack>

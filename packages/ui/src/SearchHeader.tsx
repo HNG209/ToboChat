@@ -8,6 +8,7 @@ import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
 import {
   useSendFriendRequestMutation,
   useCancelFriendRequestMutation,
+  useRespondFriendRequestMutation,
 } from 'app/services/contactApi'
 
 export default function SearchHeader() {
@@ -17,6 +18,8 @@ export default function SearchHeader() {
 
   const [sendFriendRequest] = useSendFriendRequestMutation()
   const [cancelFriendRequest] = useCancelFriendRequestMutation()
+  const [respondFriendRequest] = useRespondFriendRequestMutation()
+
   const [findUser, { data: searchData, isLoading: searchLoading }] = useLazyFindUserByEmailQuery()
 
   // Gọi API tìm kiếm khi keyword thay đổi
@@ -132,6 +135,13 @@ export default function SearchHeader() {
                         copy.delete(userId)
                         return copy
                       })
+                    }
+                  }}
+                  onAcceptRequest={async (userId) => {
+                    try {
+                      await respondFriendRequest({ otherId: userId, accepted: true }).unwrap()
+                    } catch (err) {
+                      console.error('Error accepting friend request:', err)
                     }
                   }}
                   onCancelRequest={async (userId) => {
