@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
-import { Platform, KeyboardAvoidingView } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context' // <--- IMPORT QUAN TRỌNG
+import React, { useEffect, useRef, useState } from 'react'
+import { Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
 import { YStack, XStack, Text, Input, Button, Avatar, ScrollView, Theme, Circle } from 'tamagui'
 import {
-  Send,
+  SendHorizontal,
+  Heart,
   Phone,
   Video,
   Info,
@@ -13,93 +13,149 @@ import {
   MoreHorizontal,
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
-
-// --- 1. MOCK DATA (Dữ liệu giả) ---
-const CURRENT_USER_ID = 'me'
-
-const MOCK_MESSAGES = [
-  {
-    id: '1',
-    text: 'Chào bạn, cho mình hỏi về sản phẩm này với?',
-    senderId: 'user_2',
-    timestamp: '10:00',
-    avatar: 'https://i.pravatar.cc/150?u=user_2',
-  },
-  {
-    id: '2',
-    text: 'Chào bạn! Mình có thể giúp gì cho bạn ạ?',
-    senderId: 'me',
-    timestamp: '10:05',
-    avatar: 'https://i.pravatar.cc/150?u=me',
-  },
-  {
-    id: '3',
-    text: 'Sản phẩm này có size L không shop?',
-    senderId: 'user_2',
-    timestamp: '10:06',
-    avatar: 'https://i.pravatar.cc/150?u=user_2',
-  },
-  {
-    id: '4',
-    text: 'Dạ hiện tại bên mình còn đủ size S, M, L, XL luôn ạ. Bạn cao bao nhiêu mình tư vấn size cho chuẩn nhé!',
-    senderId: 'me',
-    timestamp: '10:07',
-    avatar: 'https://i.pravatar.cc/150?u=me',
-  },
-  {
-    id: '5',
-    text: 'Mình cao 1m75, nặng 70kg',
-    senderId: 'user_2',
-    timestamp: '10:10',
-    avatar: 'https://i.pravatar.cc/150?u=user_2',
-  },
-  {
-    id: '6',
-    text: 'Vậy bạn mặc size L là vừa đẹp luôn đó ạ 😍',
-    senderId: 'me',
-    timestamp: '10:11',
-    avatar: 'https://i.pravatar.cc/150?u=me',
-  },
-  {
-    id: '7',
-    text: 'Ok chốt đơn cho mình 1 cái màu đen nhé',
-    senderId: 'user_2',
-    timestamp: '10:12',
-    avatar: 'https://i.pravatar.cc/150?u=user_2',
-  },
-  {
-    id: '8',
-    text: 'Dạ vâng, mình gửi bạn thông tin thanh toán nhé.',
-    senderId: 'me',
-    timestamp: '10:13',
-    avatar: 'https://i.pravatar.cc/150?u=me',
-  },
-  {
-    id: '9',
-    text: 'Thanks shop!',
-    senderId: 'user_2',
-    timestamp: '10:14',
-    avatar: 'https://i.pravatar.cc/150?u=user_2',
-  },
-]
+import { chatApi, useGetMessagesQuery, useSendMessageMutation } from 'app/services/chatApi'
+import { useGetRoomMetadataQuery } from 'app/services/roomApi'
+import { getSocket } from 'app/utils/socket'
+import { useDispatch } from 'react-redux'
+import { MessageResponse } from 'app/types/Response'
+import { AppDispatch } from 'app/store'
 
 interface Props {
-  // insets từ Safe Area
+  roomId: string
   insets?: { top: number; bottom: number; left: number; right: number }
 }
 
-export function ChatScreen({ insets }: Props) {
+export function ChatScreen({ roomId, insets }: Props) {
   const [message, setMessage] = useState('')
   const linkProps = useLink({ href: '/' })
+  const dispatch = useDispatch<AppDispatch>()
+  const scrollViewRef = useRef<ScrollView>(null)
+  const [isSocketReady, setIsSocketReady] = useState(false)
 
-  // const insets = useSafeAreaInsets()
+  // Lấy tin nhắn từ API
+  const { data, isLoading, isError } = useGetMessagesQuery({ roomId })
+
+  // Lấy metadata của room
+  const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery({ roomId })
+
+  // Gửi tin nhắn
+  const [sendMessage] = useSendMessageMutation()
+
+  const handleSendMessage = async () => {
+    if (!message.trim()) return
+
+    const tempContent = message
+    setMessage('')
+
+    // 1. Tạo một tin nhắn "ảo" (Mock Message) với dữ liệu tạm thời
+    const tempMessageId = `temp_${Date.now()}`
+    const optimisticMessage: MessageResponse = {
+      id: tempMessageId,
+      content: tempContent,
+      createdAt: new Date().toISOString(),
+      self: true,
+      roomId: roomId,
+      // user: {
+      //   id: 'me', // ID tạm
+      //   avatarUrl: '', // Tự FE biết isSelf = true sẽ ẩn avatar, nên không quan trọng
+      // },
+    }
+
+    // 2. Cập nhật Cache ngay lập tức (Optimistic Update)
+    const patchResult = dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        if (!draft.items) {
+          draft.items = []
+        }
+        draft.items.unshift(optimisticMessage)
+      })
+    )
+
+    try {
+      // 3. Gọi API thực tế ngầm ở Background
+      await sendMessage({ roomId, content: tempContent, messageType: 'USER' }).unwrap()
+
+      // (Thành công: Không cần làm gì thêm, tin nhắn ảo trên UI đã đóng vai trò hoàn hảo)
+      // *Lưu ý: Nếu API của bạn có trả về ID thật của tin nhắn, bạn có thể dispatch updateQueryData một lần nữa
+      // để thay thế `tempMessageId` bằng ID thật nếu muốn.
+    } catch (error) {
+      console.error('Lỗi khi gửi tin nhắn:', error)
+      setMessage(tempContent)
+
+      // xóa tin nhắn ảo khỏi UI
+      patchResult.undo()
+    }
+  }
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+
+    const checkSocket = () => {
+      const socket = getSocket()
+      if (socket) {
+        setIsSocketReady(true) // Báo cho React biết để chạy Effect bên dưới
+      } else {
+        // Nếu chưa có, đợi 200ms rồi kiểm tra lại
+        timeoutId = setTimeout(checkSocket, 200)
+      }
+    }
+
+    checkSocket()
+
+    return () => clearTimeout(timeoutId)
+  }, [])
+
+  useEffect(() => {
+    if (!isSocketReady) return
+
+    const socket = getSocket()
+    if (!socket) return
+
+    const handleReceiveMessage = (message: MessageResponse) => {
+      console.log('Tin nhắn mới nhận qua Socket:', message)
+      // 1. Kiểm tra xem tin nhắn có thuộc phòng đang mở này không
+      if (message.roomId !== roomId) {
+        // Nếu không thuộc phòng này, có thể dispatch một action khác để tăng số đếm "Tin nhắn chưa đọc" ở màn hình ngoài
+        return
+      }
+
+      // 2. Mock tạm avatar nếu Backend chưa trả về đầy đủ cục UserResponse
+      // if (message.user && !message.user.avatarUrl) {
+      //   message.user.avatarUrl = `https://ui-avatars.com/api/?name=${message.user.id}&background=random`
+      // }
+
+      // 3. Đẩy thẳng DTO mới vào Cache của RTK Query
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          if (!draft.items) {
+            draft.items = []
+          }
+          // Do tin nhắn lấy từ API đang xếp mới nhất ở đầu (unshift)
+          draft.items.unshift(message)
+        })
+      )
+    }
+
+    socket.on('receive_message', handleReceiveMessage)
+
+    return () => {
+      socket.off('receive_message', handleReceiveMessage)
+    }
+  }, [roomId, isSocketReady, dispatch])
+
+  useEffect(() => {
+    if (data?.items && scrollViewRef.current) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true })
+      }, 100)
+    }
+  }, [data?.items])
 
   return (
     <Theme name="light">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        // 2. Đưa offset về 0 vì Header đã nằm trong view này rồi
         keyboardVerticalOffset={0}
       >
         <YStack flex={1} bg="$background">
@@ -108,7 +164,6 @@ export function ChatScreen({ insets }: Props) {
             alignItems="center"
             justifyContent="space-between"
             p="$3"
-            // 3. Padding top động theo tai thỏ (cộng thêm chút khoảng cách cho đẹp)
             pt={insets?.top}
             borderColor="$borderColor"
             borderWidth={1}
@@ -121,14 +176,17 @@ export function ChatScreen({ insets }: Props) {
             <XStack alignItems="center" space="$3">
               <Button size="$3" circular chromeless icon={ChevronLeft} {...linkProps} />
               <XStack alignItems="center" space="$2">
-                <Avatar circular size="$4">
-                  <Avatar.Image src="https://i.pravatar.cc/150?u=user_2" />
+                <Avatar circular size="$4" marginRight="$2">
+                  <Avatar.Image
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
+                  />
                   <Avatar.Fallback borderColor="gray" />
                 </Avatar>
                 <YStack>
                   <Text fontWeight="bold" fontSize="$5">
-                    Khách hàng A
+                    {isRoomLoading ? 'Đang tải...' : roomData?.roomName || 'Tên phòng'}
                   </Text>
+                  {/* Nếu muốn hiển thị trạng thái, thêm ở đây */}
                   <XStack alignItems="center" space="$1.5">
                     <Circle size={8} bg="$green10" />
                     <Text fontSize="$2" color="$color10">
@@ -147,6 +205,7 @@ export function ChatScreen({ insets }: Props) {
 
           {/* --- BODY --- */}
           <ScrollView
+            ref={scrollViewRef}
             flex={1}
             p="$3"
             space="$3"
@@ -155,44 +214,83 @@ export function ChatScreen({ insets }: Props) {
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
           >
-            {MOCK_MESSAGES.map((msg) => {
-              const isMe = msg.senderId === CURRENT_USER_ID
-              return (
-                <XStack
-                  key={msg.id}
-                  justifyContent={isMe ? 'flex-end' : 'flex-start'}
-                  alignItems="flex-end"
-                  space="$2"
-                  mb="$2"
-                >
-                  {!isMe && (
-                    <Avatar circular size="$2">
-                      <Avatar.Image src={msg.avatar} />
-                      <Avatar.Fallback borderColor="gray" />
-                    </Avatar>
-                  )}
-                  <YStack
-                    p="$3"
-                    borderRadius="$5"
-                    maxWidth="75%"
-                    bg={isMe ? '$blue10' : '$background'}
-                    borderTopLeftRadius={!isMe ? 0 : '$5'}
-                    borderTopRightRadius={isMe ? 0 : '$5'}
-                    elevation="$1"
-                    shadowColor="$shadowColor"
-                    shadowRadius={2}
-                    shadowOffset={{ width: 0, height: 1 }}
+            {isLoading && (
+              <XStack justifyContent="center" alignItems="center" flex={1}>
+                <ActivityIndicator size="small" color="#888" />
+              </XStack>
+            )}
+            {isError && (
+              <Text color="red" textAlign="center">
+                Lỗi khi tải tin nhắn!
+              </Text>
+            )}
+            {data?.items
+              ?.slice()
+              .reverse()
+              .map((msg, idx, arr) => {
+                const isMe = msg.self
+                // Kiểm tra có hiển thị avatar không
+                let showAvatar = false
+                if (!isMe) {
+                  // Tin nhắn tiếp theo (ở dưới) là của người khác hoặc hết mảng
+                  const nextMsg = arr[idx + 1]
+                  if (!nextMsg || nextMsg.self || nextMsg.user?.id !== msg.user?.id) {
+                    showAvatar = true
+                  }
+                }
+                // Định dạng giờ phút từ ISO string
+                const date = new Date(msg.createdAt)
+                const hours = date.getHours().toString().padStart(2, '0')
+                const minutes = date.getMinutes().toString().padStart(2, '0')
+                const timeString = `${hours}:${minutes}`
+
+                return (
+                  <XStack
+                    key={msg.id}
+                    justifyContent={isMe ? 'flex-end' : 'flex-start'}
+                    alignItems="flex-end"
+                    space="$2"
+                    mb="$2"
                   >
-                    <Text fontSize="$4" color={isMe ? 'white' : '$color'} lineHeight={22}>
-                      {msg.text}
-                    </Text>
-                    <Text fontSize="$1" textAlign="right" mt="$1" opacity={0.8}>
-                      {msg.timestamp}
-                    </Text>
-                  </YStack>
-                </XStack>
-              )
-            })}
+                    {!isMe && showAvatar && (
+                      <Avatar circular size="$2">
+                        <Avatar.Image
+                          src={
+                            msg?.user?.avatarUrl ||
+                            `https://ui-avatars.com/api/?name=${msg?.user?.name || 'User'}&background=random`
+                          }
+                        />
+                        <Avatar.Fallback borderColor="gray" />
+                      </Avatar>
+                    )}
+                    {!isMe && !showAvatar && (
+                      <Avatar circular size="$2">
+                        <Avatar.Image src={''} />
+                        <Avatar.Fallback borderColor="gray" />
+                      </Avatar>
+                    )}
+                    <YStack
+                      p="$3"
+                      borderRadius="$5"
+                      maxWidth="75%"
+                      bg={isMe ? '$blue10' : '$background'}
+                      borderTopLeftRadius={!isMe ? 0 : '$5'}
+                      borderTopRightRadius={isMe ? 0 : '$5'}
+                      elevation="$1"
+                      shadowColor="$shadowColor"
+                      shadowRadius={2}
+                      shadowOffset={{ width: 0, height: 1 }}
+                    >
+                      <Text fontSize="$4" color={isMe ? 'white' : '$color'} lineHeight={22}>
+                        {msg.content}
+                      </Text>
+                      <Text fontSize="$1" textAlign="right" mt="$1" opacity={0.8}>
+                        {timeString}
+                      </Text>
+                    </YStack>
+                  </XStack>
+                )
+              })}
           </ScrollView>
 
           {/* --- FOOTER (INPUT) --- */}
@@ -224,11 +322,11 @@ export function ChatScreen({ insets }: Props) {
                 circular
                 bg="$blue10"
                 color="white"
-                icon={Send}
-                onPress={() => setMessage('')}
+                icon={<SendHorizontal size={20} />}
+                onPress={handleSendMessage}
               />
             ) : (
-              <Button size="$3" circular chromeless icon={Smile} />
+              <Button size="$3" circular chromeless icon={<Heart size={20} />} />
             )}
           </XStack>
         </YStack>

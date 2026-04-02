@@ -21,6 +21,7 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
     <XStack
       width="100%"
       padding="$3"
+      marginBottom="$2"
       alignItems="center"
       justifyContent="space-between"
       borderWidth={1}

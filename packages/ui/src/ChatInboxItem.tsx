@@ -27,14 +27,12 @@ export const ChatInboxItem = ({
       onPress={onPress}
       borderRadius={14}
       marginVertical={2}
-      paddingVertical="$3"
+      paddingVertical="$2"
       paddingHorizontal="$4"
       borderWidth={selected ? 1 : 0}
-      borderColor={selected ? '$primary' : 'transparent'}
+      borderColor={selected ? '$accent1' : 'transparent'}
       hoverStyle={{
         background: selected ? '$primary' : '$gray2',
-        borderWidth: 1,
-        borderColor: '$primary',
       }}
       title={
         <Text fontWeight="700" fontSize={16} color={selected ? '$color1' : '$gray12'}>

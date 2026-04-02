@@ -11,7 +11,14 @@ const roomApi = baseApi.injectEndpoints({
         params,
       }),
     }),
+
+    getRoomMetadata: builder.query<RoomResponse, { roomId: string }>({
+      query: ({ roomId }) => ({
+        url: `/rooms/${roomId}`,
+        method: 'GET',
+      }),
+    }),
   }),
 })
 
-export const { useGetJoinedRoomsQuery } = roomApi
+export const { useGetJoinedRoomsQuery, useGetRoomMetadataQuery } = roomApi

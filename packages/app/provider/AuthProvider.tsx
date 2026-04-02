@@ -5,6 +5,7 @@ import { Hub } from 'aws-amplify/utils'
 import { useRouter, usePathname } from 'solito/navigation'
 import { Spinner, YStack } from 'tamagui' // Đã đổi sang Tamagui
 import { useLazyGetProfileQuery } from 'app/services/userApi'
+import { useSocketConnection } from 'app/hooks/useSocketConnection'
 
 // Danh sách các đường dẫn KHÔNG cần đăng nhập (Public)
 const PUBLIC_PATHS = ['/login', '/auth/forgot-password']
@@ -16,11 +17,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname() // Lấy đường dẫn hiện tại
   const [getProfile, { data: profileData }] = useLazyGetProfileQuery() // Hook để gọi API lấy profile khi cần
 
+  useSocketConnection(login) // Hook kết nối socket, sẽ tự động lấy token khi có user
+
   const checkUser = async () => {
     try {
       await getCurrentUser()
       setLogin(true)
-      getProfile(null) // Gọi API lấy profile khi có user
+      getProfile() // Gọi API lấy profile khi có user
     } catch (error) {
       console.log('No current user')
     } finally {

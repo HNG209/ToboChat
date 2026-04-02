@@ -25,6 +25,7 @@
     "react-native-safe-area-context": "5.4.0",
     "react-redux": "^9.2.0",
     "reselect": "^5.1.1",
+    "socket.io-client": "^4.8.3",
     "solito": "^5.0.0",
     "tough-cookie": "^6.0.0"
   },

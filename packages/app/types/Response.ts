@@ -24,8 +24,7 @@ export interface UserResponse {
   email: string
   avatarUrl?: string
   createdAt: string
-  friend: boolean
-  friendStatus: FriendStatus
+  friendStatus?: FriendStatus
 }
 
 export interface FriendRequestResponse {
@@ -39,5 +38,14 @@ export interface RoomResponse {
   id: string
   roomName: string
   roomType: RoomType
+  createdAt: string
+}
+
+export interface MessageResponse {
+  id: string
+  roomId: string
+  user?: UserResponse
+  content: string
+  self: boolean
   createdAt: string
 }

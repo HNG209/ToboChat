@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Button, Image, Text, XStack } from '@my/ui'
+import { Button, Image, Spinner, Text, XStack } from '@my/ui'
 import { Input } from '@my/ui'
 import { YStack } from '@my/ui'
 import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
@@ -113,8 +113,8 @@ export default function SearchHeader() {
           )}
 
           {hasKeyword && searchLoading && (
-            <YStack flex={1} alignItems="center" justifyContent="center">
-              <Text color="$gray10">Đang tìm kiếm...</Text>
+            <YStack flex={1} justifyContent="center" alignItems="center">
+              <Spinner size="large" color="$blue10" />
             </YStack>
           )}
 
