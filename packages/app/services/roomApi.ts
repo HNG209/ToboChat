@@ -1,7 +1,7 @@
 import { PageResponse, RoomResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 
-const roomApi = baseApi.injectEndpoints({
+export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getJoinedRooms: builder.query<PageResponse<RoomResponse>, void>({
       // Lấy danh sách phòng của người dùng hiện tại

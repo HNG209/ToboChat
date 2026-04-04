@@ -38,6 +38,7 @@ export interface RoomResponse {
   id: string
   roomName: string
   roomType: RoomType
+  latestMessage: MessageResponse
   createdAt: string
 }
 

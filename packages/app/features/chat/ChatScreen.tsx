@@ -112,19 +112,13 @@ export function ChatScreen({ roomId, insets }: Props) {
     if (!socket) return
 
     const handleReceiveMessage = (message: MessageResponse) => {
-      console.log('Tin nhắn mới nhận qua Socket:', message)
       // 1. Kiểm tra xem tin nhắn có thuộc phòng đang mở này không
       if (message.roomId !== roomId) {
         // Nếu không thuộc phòng này, có thể dispatch một action khác để tăng số đếm "Tin nhắn chưa đọc" ở màn hình ngoài
         return
       }
 
-      // 2. Mock tạm avatar nếu Backend chưa trả về đầy đủ cục UserResponse
-      // if (message.user && !message.user.avatarUrl) {
-      //   message.user.avatarUrl = `https://ui-avatars.com/api/?name=${message.user.id}&background=random`
-      // }
-
-      // 3. Đẩy thẳng DTO mới vào Cache của RTK Query
+      // 2. Đẩy thẳng DTO mới vào Cache của RTK Query
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           if (!draft.items) {

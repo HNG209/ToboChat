@@ -1,9 +1,10 @@
 import { Avatar, ListItem, Text, View, YStack } from '@my/ui'
+import { MessageResponse } from 'app/types/Response'
 import { Pin } from '@tamagui/lucide-icons'
 
 type Props = {
   name: string
-  message?: string
+  latestMessage: MessageResponse
   time?: string
   avatar?: string
   pinned?: boolean
@@ -13,7 +14,7 @@ type Props = {
 
 export const ChatInboxItem = ({
   name,
-  message,
+  latestMessage,
   time,
   avatar,
   pinned,
@@ -46,7 +47,8 @@ export const ChatInboxItem = ({
           numberOfLines={1}
           marginTop={2}
         >
-          {message || 'Chưa có tin nhắn'}
+          {(latestMessage.self ? `Tôi: ${latestMessage.content}` : latestMessage.content) ||
+            'Chưa có tin nhắn'}
         </Text>
       }
       icon={
