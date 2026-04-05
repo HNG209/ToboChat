@@ -422,6 +422,10 @@ export default function UserDetailScreen() {
         setActiveTab={setActiveTab}
         isTwoFactorAuth={isTwoFactorAuth}
         handleToggleMFA={handleToggleMFA}
+        theme={theme}
+        onThemeChange={(nextTheme) => setTheme(nextTheme)}
+        language={i18n.language || 'vi'}
+        onToggleLanguage={toggleLanguage}
       />
       <EnableMFADialog
         openEnableMFA={openEnableMFA}

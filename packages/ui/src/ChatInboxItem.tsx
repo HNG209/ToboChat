@@ -65,7 +65,7 @@ export const ChatInboxItem = ({
           numberOfLines={1}
           marginTop={2}
         >
-          {(latestMessage.self ? `Tôi: ${latestMessage.content}` : latestMessage.content) ||
+          {(latestMessage?.self ? `Tôi: ${latestMessage?.content}` : latestMessage?.content) ||
             'Chưa có tin nhắn'}
         </Text>
       }

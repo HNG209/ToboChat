@@ -1,16 +1,6 @@
 'use client'
-import { Avatar, Dialog, Switch, Text, Theme, Tooltip, XStack } from '@my/ui'
-import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
-import {
-  Contact2,
-  Languages,
-  LogOut,
-  MessageSquare,
-  Settings,
-  Sun,
-  User,
-  X,
-} from '@tamagui/lucide-icons'
+import { Avatar, Button, ListItem, Popover, Spacer, YStack } from '@my/ui'
+import { Contact2, LogOut, MessageSquare, Settings, User } from '@tamagui/lucide-icons'
 
 import { signOut } from 'aws-amplify/auth'
 import React, { useEffect, useState } from 'react'
@@ -37,7 +27,6 @@ export const ZaloSidebar = () => {
   const [confirmMFA] = useConfirmMFAMutation()
 
   const [openSignOut, setOpenSignOut] = useState(false)
-  const [openSetting, setOpenSetting] = useState(false)
 
   const { data: profileData } = useGetProfileQuery()
   const userId = profileData?.id
@@ -62,10 +51,6 @@ export const ZaloSidebar = () => {
 
   // 1. Dùng light/dark đồng bộ với Context mới
   const { theme, setTheme } = useAppTheme()
-
-  const handleGoToUser = () => {
-    push(`/user/me`)
-  }
 
   //dung cho phan update
   const [updateProfile] = useUpdateProfileMutation()
@@ -233,7 +218,7 @@ export const ZaloSidebar = () => {
               `https://ui-avatars.com/api/?name=${profileData?.name}&background=random`
             }
           />
-          <Avatar.Fallback backgroundColor="$gray5" />
+          <Avatar.Fallback />
         </Avatar>
 
         {/* Icon Tin nhan */}
@@ -243,7 +228,7 @@ export const ZaloSidebar = () => {
           size="$4"
           borderRadius={0}
           paddingVertical={30}
-          title={t('messages')}
+          aria-label={t('messages')}
           backgroundColor={isChat ? '#005ae0' : 'transparent'}
           icon={<MessageSquare size={24} color="$color" />}
           onPress={handleGoToChat}
@@ -251,7 +236,7 @@ export const ZaloSidebar = () => {
         <Button
           size="$4"
           borderRadius={0}
-          title={t('contacts')}
+          aria-label={t('contacts')}
           paddingVertical={30}
           backgroundColor={isFriend ? '#005ae0' : 'transparent'}
           icon={<Contact2 size={24} color="$color" />}
@@ -261,95 +246,25 @@ export const ZaloSidebar = () => {
 
         <YStack space="$2" alignItems="center" paddingBottom="$4">
           <Button
-            title={t('profile')}
+            aria-label={t('informationAccount')}
             backgroundColor="transparent"
-            onPress={() => handleGoToUser()}
+            onPress={() => setOpenProfile(true)}
             icon={<User size={24} color="$color" />}
           />
-          {/* Cai dat phan chuyen mau cho phan setting */}
-          <Popover open={openSetting} onOpenChange={setOpenSetting} placement="right">
-            <Popover.Trigger asChild>
-              <Button
-                title={t('settings')}
-                backgroundColor="transparent"
-                icon={<Settings size={24} color="$color" />}
-              />
-            </Popover.Trigger>
-            <Theme name={theme}>
-              <Popover.Content elevate backgroundColor="$background">
-                <YStack width={160}>
-                  {/* chinh sua thong tin nguoi dung */}
-                  {/* <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={User}
-                      title={t('informationAccount')}
-                    />
-                  </Popover.Close> */}
-                  <Tooltip delay={0} placement="right">
-                    <Tooltip.Trigger asChild>
-                      <View>
-                        <ListItem
-                          pressTheme
-                          icon={User}
-                          title={t('informationAccount')}
-                          onPress={() => {
-                            setOpenSetting(false)
-                            setOpenProfile(true)
-                          }}
-                        />
-                      </View>
-                    </Tooltip.Trigger>
 
-                    <Tooltip.Content
-                      sideOffset={10} // 👉 đẩy tooltip ra xa 1 chút
-                      zIndex={9999}
-                      elevate
-                      backgroundColor="$background"
-                      padding="$2"
-                      borderRadius="$2"
-                    >
-                      <Tooltip.Arrow />
-                      <Text>{t('informationAccount')}</Text>
-                    </Tooltip.Content>
-                  </Tooltip>
-                  <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={Sun}
-                      title={theme === 'light' ? t('darkMode') : t('lightMode')}
-                      onPress={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
-                    />
-                  </Popover.Close>
-                  {/* nut chuyen doi ngon ngu */}
-                  <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={Languages}
-                      title={i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
-                      onPress={toggleLanguage}
-                    ></ListItem>
-                  </Popover.Close>
-                  {/* Phan cai dat */}
-                  <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={Settings}
-                      title={t('settings')}
-                      onPress={() => {
-                        setOpenSetting(false) // Đóng cái popover nhỏ
-                        setShowFullSettings(true) // Mở cái khung cài đặt lớn
-                      }}
-                    />
-                  </Popover.Close>
-                </YStack>
-              </Popover.Content>
-            </Theme>
-          </Popover>
+          <Button
+            aria-label={t('settings')}
+            backgroundColor="transparent"
+            icon={<Settings size={24} color="$color" />}
+            onPress={() => {
+              setActiveTab('general')
+              setShowFullSettings(true)
+            }}
+          />
           <Popover open={openSignOut} onOpenChange={setOpenSignOut} placement="right">
             <Popover.Trigger asChild>
               <Button
-                title={t('logout')}
+                aria-label={t('logout')}
                 backgroundColor="transparent"
                 icon={<LogOut size={24} color="$color" />}
               />
@@ -381,6 +296,10 @@ export const ZaloSidebar = () => {
         setActiveTab={setActiveTab}
         isTwoFactorAuth={isTwoFactorAuth}
         handleToggleMFA={handleToggleMFA}
+        theme={theme}
+        onThemeChange={(nextTheme) => setTheme(nextTheme)}
+        language={i18n.language || 'vi'}
+        onToggleLanguage={toggleLanguage}
       />
       <EnableMFADialog
         openEnableMFA={openEnableMFA}
