@@ -27,7 +27,7 @@ interface Props {
 
 export function ChatScreen({ roomId, insets }: Props) {
   const [message, setMessage] = useState('')
-  const linkProps = useLink({ href: '/' })
+  const linkProps = useLink({ href: '/chat' })
   const dispatch = useDispatch<AppDispatch>()
   const scrollViewRef = useRef<ScrollView>(null)
   const [isSocketReady, setIsSocketReady] = useState(false)
