@@ -88,6 +88,8 @@ export function AuthScreen() {
         default:
           console.log('Unhandled step:', nextStep)
       }
+    } catch (error: any) {
+      setError(error.message)
     } finally {
       setIsLoading(false)
     }

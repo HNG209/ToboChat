@@ -35,3 +35,9 @@ export interface RespondFriendRequestRequest {
   otherId: string
   accepted: boolean
 }
+
+export interface SendMessageRequest {
+  roomId: string
+  content: string
+  messageType: string
+}
