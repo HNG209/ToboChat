@@ -12,6 +12,24 @@ type Props = {
   selected?: boolean
 }
 
+function formatTime(isoString?: string) {
+  if (!isoString) return ''
+  const now = new Date()
+  const date = new Date(isoString)
+  const diffMs = now.getTime() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffHour = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHour / 24)
+
+  if (diffSec < 60) return 'vừa xong'
+  if (diffMin < 60) return `${diffMin}p trước`
+  if (diffHour < 24) return `${diffHour}h trước`
+  if (diffDay <= 30) return `${diffDay} ngày trước`
+  // Nếu quá 30 ngày, trả về ngày/tháng/năm
+  return date.toLocaleDateString('vi-VN')
+}
+
 export const ChatInboxItem = ({
   name,
   latestMessage,
@@ -61,7 +79,7 @@ export const ChatInboxItem = ({
     >
       <YStack space="$1" alignItems="flex-end" justifyContent="center">
         <Text fontSize={11} color={selected ? '$color1' : '$gray9'}>
-          {time}
+          {formatTime(time)}
         </Text>
         {pinned ? (
           <Pin

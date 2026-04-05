@@ -14,7 +14,7 @@ import {
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
 import { chatApi, useGetMessagesQuery, useSendMessageMutation } from 'app/services/chatApi'
-import { useGetRoomMetadataQuery } from 'app/services/roomApi'
+import { roomApi, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch } from 'react-redux'
 import { MessageResponse } from 'app/types/Response'
@@ -71,8 +71,26 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
     )
 
+    // 3. Cập nhật Cache Danh sách Phòng (ChatInbox)
+    const roomPatchResult = dispatch(
+      roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
+        if (!draft || !draft.items) return
+
+        // Tìm phòng hiện tại đang chat
+        const roomIndex = draft.items.findIndex((room) => room.id === roomId)
+
+        if (roomIndex !== -1) {
+          // Cập nhật tin nhắn mới nhất thành tin nhắn ảo vừa gõ
+          draft.items[roomIndex].latestMessage = optimisticMessage
+
+          // Cắt phòng này ra và nhét lên trên cùng (index 0) của danh sách
+          const [updatedRoom] = draft.items.splice(roomIndex, 1)
+          draft.items.unshift(updatedRoom)
+        }
+      })
+    )
+
     try {
-      // 3. Gọi API thực tế ngầm ở Background
       await sendMessage({ roomId, content: tempContent, messageType: 'USER' }).unwrap()
 
       // (Thành công: Không cần làm gì thêm, tin nhắn ảo trên UI đã đóng vai trò hoàn hảo)
@@ -83,6 +101,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       setMessage(tempContent)
 
       // xóa tin nhắn ảo khỏi UI
+      roomPatchResult.undo()
       patchResult.undo()
     }
   }
