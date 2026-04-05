@@ -17,12 +17,17 @@ export const chatApi = baseApi.injectEndpoints({
       { roomId: string; cursor?: string; limit?: number }
     >({
       query: (params) => ({
-        url: `/chat/rooms/${params.roomId}/messages?cursor=${params.cursor || ''}&limit=${params.limit || 20}`,
+        url: `/chat/rooms/${params.roomId}/messages`, // Trả lại URL sạch sẽ, không có dấu ?
         method: 'GET',
-        params,
+        params: {
+          // Chỉ truyền những gì cần làm query string vào đây
+          // Nếu cursor rỗng, truyền undefined để HTTP Client bỏ qua param đó
+          cursor: params.cursor || undefined,
+          limit: params.limit || 20,
+        },
       }),
     }),
   }),
 })
 
-export const { useGetMessagesQuery, useSendMessageMutation } = chatApi
+export const { useGetMessagesQuery, useLazyGetMessagesQuery, useSendMessageMutation } = chatApi

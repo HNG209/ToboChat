@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
-import { YStack, XStack, Text, Input, Button, Avatar, ScrollView, Theme, Circle } from 'tamagui'
+import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle } from 'tamagui'
 import {
   SendHorizontal,
   Heart,
@@ -9,16 +9,21 @@ import {
   Info,
   ChevronLeft,
   Image as ImageIcon,
-  Smile,
   MoreHorizontal,
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
-import { chatApi, useGetMessagesQuery, useSendMessageMutation } from 'app/services/chatApi'
+import {
+  chatApi,
+  useGetMessagesQuery,
+  useLazyGetMessagesQuery,
+  useSendMessageMutation,
+} from 'app/services/chatApi'
 import { roomApi, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch } from 'react-redux'
 import { MessageResponse } from 'app/types/Response'
 import { AppDispatch } from 'app/store'
+import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 
 interface Props {
   roomId: string
@@ -29,25 +34,44 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [message, setMessage] = useState('')
   const linkProps = useLink({ href: '/chat' })
   const dispatch = useDispatch<AppDispatch>()
-  const scrollViewRef = useRef<ScrollView>(null)
   const [isSocketReady, setIsSocketReady] = useState(false)
 
-  // Lấy tin nhắn từ API
+  // 1. API Hooks
   const { data, isLoading, isError } = useGetMessagesQuery({ roomId })
-
-  // Lấy metadata của room
+  const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
   const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery({ roomId })
-
-  // Gửi tin nhắn
   const [sendMessage] = useSendMessageMutation()
 
+  // 2. Load More Logic
+  const handleLoadMore = async () => {
+    const nextCursor = data?.nextCursor
+    if (isFetchingMore || !nextCursor) return
+
+    try {
+      const response = await triggerGetMessages({ roomId, cursor: nextCursor, limit: 20 }).unwrap()
+
+      if (response.items && response.items.length > 0) {
+        // Cập nhật cache để thêm tin nhắn cũ vào cuối mảng
+        dispatch(
+          chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+            // Push tin cũ vào cuối mảng (FlatList inverted sẽ đẩy nó lên trên cùng)
+            draft.items.push(...response.items)
+            ;(draft as any).nextCursor = (response as any).nextCursor
+          })
+        )
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải thêm tin nhắn cũ:', error)
+    }
+  }
+
+  // 3. Send Message Logic
   const handleSendMessage = async () => {
     if (!message.trim()) return
 
     const tempContent = message
     setMessage('')
 
-    // 1. Tạo một tin nhắn "ảo" (Mock Message) với dữ liệu tạm thời
     const tempMessageId = `temp_${Date.now()}`
     const optimisticMessage: MessageResponse = {
       id: tempMessageId,
@@ -55,35 +79,24 @@ export function ChatScreen({ roomId, insets }: Props) {
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
-      // user: {
-      //   id: 'me', // ID tạm
-      //   avatarUrl: '', // Tự FE biết isSelf = true sẽ ẩn avatar, nên không quan trọng
-      // },
     }
 
-    // 2. Cập nhật Cache ngay lập tức (Optimistic Update)
+    // Cập nhật cache ngay lập tức với tin nhắn giả định (optimistic update)
     const patchResult = dispatch(
       chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-        if (!draft.items) {
-          draft.items = []
-        }
+        if (!draft.items) draft.items = []
+        // Unshift tin mới vào đầu mảng (FlatList inverted sẽ hiển thị nó ở dưới cùng)
         draft.items.unshift(optimisticMessage)
       })
     )
 
-    // 3. Cập nhật Cache Danh sách Phòng (ChatInbox)
+    // Cập nhật cache của phòng để hiển thị tin nhắn mới nhất và đẩy phòng lên đầu danh sách
     const roomPatchResult = dispatch(
       roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
         if (!draft || !draft.items) return
-
-        // Tìm phòng hiện tại đang chat
         const roomIndex = draft.items.findIndex((room) => room.id === roomId)
-
         if (roomIndex !== -1) {
-          // Cập nhật tin nhắn mới nhất thành tin nhắn ảo vừa gõ
           draft.items[roomIndex].latestMessage = optimisticMessage
-
-          // Cắt phòng này ra và nhét lên trên cùng (index 0) của danh sách
           const [updatedRoom] = draft.items.splice(roomIndex, 1)
           draft.items.unshift(updatedRoom)
         }
@@ -92,77 +105,46 @@ export function ChatScreen({ roomId, insets }: Props) {
 
     try {
       await sendMessage({ roomId, content: tempContent, messageType: 'USER' }).unwrap()
-
-      // (Thành công: Không cần làm gì thêm, tin nhắn ảo trên UI đã đóng vai trò hoàn hảo)
-      // *Lưu ý: Nếu API của bạn có trả về ID thật của tin nhắn, bạn có thể dispatch updateQueryData một lần nữa
-      // để thay thế `tempMessageId` bằng ID thật nếu muốn.
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(tempContent)
-
-      // xóa tin nhắn ảo khỏi UI
       roomPatchResult.undo()
       patchResult.undo()
     }
   }
 
+  // 4. Socket Connection & Listeners
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
-
     const checkSocket = () => {
       const socket = getSocket()
-      if (socket) {
-        setIsSocketReady(true) // Báo cho React biết để chạy Effect bên dưới
-      } else {
-        // Nếu chưa có, đợi 200ms rồi kiểm tra lại
-        timeoutId = setTimeout(checkSocket, 200)
-      }
+      if (socket) setIsSocketReady(true)
+      else timeoutId = setTimeout(checkSocket, 200)
     }
-
     checkSocket()
-
     return () => clearTimeout(timeoutId)
   }, [])
 
   useEffect(() => {
     if (!isSocketReady) return
-
     const socket = getSocket()
     if (!socket) return
 
     const handleReceiveMessage = (message: MessageResponse) => {
-      // 1. Kiểm tra xem tin nhắn có thuộc phòng đang mở này không
-      if (message.roomId !== roomId) {
-        // Nếu không thuộc phòng này, có thể dispatch một action khác để tăng số đếm "Tin nhắn chưa đọc" ở màn hình ngoài
-        return
-      }
-
-      // 2. Đẩy thẳng DTO mới vào Cache của RTK Query
+      if (message.roomId !== roomId) return
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-          if (!draft.items) {
-            draft.items = []
-          }
-          // Do tin nhắn lấy từ API đang xếp mới nhất ở đầu (unshift)
+          if (!draft.items) draft.items = []
           draft.items.unshift(message)
         })
       )
     }
 
     socket.on('receive_message', handleReceiveMessage)
-
     return () => {
       socket.off('receive_message', handleReceiveMessage)
     }
   }, [roomId, isSocketReady, dispatch])
-
-  useEffect(() => {
-    if (data?.items && scrollViewRef.current) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true })
-      }, 100)
-    }
-  }, [data?.items])
 
   return (
     <Theme name="light">
@@ -199,7 +181,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                   <Text fontWeight="bold" fontSize="$5">
                     {isRoomLoading ? 'Đang tải...' : roomData?.roomName || 'Tên phòng'}
                   </Text>
-                  {/* Nếu muốn hiển thị trạng thái, thêm ở đây */}
                   <XStack alignItems="center" space="$1.5">
                     <Circle size={8} bg="$green10" />
                     <Text fontSize="$2" color="$color10">
@@ -216,42 +197,44 @@ export function ChatScreen({ roomId, insets }: Props) {
             </XStack>
           </XStack>
 
-          {/* --- BODY --- */}
-          <ScrollView
-            ref={scrollViewRef}
-            flex={1}
-            p="$3"
-            space="$3"
-            bg="$color2"
-            contentContainerStyle={{ paddingBottom: 20 }}
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-          >
-            {isLoading && (
-              <XStack justifyContent="center" alignItems="center" flex={1}>
-                <ActivityIndicator size="small" color="#888" />
-              </XStack>
-            )}
-            {isError && (
-              <Text color="red" textAlign="center">
-                Lỗi khi tải tin nhắn!
-              </Text>
-            )}
-            {data?.items
-              ?.slice()
-              .reverse()
-              .map((msg, idx, arr) => {
+          {/* --- BODY (FLATLIST) --- */}
+          {/* Lần tải đầu tiên của cả phòng */}
+          {isLoading ? (
+            <XStack justifyContent="center" alignItems="center" flex={1} bg="$color2">
+              <ActivityIndicator size="large" color="#888" />
+            </XStack>
+          ) : isError ? (
+            <XStack justifyContent="center" alignItems="center" flex={1} bg="$color2">
+              <Text color="red">Lỗi khi tải tin nhắn!</Text>
+            </XStack>
+          ) : (
+            <StyledFlatList
+              data={data?.items}
+              inverted={true}
+              keyExtractor={(item: MessageResponse) => item.id}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.1}
+              keyboardDismissMode="interactive"
+              keyboardShouldPersistTaps="handled"
+              // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
+              ListFooterComponent={
+                isFetchingMore ? (
+                  <XStack justifyContent="center" alignItems="center" py="$4">
+                    <ActivityIndicator size="small" color="#888" />
+                  </XStack>
+                ) : null
+              }
+              renderItem={({ item: msg, index }) => {
                 const isMe = msg.self
-                // Kiểm tra có hiển thị avatar không
+
                 let showAvatar = false
                 if (!isMe) {
-                  // Tin nhắn tiếp theo (ở dưới) là của người khác hoặc hết mảng
-                  const nextMsg = arr[idx + 1]
+                  const nextMsg = data?.items?.[index + 1]
                   if (!nextMsg || nextMsg.self || nextMsg.user?.id !== msg.user?.id) {
                     showAvatar = true
                   }
                 }
-                // Định dạng giờ phút từ ISO string
+
                 const date = new Date(msg.createdAt)
                 const hours = date.getHours().toString().padStart(2, '0')
                 const minutes = date.getMinutes().toString().padStart(2, '0')
@@ -259,7 +242,6 @@ export function ChatScreen({ roomId, insets }: Props) {
 
                 return (
                   <XStack
-                    key={msg.id}
                     justifyContent={isMe ? 'flex-end' : 'flex-start'}
                     alignItems="flex-end"
                     space="$2"
@@ -303,8 +285,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                     </YStack>
                   </XStack>
                 )
-              })}
-          </ScrollView>
+              }}
+            />
+          )}
 
           {/* --- FOOTER (INPUT) --- */}
           <XStack
@@ -317,7 +300,6 @@ export function ChatScreen({ roomId, insets }: Props) {
           >
             <Button size="$3" circular chromeless icon={MoreHorizontal} />
             <Button size="$3" circular chromeless icon={ImageIcon} />
-
             <Input
               flex={1}
               size="$4"
@@ -328,7 +310,6 @@ export function ChatScreen({ roomId, insets }: Props) {
               value={message}
               onChangeText={setMessage}
             />
-
             {message ? (
               <Button
                 size="$4"
