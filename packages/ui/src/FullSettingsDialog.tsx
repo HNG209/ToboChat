@@ -35,6 +35,9 @@ export const FullSettingsDialog = ({
 }: FullSettingsDialogProps) => {
   const [showChangePassword, setShowChangePassword] = useState(false)
 
+  const menuTextColor = theme === 'dark' ? 'white' : '$color'
+  const activeMenuBackground = theme === 'dark' ? '$primary' : '$blue10'
+
   return (
     <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
       <Dialog.Portal>
@@ -84,16 +87,32 @@ export const FullSettingsDialog = ({
               </Text>
 
               <ListItem
-                title="Cài đặt chung"
-                theme="white"
-                hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
+                title={
+                  <Text color={activeTab === 'general' ? 'white' : menuTextColor}>
+                    Cài đặt chung
+                  </Text>
+                }
+                backgroundColor={activeTab === 'general' ? activeMenuBackground : 'transparent'}
+                borderRadius="$3"
+                hoverStyle={{
+                  backgroundColor: activeTab === 'general' ? activeMenuBackground : '$color2',
+                  cursor: 'pointer',
+                }}
                 onPress={() => setActiveTab('general')}
               />
 
               <ListItem
-                title="Tài khoản & bảo mật"
-                theme="white"
-                hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
+                title={
+                  <Text color={activeTab === 'security' ? 'white' : menuTextColor}>
+                    Tài khoản & bảo mật
+                  </Text>
+                }
+                backgroundColor={activeTab === 'security' ? activeMenuBackground : 'transparent'}
+                borderRadius="$3"
+                hoverStyle={{
+                  backgroundColor: activeTab === 'security' ? activeMenuBackground : '$color2',
+                  cursor: 'pointer',
+                }}
                 onPress={() => setActiveTab('security')}
               />
             </YStack>
@@ -154,7 +173,7 @@ export const FullSettingsDialog = ({
                         size="$3"
                         checked={theme === 'dark'}
                         onCheckedChange={(checked) => onThemeChange(checked ? 'dark' : 'light')}
-                        backgroundColor={theme === 'dark' ? '#0068ff' : '$backgroundPress'}
+                        backgroundColor={theme === 'dark' ? '$primary' : '$backgroundPress'}
                       >
                         <Switch.Thumb animation="quick" />
                       </Switch>
@@ -208,7 +227,7 @@ export const FullSettingsDialog = ({
                           size="$3"
                           checked={isTwoFactorAuth}
                           onCheckedChange={handleToggleMFA}
-                          backgroundColor={isTwoFactorAuth ? '#0068ff' : '$backgroundPress'}
+                          backgroundColor={isTwoFactorAuth ? '$primary' : '$backgroundPress'}
                         >
                           <Switch.Thumb animation="quick" />
                         </Switch>
