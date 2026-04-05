@@ -2,6 +2,7 @@
 import { X } from '@tamagui/lucide-icons'
 import { useEffect, useState } from 'react'
 import { Button, Dialog, XStack, YStack, Label, Input, Image } from 'tamagui'
+import { Platform } from 'react-native'
 interface ProfileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -88,7 +89,7 @@ export const EditAvatar = ({
                 borderRadius={50}
               />
 
-              <input type="file" onChange={handleChooseFile} />
+              {Platform.OS === 'web' && <input type="file" onChange={handleChooseFile} />}
             </YStack>
 
             {/* Button */}

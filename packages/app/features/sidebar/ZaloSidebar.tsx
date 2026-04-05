@@ -55,7 +55,7 @@ export const ZaloSidebar = () => {
   //dung cho phan update
   const [updateProfile] = useUpdateProfileMutation()
   const { refetch } = useGetProfileQuery()
-  const handleSave = async (data: { name?: string; avatar?: File }) => {
+  const handleSave = async (data: { name?: string; avatar?: File; dateOfBirth?: string }) => {
     try {
       await updateProfile(data).unwrap()
       await refetch()

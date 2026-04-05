@@ -99,7 +99,7 @@ export default function ChatInbox() {
             key={room.id}
             name={room.roomName}
             latestMessage={room.latestMessage}
-            time={room?.latestMessage?.createdAt || null}
+            time={room?.latestMessage?.createdAt ?? undefined}
             avatar={`https://i.pravatar.cc/150?u=${room.id}`}
             pinned={false}
             onPress={() => router.push(`/chat/${room.id}`)}

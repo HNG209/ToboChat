@@ -1,5 +1,5 @@
-import { Camera, Edit3, Pen, Settings, X } from '@tamagui/lucide-icons'
-import { useState } from 'react'
+import { Camera, X } from '@tamagui/lucide-icons'
+import { useMemo, useState } from 'react'
 import { Button, Dialog, Image, Text, View, XStack, YStack, Spacer } from '@my/ui'
 import { EditProfileDialog } from './EditProfileDialog'
 import { EditAvatar } from './EditAvatar'
@@ -8,15 +8,29 @@ interface ProfileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   profileData?: any
-  onSave: (data: { name?: string; avatar?: File }) => void
+  onSave: (data: { name?: string; avatar?: File; dateOfBirth?: string }) => void
 }
 
 export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: ProfileDialogProps) => {
-  const userData = profileData?.result
-  const [openEditName, setOpenEditName] = useState(false)
-  const [displayName, setDisplayName] = useState(userData?.name)
-  const [displayAvatar, setDisplayAvatar] = useState(userData?.avatarUrl)
+  const userData = profileData?.result ?? profileData
+
+  const [openEditProfile, setOpenEditProfile] = useState(false)
   const [openEditAvatar, setOpenEditAvatar] = useState(false)
+
+  const formattedDob = useMemo(() => {
+    const raw = userData?.dateOfBirth
+    if (!raw) return undefined
+    // Nếu backend trả ISO, thử format nhẹ cho dễ đọc
+    const d = new Date(raw)
+    if (!Number.isNaN(d.getTime())) {
+      const day = `${d.getDate()}`.padStart(2, '0')
+      const month = `${d.getMonth() + 1}`.padStart(2, '0')
+      const year = d.getFullYear()
+      return `${day}/${month}/${year}`
+    }
+    return raw
+  }, [userData?.dateOfBirth])
+
   return (
     <Dialog modal open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -43,46 +57,48 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
         >
           {/* Header */}
           <XStack
-            padding="$3"
+            padding="$2"
             alignItems="center"
             justifyContent="space-between"
             borderBottomWidth={1}
             borderColor="$borderColor"
           >
-            <Dialog.Title fontSize="$5" fontWeight="500">
-              Thông tin tài khoản
+            <Dialog.Title asChild>
+              <Text fontSize="$3" fontWeight="700" color="$color">
+                Thông tin tài khoản
+              </Text>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <Button size="$2" circular icon={X} chromeless />
+              <Button size="$1" circular icon={X} chromeless />
             </Dialog.Close>
           </XStack>
 
           {/* Body */}
-          <YStack>
-            {/* Phần ảnh bìa và Avatar */}
-            <View height={160} width="100%" position="relative">
-              {/* Ảnh bìa */}
-              <Image
-                source={{ uri: 'https://picsum.photos/400/200' }} // Thay bằng link ảnh bìa thật
-                width="100%"
-                height="100%"
-                objectFit="cover"
-              />
-
-              {/* Avatar lồng vào ảnh bìa */}
-              <View position="absolute" bottom={-35} left={20} zIndex={10}>
+          <YStack padding="$4" space="$4">
+            {/* Avatar center */}
+            <YStack alignItems="center" space="$2">
+              <View position="relative">
                 <View
-                  width={80}
-                  height={80}
-                  borderRadius={100}
-                  borderWidth={3}
-                  borderColor="$background"
+                  width={96}
+                  height={96}
+                  borderRadius={999}
+                  borderWidth={2}
+                  borderColor="$borderColor"
                   overflow="hidden"
                   backgroundColor="$background"
                 >
-                  <Image source={{ uri: userData?.avatarUrl }} width="100%" height="100%" />
+                  <Image
+                    source={{
+                      uri:
+                        userData?.avatarUrl ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
+                    }}
+                    width="100%"
+                    height="100%"
+                  />
                 </View>
-                {/* Nút camera sửa avatar */}
+
+                {/* Edit avatar button */}
                 <Button
                   position="absolute"
                   bottom={0}
@@ -90,58 +106,31 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
                   size="$2"
                   circular
                   icon={Camera}
-                  scale={0.8}
                   backgroundColor="$background"
                   borderWidth={1}
                   borderColor="$borderColor"
                   onPress={() => setOpenEditAvatar(true)}
+                  aria-label="Chỉnh sửa avatar"
                 />
               </View>
-            </View>
-
-            {/* Tên và thông tin phía dưới */}
-            <YStack paddingHorizontal="$4" marginTop="$10" space="$3">
-              <XStack alignItems="center" space="$2">
-                <Text fontWeight="700" fontSize="$6">
-                  {userData?.name || 'No Name'}
-                </Text>
-                <Button
-                  size="$1"
-                  onPress={() => setOpenEditName(true)}
-                  chromeless
-                  icon={Pen}
-                  padding={0}
-                />
-              </XStack>
-
-              <YStack space="$2" marginTop="$2">
-                <Text fontWeight="600" fontSize="$4">
-                  Thông tin cá nhân
-                </Text>
-
-                <InfoRow label="Bio" value="ジュン 🌿" isBlue />
-                <InfoRow label="Giới tính" value="Nữ" />
-                <InfoRow label="Ngày sinh" value="21 tháng 03, 2004" />
-                <InfoRow label="Điện thoại" value="+84 374 288 019" />
-                <Text fontSize="$2" color="$colorFocus" marginTop="$1">
-                  Chỉ bạn bè có lưu số của bạn trong danh bạ máy xem được số này
-                </Text>
-              </YStack>
-
-              <Spacer size="$4" />
-
-              {/* Nút chỉnh sửa dưới cùng */}
-              <Button
-                themeInverse
-                icon={Pen}
-                borderRadius="$10"
-                marginBottom="$4"
-                // Form mo edit name
-                onPress={() => setOpenEditName(true)}
-              >
-                Cập nhật
-              </Button>
             </YStack>
+
+            {/* Personal info */}
+            <YStack space="$2">
+              <Text fontWeight="600" fontSize="$4">
+                Thông tin cá nhân
+              </Text>
+
+              <InfoRow label="Họ tên" value={userData?.name} optional />
+              <InfoRow label="Ngày sinh" value={formattedDob} optional />
+            </YStack>
+
+            <Spacer size="$2" />
+
+            {/* Update button */}
+            <Button themeInverse borderRadius="$10" onPress={() => setOpenEditProfile(true)}>
+              Cập nhật
+            </Button>
           </YStack>
         </Dialog.Content>
       </Dialog.Portal>
@@ -153,10 +142,10 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
         onSave={onSave}
       />
       <EditProfileDialog
-        open={openEditName}
-        onOpenChange={setOpenEditName}
-        currentAvatar={userData?.avatarUrl}
+        open={openEditProfile}
+        onOpenChange={setOpenEditProfile}
         currentName={userData?.name}
+        currentDateOfBirth={userData?.dateOfBirth}
         onSave={onSave}
       ></EditProfileDialog>
     </Dialog>
@@ -164,13 +153,25 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
 }
 
 // Component phụ để render dòng thông tin
-const InfoRow = ({ label, value, isBlue }: { label: string; value: string; isBlue?: boolean }) => (
-  <XStack space="$4" paddingVertical="$1">
-    <Text width={80} color="$colorFocus" fontSize="$3">
-      {label}
-    </Text>
-    <Text fontSize="$3" color={isBlue ? '$blue10' : '$color'}>
-      {value}
-    </Text>
-  </XStack>
-)
+const InfoRow = ({
+  label,
+  value,
+  optional,
+}: {
+  label: string
+  value?: string
+  optional?: boolean
+}) => {
+  const displayValue = value?.trim() ? value : optional ? 'Chưa cập nhật' : ''
+
+  return (
+    <XStack space="$4" paddingVertical="$1" alignItems="flex-start">
+      <Text width={110} color="$colorFocus" fontSize="$3">
+        {label}
+      </Text>
+      <Text fontSize="$3" color={displayValue === 'Chưa cập nhật' ? '$color10' : '$color'}>
+        {displayValue}
+      </Text>
+    </XStack>
+  )
+}

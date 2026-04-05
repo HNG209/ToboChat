@@ -4244,6 +4244,7 @@ __metadata:
   resolution: "@my/ui@workspace:packages/ui"
   dependencies:
     "@my/config": "npm:0.0.1"
+    "@react-native-community/datetimepicker": "npm:^8.4.1"
     "@tamagui/build": "npm:^1.144.0"
     "@tamagui/toast": "npm:^1.144.0"
     tamagui: "npm:^1.144.0"
@@ -5891,6 +5892,25 @@ __metadata:
   bin:
     rnc-cli: build/bin.js
   checksum: 10/9e1ebdd31d59fc8d8085c92aad72eb611c378da70038cefc6bb92047d0ff34b82f6711f2e6f5af91aee6aa3ee04d677884860fb726325b96d979a074d13ed577
+  languageName: node
+  linkType: hard
+
+"@react-native-community/datetimepicker@npm:^8.4.1, @react-native-community/datetimepicker@npm:^8.6.0":
+  version: 8.6.0
+  resolution: "@react-native-community/datetimepicker@npm:8.6.0"
+  dependencies:
+    invariant: "npm:^2.2.4"
+  peerDependencies:
+    expo: ">=52.0.0"
+    react: "*"
+    react-native: "*"
+    react-native-windows: "*"
+  peerDependenciesMeta:
+    expo:
+      optional: true
+    react-native-windows:
+      optional: true
+  checksum: 10/8d287227ce68aa0a88475de96bd00c6084800d8662b97ebe8a0583bc36cf204ac2f7551bec926fba9b3163b94fc885b9c3049dd544172405aa6d7ffac49ecd7b
   languageName: node
   linkType: hard
 
@@ -13533,6 +13553,7 @@ __metadata:
     "@expo/metro-config": "npm:~54.0.12"
     "@my/ui": "npm:0.0.1"
     "@react-native-async-storage/async-storage": "npm:^2.2.0"
+    "@react-native-community/datetimepicker": "npm:^8.6.0"
     "@react-navigation/bottom-tabs": "npm:^7.3.10"
     "@react-navigation/native": "npm:^7.1.6"
     "@tamagui/babel-plugin": "npm:^1.144.0"

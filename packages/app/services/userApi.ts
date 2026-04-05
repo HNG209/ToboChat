@@ -18,8 +18,8 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ['UserSearch'],
     }),
 
-    updateProfile: builder.mutation<any, { name?: string; avatar?: File }>({
-      query: ({ name, avatar }) => {
+    updateProfile: builder.mutation<any, { name?: string; avatar?: File; dateOfBirth?: string }>({
+      query: ({ name, avatar, dateOfBirth }) => {
         const formData = new FormData()
 
         if (name) {
@@ -28,6 +28,10 @@ export const userApi = baseApi.injectEndpoints({
 
         if (avatar) {
           formData.append('avatar', avatar)
+        }
+
+        if (dateOfBirth) {
+          formData.append('dateOfBirth', dateOfBirth)
         }
 
         return {

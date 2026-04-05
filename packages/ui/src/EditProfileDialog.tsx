@@ -1,40 +1,44 @@
 import { X } from '@tamagui/lucide-icons'
 import { useEffect, useState } from 'react'
-import { Button, Dialog, XStack, YStack, Label, Input, Image } from 'tamagui'
-import { Platform } from 'react-native'
+
+import { Button, Dialog, XStack, YStack, Label, Input, Text } from '@my/ui'
+import { DatePickerField } from './DatePickerField'
 interface ProfileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentName: string
-  currentAvatar?: string
-  onSave: (data: { name?: string; avatar?: File }) => void
+  currentDateOfBirth?: string
+  onSave: (data: { name?: string; dateOfBirth?: string }) => void
 }
 
 export const EditProfileDialog = ({
   open,
   onOpenChange,
   currentName,
-  currentAvatar,
+  currentDateOfBirth,
   onSave,
 }: ProfileDialogProps) => {
   const [tempName, setTempName] = useState(currentName)
-  const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | undefined>(currentAvatar)
+  const [tempDob, setTempDob] = useState(currentDateOfBirth || '')
+
+  const normalizeDobForInput = (dob?: string) => {
+    if (!dob) return ''
+    // ISO -> YYYY-MM-DD (để input type=date nhận)
+    if (dob.includes('T')) return dob.slice(0, 10)
+    return dob
+  }
 
   useEffect(() => {
     setTempName(currentName)
-    setPreview(currentAvatar)
-    setFile(null)
-  }, [currentName, currentAvatar])
+    setTempDob(normalizeDobForInput(currentDateOfBirth))
+  }, [currentName, currentDateOfBirth])
 
-  // 👉 chọn file + preview luôn
-  const handleChooseFile = (e: any) => {
-    const selected = e.target.files?.[0]
-    if (selected) {
-      setFile(selected)
-      setPreview(URL.createObjectURL(selected))
-    }
+  const handleSave = () => {
+    const dob = tempDob.trim()
+    onSave({ name: tempName, dateOfBirth: dob ? dob : undefined })
+    onOpenChange(false)
   }
+
   return (
     <Dialog modal open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -61,51 +65,41 @@ export const EditProfileDialog = ({
         >
           {/* Header */}
           <XStack
-            padding="$3"
+            padding="$2"
             alignItems="center"
             justifyContent="space-between"
             borderBottomWidth={1}
             borderColor="$borderColor"
           >
-            <Dialog.Title fontSize="$5" fontWeight="600">
-              Chỉnh sửa thông tin cá nhân
+            <Dialog.Title asChild>
+              <Text fontSize="$3" fontWeight="700" color="$color">
+                Chỉnh sửa thông tin cá nhân
+              </Text>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <Button size="$2" circular icon={X} chromeless />
+              <Button size="$1" circular icon={X} chromeless />
             </Dialog.Close>
           </XStack>
 
           {/* Body */}
           <YStack padding="$4" space="$4">
-            {/* Avatar */}
-            <YStack alignItems="center" space="$2">
-              <Image
-                source={{
-                  uri: preview || currentAvatar || 'https://i.pravatar.cc/300',
-                }}
-                width={100}
-                height={100}
-                borderRadius={50}
-              />
-
-              {Platform.OS === 'web' && <input type="file" onChange={handleChooseFile} />}
-            </YStack>
-
             {/* Name */}
             <YStack space="$2">
               <Label>Tên hiển thị</Label>
               <Input value={tempName} onChangeText={setTempName} />
             </YStack>
 
+            {/* DOB */}
+            <YStack space="$2">
+              <Label>Ngày sinh</Label>
+              <DatePickerField value={tempDob} onChange={setTempDob} placeholder="YYYY-MM-DD" />
+              <Text fontSize="$2" color="$color10">
+                Trống nếu bạn chưa muốn cập nhật
+              </Text>
+            </YStack>
+
             {/* Button */}
-            <Button
-              themeInverse
-              borderRadius="$10"
-              onPress={() => {
-                onSave({ name: tempName, avatar: file || undefined })
-                onOpenChange(false)
-              }}
-            >
+            <Button themeInverse borderRadius="$10" onPress={handleSave}>
               Lưu thay đổi
             </Button>
           </YStack>

@@ -176,7 +176,7 @@ export default function UserDetailScreen() {
 
     setOpenDisableMFA(true)
   }
-  const handleSave = async (data: { name?: string; avatar?: File }) => {
+  const handleSave = async (data: { name?: string; avatar?: File; dateOfBirth?: string }) => {
     try {
       await updateProfile(data).unwrap()
       await refetch() // 👈 force reload
@@ -406,7 +406,7 @@ export default function UserDetailScreen() {
 
         {/* ACTIONS */}
         <XStack space="$3" marginTop="$3">
-          <Button size="$4" theme="active">
+          <Button size="$4" backgroundColor="$blue10" color="white">
             Ket Ban
           </Button>
 

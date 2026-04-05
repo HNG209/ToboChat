@@ -36,7 +36,7 @@ export const FullSettingsDialog = ({
   const [showChangePassword, setShowChangePassword] = useState(false)
 
   const menuTextColor = theme === 'dark' ? 'white' : '$color'
-  const activeMenuBackground = theme === 'dark' ? '$primary' : '$blue10'
+  const activeMenuBackground = theme === 'dark' ? '$blue11' : '$blue10'
 
   return (
     <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
@@ -173,7 +173,7 @@ export const FullSettingsDialog = ({
                         size="$3"
                         checked={theme === 'dark'}
                         onCheckedChange={(checked) => onThemeChange(checked ? 'dark' : 'light')}
-                        backgroundColor={theme === 'dark' ? '$primary' : '$backgroundPress'}
+                        backgroundColor={theme === 'dark' ? '$blue11' : '$backgroundPress'}
                       >
                         <Switch.Thumb animation="quick" />
                       </Switch>
@@ -227,7 +227,9 @@ export const FullSettingsDialog = ({
                           size="$3"
                           checked={isTwoFactorAuth}
                           onCheckedChange={handleToggleMFA}
-                          backgroundColor={isTwoFactorAuth ? '$primary' : '$backgroundPress'}
+                          backgroundColor={
+                            isTwoFactorAuth ? activeMenuBackground : '$backgroundPress'
+                          }
                         >
                           <Switch.Thumb animation="quick" />
                         </Switch>
