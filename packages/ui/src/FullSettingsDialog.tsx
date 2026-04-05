@@ -1,7 +1,7 @@
 import { Dialog, Text, XStack, YStack, ListItem, Button, Switch } from '@my/ui'
-import {
-  X,
-} from '@tamagui/lucide-icons'
+import ChangePasswordForm from '@my/ui/src/ChangePassworđForm'
+import { X } from '@tamagui/lucide-icons'
+import { useState } from 'react'
 export const FullSettingsDialog = ({
   showFullSettings,
   setShowFullSettings,
@@ -10,6 +10,8 @@ export const FullSettingsDialog = ({
   isTwoFactorAuth,
   handleToggleMFA,
 }) => {
+  const [showChangePassword, setShowChangePassword] = useState(false)
+
   return (
     <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
       <Dialog.Portal>
@@ -60,14 +62,14 @@ export const FullSettingsDialog = ({
 
               <ListItem
                 title="Cài đặt chung"
-                theme='white'
+                theme="white"
                 hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
                 onPress={() => setActiveTab('general')}
               />
 
               <ListItem
                 title="Tài khoản & bảo mật"
-                theme='white'
+                theme="white"
                 hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
                 onPress={() => setActiveTab('security')}
               />
@@ -112,40 +114,42 @@ export const FullSettingsDialog = ({
                 </>
               )}
 
-              {activeTab === 'security' && (
-                <>
-                  {/* Section: Bảo mật 2 lớp (Phần bạn yêu cầu) */}
-                  <YStack space="$3">
-                    <Text fontWeight="bold">Bảo mật 2 lớp</Text>
-
-                    <XStack
-                      backgroundColor="$backgroundHover"
-                      padding="$4"
-                      borderRadius="$4"
-                      jc="space-between"
-                      ai="flex-start" // Để text dài không bị lệch nút
-                      space="$4"
-                    >
-                      <YStack flex={1} space="$1">
-                        <Text lineHeight={20}>
-                          Sau khi bật, bạn sẽ được yêu cầu nhập mã OTP hoặc xác thực từ thiết bị di
-                          động sau khi đăng nhập trên thiết bị lạ.
-                        </Text>
-                      </YStack>
-
-                      {/* Nút Switch xanh chuẩn Zalo */}
-                      <Switch
-                        size="$3"
-                        checked={isTwoFactorAuth}
-                        onCheckedChange={handleToggleMFA}
-                        backgroundColor={isTwoFactorAuth ? '#0068ff' : '$backgroundPress'}
+              {activeTab === 'security' &&
+                (showChangePassword ? (
+                  <ChangePasswordForm onBack={() => setShowChangePassword(false)} />
+                ) : (
+                  <>
+                    <YStack space="$3">
+                      <Text fontWeight="bold">Bảo mật 2 lớp</Text>
+                      <XStack
+                        backgroundColor="$backgroundHover"
+                        padding="$4"
+                        borderRadius="$4"
+                        justifyContent="space-between"
+                        alignItems="flex-start"
+                        space="$4"
                       >
-                        <Switch.Thumb animation="quick" />
-                      </Switch>
-                    </XStack>
-                  </YStack>
-                </>
-              )}
+                        <YStack flex={1} space="$1">
+                          <Text lineHeight={20}>
+                            Sau khi bật, bạn sẽ được yêu cầu nhập mã OTP hoặc xác thực từ thiết bị
+                            di động sau khi đăng nhập trên thiết bị lạ.
+                          </Text>
+                        </YStack>
+                        <Switch
+                          size="$3"
+                          checked={isTwoFactorAuth}
+                          onCheckedChange={handleToggleMFA}
+                          backgroundColor={isTwoFactorAuth ? '#0068ff' : '$backgroundPress'}
+                        >
+                          <Switch.Thumb animation="quick" />
+                        </Switch>
+                      </XStack>
+                      <Button mt="$4" onPress={() => setShowChangePassword(true)}>
+                        Đổi mật khẩu
+                      </Button>
+                    </YStack>
+                  </>
+                ))}
             </YStack>
           </XStack>
         </Dialog.Content>
