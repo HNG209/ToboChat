@@ -14,6 +14,10 @@ export const EnableMFADialog = ({
   handleSubmitPassword,
   handleVerifyOTP,
 }) => {
+  const otpUri = secretCode
+    ? `otpauth://totp/ToboChat?secret=${secretCode}&issuer=ToboChat`
+    : undefined
+
   return (
     <Dialog
       open={openEnableMFA}
@@ -48,7 +52,9 @@ export const EnableMFADialog = ({
 
               <Image
                 source={{
-                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=otpauth://totp/YourApp?secret=${secretCode}&issuer=YourApp`,
+                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                    otpUri || ''
+                  )}`,
                 }}
                 style={{ width: 200, height: 200 }}
               />

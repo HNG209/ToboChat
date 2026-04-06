@@ -26,7 +26,7 @@ export const DisableMFADialog = ({
 
         <Dialog.Content key="content" padding="$5" width={400}>
           <YStack space="$3">
-            <Text fontWeight="bold">Nhập mật khẩu để tắt xác thực 2 lớp</Text>
+            <Text fontWeight="bold">Nhập mật khẩu để tắt bảo mật 2 lớp</Text>
 
             <Input secureTextEntry value={disablePassword} onChangeText={setDisablePassword} />
 

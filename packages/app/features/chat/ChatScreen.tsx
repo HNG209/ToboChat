@@ -20,9 +20,9 @@ import {
 } from 'app/services/chatApi'
 import { roomApi, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { MessageResponse } from 'app/types/Response'
-import { AppDispatch } from 'app/store'
+import { AppDispatch, RootState } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 
@@ -37,11 +37,24 @@ export function ChatScreen({ roomId, insets }: Props) {
   const linkProps = useLink({ href: '/chat' })
   const dispatch = useDispatch<AppDispatch>()
   const [isSocketReady, setIsSocketReady] = useState(false)
+  const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
   // 1. API Hooks
-  const { data, isLoading, isError } = useGetMessagesQuery({ roomId })
+  const { data, isLoading, isError } = useGetMessagesQuery(
+    { roomId },
+    {
+      skip: !hasSession || !roomId,
+      refetchOnMountOrArgChange: true,
+    }
+  )
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
-  const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery({ roomId })
+  const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery(
+    { roomId },
+    {
+      skip: !hasSession || !roomId,
+      refetchOnMountOrArgChange: true,
+    }
+  )
   const [sendMessage] = useSendMessageMutation()
 
   // 2. Load More Logic

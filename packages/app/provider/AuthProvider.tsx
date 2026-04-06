@@ -6,6 +6,10 @@ import { useRouter, usePathname } from 'solito/navigation'
 import { Spinner, YStack } from 'tamagui' // Đã đổi sang Tamagui
 import { useLazyGetProfileQuery } from 'app/services/userApi'
 import { useSocketConnection } from 'app/hooks/useSocketConnection'
+import { useDispatch } from 'react-redux'
+import { baseApi } from 'app/services/baseApi'
+import { resetAuth, setHasSession } from 'app/store/authSlice'
+import type { AppDispatch } from 'app/store'
 
 // Danh sách các đường dẫn KHÔNG cần đăng nhập (Public)
 const PUBLIC_PATHS = ['/login', '/auth/forgot-password']
@@ -15,6 +19,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [login, setLogin] = useState(false)
   const router = useRouter()
   const pathname = usePathname() // Lấy đường dẫn hiện tại
+  const dispatch = useDispatch<AppDispatch>()
   const [getProfile, { data: profileData }] = useLazyGetProfileQuery() // Hook để gọi API lấy profile khi cần
 
   useSocketConnection(login) // Hook kết nối socket, sẽ tự động lấy token khi có user
@@ -23,9 +28,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await getCurrentUser()
       setLogin(true)
+      dispatch(setHasSession(true))
       getProfile() // Gọi API lấy profile khi có user
     } catch (error) {
       console.log('No current user')
+      setLogin(false)
+      // Clear stale user + API cache so switching accounts doesn't show previous data
+      dispatch(resetAuth())
+      dispatch(baseApi.util.resetApiState())
     } finally {
       setLoading(false)
     }
@@ -41,6 +51,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           checkUser()
           break
         case 'signedOut':
+          // Immediately clear app state/caches on sign out
+          setLogin(false)
+          dispatch(resetAuth())
+          dispatch(baseApi.util.resetApiState())
           checkUser()
           break
       }

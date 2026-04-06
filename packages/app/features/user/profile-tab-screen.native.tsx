@@ -56,6 +56,15 @@ function formatDobForDisplay(dob?: string): string | undefined {
   return dob
 }
 
+function deriveFileUrlFromPresignedUrl(presignedUrl: string): string {
+  try {
+    const u = new URL(presignedUrl)
+    return `${u.origin}${u.pathname}`
+  } catch {
+    return presignedUrl.split('?')[0]
+  }
+}
+
 export default function ProfileTabScreen() {
   const dispatch = useDispatch<AppDispatch>()
   const {
@@ -223,7 +232,11 @@ export default function ProfileTabScreen() {
       }).unwrap()
       const presignedUrl =
         'presignedUrl' in uploadUrlRes ? uploadUrlRes.presignedUrl : (uploadUrlRes as any).url
-      const fileUrl = (uploadUrlRes as any).fileUrl as string | undefined
+      const fileUrlFromApi = (uploadUrlRes as any).fileUrl as string | undefined
+      const resolvedFileUrl =
+        typeof fileUrlFromApi === 'string' && fileUrlFromApi.length
+          ? fileUrlFromApi
+          : deriveFileUrlFromPresignedUrl(presignedUrl)
 
       let blob: Blob
       try {
@@ -253,18 +266,14 @@ export default function ProfileTabScreen() {
       setAvatarCacheKey(Date.now())
       setPendingAvatar(undefined)
 
-      if (fileUrl) {
-        setOptimisticAvatarUrl(fileUrl)
-        patchProfileCache((draft) => {
-          if (draft?.result) {
-            draft.result.avatarUrl = fileUrl
-          } else {
-            draft.avatarUrl = fileUrl
-          }
-        })
-      } else {
-        setOptimisticAvatarUrl(undefined)
-      }
+      setOptimisticAvatarUrl(resolvedFileUrl)
+      patchProfileCache((draft) => {
+        if (draft?.result) {
+          draft.result.avatarUrl = resolvedFileUrl
+        } else {
+          draft.avatarUrl = resolvedFileUrl
+        }
+      })
 
       await refetch()
     } finally {
