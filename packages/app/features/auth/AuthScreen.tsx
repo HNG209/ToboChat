@@ -20,6 +20,7 @@ import {
   resetPassword,
   confirmResetPassword,
   confirmSignIn,
+  getCurrentUser,
 } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
 import { SwitchThemeButton, useToastController } from '@my/ui'
@@ -50,6 +51,26 @@ export function AuthScreen() {
   const [forgotCode, setForgotCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [totpDetails, setTotpDetails] = useState<any>(null)
+
+  // Nếu đã có session (đã đăng nhập), đi thẳng vào app để tránh lỗi
+  // "There is already a signed in user" khi người dùng bấm đăng nhập lại.
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        await getCurrentUser()
+        if (cancelled) return
+        router.replace('/chat')
+      } catch {
+        // not signed in
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [router])
   // Đếm ngược resend
   useEffect(() => {
     if (resendTimer > 0) {
@@ -64,6 +85,15 @@ export function AuthScreen() {
     setIsLoading(true)
     setError(null)
     try {
+      // Tránh gọi signIn khi session đã tồn tại
+      try {
+        await getCurrentUser()
+        router.replace('/chat')
+        return
+      } catch {
+        // continue
+      }
+
       const { isSignedIn, nextStep } = await signIn({ username: email, password })
       console.log('Next Step:', nextStep)
       if (isSignedIn) {
@@ -89,7 +119,19 @@ export function AuthScreen() {
           console.log('Unhandled step:', nextStep)
       }
     } catch (error: any) {
-      setError(error.message)
+      const msg = String(error?.message ?? '')
+      const name = String(error?.name ?? '')
+
+      // Amplify sẽ throw nếu đã có user signed-in.
+      if (
+        name === 'UserAlreadyAuthenticatedException' ||
+        msg.toLowerCase().includes('already a signed in user')
+      ) {
+        router.replace('/chat')
+        return
+      }
+
+      setError(msg)
     } finally {
       setIsLoading(false)
     }

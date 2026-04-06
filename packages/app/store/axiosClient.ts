@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { ApiResponse } from 'app/types/Response'
 
-const getBaseUrl = () => {
+export const getApiBaseUrl = () => {
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'
 }
 
@@ -12,7 +12,7 @@ export const getAxiosClient = async () => {
   if (clientInstance) return clientInstance
 
   const client = axios.create({
-    baseURL: getBaseUrl(),
+    baseURL: getApiBaseUrl(),
     // headers: { 'Content-Type': 'application/json' }, xoa bo de khong loi
     // Cognito dùng Bearer Token, không dùng Cookie nên withCredentials thường là false
     withCredentials: false,
