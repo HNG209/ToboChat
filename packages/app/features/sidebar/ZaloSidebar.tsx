@@ -4,11 +4,13 @@ import { Contact2, LogOut, MessageSquare, Settings, User } from '@tamagui/lucide
 
 import { signOut } from 'aws-amplify/auth'
 import React, { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { usePathname, useRouter } from 'solito/navigation'
 import { useTranslation } from 'react-i18next'
 import { FullSettingsDialog, EnableMFADialog, DisableMFADialog, ProfileDialog } from '@my/ui'
 import { useAppTheme } from '../../provider/ThemeContext'
 import { fetchMFAPreference } from 'aws-amplify/auth'
+import type { AppDispatch } from 'app/store'
 import {
   useConfirmMFAMutation,
   useDisableMFAMutation,
@@ -18,10 +20,12 @@ import {
   useGetAvatarUploadUrlMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,
+  userApi,
 } from 'app/services/userApi'
 import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 
 export const ZaloSidebar = () => {
+  const dispatch = useDispatch<AppDispatch>()
   const { push } = useRouter()
   const router = useRouter()
   const pathname = usePathname()
@@ -33,7 +37,7 @@ export const ZaloSidebar = () => {
 
   const [openSignOut, setOpenSignOut] = useState(false)
 
-  const { data: profileData } = useGetProfileQuery()
+  const { data: profileData, refetch } = useGetProfileQuery()
   const userId = profileData?.id
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
@@ -60,7 +64,13 @@ export const ZaloSidebar = () => {
   //dung cho phan update
   const [updateProfile] = useUpdateProfileMutation()
   const [getAvatarUploadUrl] = useGetAvatarUploadUrlMutation()
-  const { refetch } = useGetProfileQuery()
+  const [avatarCacheKey, setAvatarCacheKey] = useState(0)
+  const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>(undefined)
+
+  const withCacheBuster = (url?: string) => {
+    if (!url || !avatarCacheKey) return url
+    return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
+  }
   const handleSave = async (data: { name?: string; avatar?: File; dateOfBirth?: string }) => {
     try {
       const { name, avatar, dateOfBirth } = data
@@ -104,6 +114,16 @@ export const ZaloSidebar = () => {
 
         console.log('[avatar] uploading to S3', { fileUrl })
         await uploadToPresignedUrl({ presignedUrl, file: avatar, contentType })
+
+        // Bust image cache so UI picks up the new avatar immediately
+        const cacheKey = Date.now()
+        setAvatarCacheKey(cacheKey)
+        setOptimisticAvatarUrl(fileUrl)
+        dispatch(
+          userApi.util.updateQueryData('getProfile', undefined, (draft: any) => {
+            if (draft) draft.avatarUrl = fileUrl
+          })
+        )
       }
 
       await refetch()
@@ -254,6 +274,11 @@ export const ZaloSidebar = () => {
   const handleGoToChat = () => {
     push('/chat')
   }
+
+  const profileDataForDialog =
+    optimisticAvatarUrl && profileData
+      ? { ...profileData, avatarUrl: optimisticAvatarUrl }
+      : profileData
   return (
     <>
       <YStack
@@ -267,8 +292,14 @@ export const ZaloSidebar = () => {
 
         <Avatar circular size="$4">
           <Avatar.Image
-            src={
+            key={
+              withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
+              optimisticAvatarUrl ||
               profileData?.avatarUrl ||
+              'avatar'
+            }
+            src={
+              withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
               `https://ui-avatars.com/api/?name=${profileData?.name}&background=random`
             }
           />
@@ -339,7 +370,8 @@ export const ZaloSidebar = () => {
         onSave={handleSave}
         open={openProfile}
         onOpenChange={setOpenProfile}
-        profileData={profileData}
+        profileData={profileDataForDialog}
+        avatarCacheKey={avatarCacheKey}
       />
 
       {/* Phan mo full cai dat */}

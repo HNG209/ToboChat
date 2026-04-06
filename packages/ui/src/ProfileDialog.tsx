@@ -9,13 +9,29 @@ interface ProfileDialogProps {
   onOpenChange: (open: boolean) => void
   profileData?: any
   onSave: (data: { name?: string; avatar?: File; dateOfBirth?: string }) => void
+  avatarCacheKey?: number
+  avatarUrlOverride?: string
 }
 
-export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: ProfileDialogProps) => {
+export const ProfileDialog = ({
+  open,
+  onOpenChange,
+  profileData,
+  onSave,
+  avatarCacheKey,
+  avatarUrlOverride,
+}: ProfileDialogProps) => {
   const userData = profileData?.result ?? profileData
+
+  const withCacheBuster = (url?: string) => {
+    if (!url || !avatarCacheKey) return url
+    return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
+  }
 
   const [openEditProfile, setOpenEditProfile] = useState(false)
   const [openEditAvatar, setOpenEditAvatar] = useState(false)
+
+  const effectiveAvatarUrl = avatarUrlOverride ?? userData?.avatarUrl
 
   const formattedDob = useMemo(() => {
     const raw = userData?.dateOfBirth
@@ -93,9 +109,15 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
                     backgroundColor="$background"
                   >
                     <Image
+                      key={
+                        withCacheBuster(effectiveAvatarUrl) ||
+                        effectiveAvatarUrl ||
+                        userData?.avatarUrl ||
+                        'avatar'
+                      }
                       source={{
                         uri:
-                          userData?.avatarUrl ||
+                          withCacheBuster(effectiveAvatarUrl) ||
                           `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
                       }}
                       width="100%"
@@ -156,7 +178,7 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
       <EditAvatar
         open={openEditAvatar}
         onOpenChange={setOpenEditAvatar}
-        currentAvatar={userData?.avatarUrl}
+        currentAvatar={withCacheBuster(effectiveAvatarUrl)}
         currentName={userData?.name}
         onSave={onSave}
       />

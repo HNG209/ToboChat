@@ -23,13 +23,16 @@ import { LogOut } from '@tamagui/lucide-icons'
 import { Separator } from '@my/ui'
 
 import React, { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { fetchMFAPreference, signOut } from 'aws-amplify/auth'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { useTranslation } from 'react-i18next'
+import type { AppDispatch } from 'app/store'
 import {
   useGetAvatarUploadUrlMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,
+  userApi,
 } from 'app/services/userApi'
 import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 import {
@@ -39,6 +42,7 @@ import {
 } from 'app/services/authApi'
 
 export default function UserDetailScreen() {
+  const dispatch = useDispatch<AppDispatch>()
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -48,6 +52,13 @@ export default function UserDetailScreen() {
   // undefined	  /users/me
   // "abc123"	    /users/abc123
   const { data: userProfile, refetch } = useGetProfileQuery()
+  const [avatarCacheKey, setAvatarCacheKey] = useState(0)
+  const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>(undefined)
+
+  const withCacheBuster = (url?: string) => {
+    if (!url || !avatarCacheKey) return url
+    return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
+  }
 
   // Chuyen doi ngon ngu
 
@@ -69,8 +80,7 @@ export default function UserDetailScreen() {
   const [openSignOut, setOpenSignOut] = useState(false)
   const [openSetting, setOpenSetting] = useState(false)
 
-  const { data: profileData } = useGetProfileQuery()
-  const userId = profileData?.id
+  const userId = userProfile?.id
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
   const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
@@ -181,6 +191,11 @@ export default function UserDetailScreen() {
 
     setOpenDisableMFA(true)
   }
+
+  const profileDataForDialog =
+    optimisticAvatarUrl && userProfile
+      ? { ...userProfile, avatarUrl: optimisticAvatarUrl }
+      : userProfile
   const handleSave = async (data: { name?: string; avatar?: File; dateOfBirth?: string }) => {
     try {
       const { name, avatar, dateOfBirth } = data
@@ -224,6 +239,16 @@ export default function UserDetailScreen() {
 
         console.log('[avatar] uploading to S3', { fileUrl })
         await uploadToPresignedUrl({ presignedUrl, file: avatar, contentType })
+
+        // Bust image cache so UI picks up the new avatar immediately
+        const cacheKey = Date.now()
+        setAvatarCacheKey(cacheKey)
+        setOptimisticAvatarUrl(fileUrl)
+        dispatch(
+          userApi.util.updateQueryData('getProfile', undefined, (draft: any) => {
+            if (draft) draft.avatarUrl = fileUrl
+          })
+        )
       }
 
       await refetch() // 👈 force reload
@@ -435,7 +460,18 @@ export default function UserDetailScreen() {
           borderWidth={4}
           borderColor="white"
         >
-          <Avatar.Image src={profileData?.avatarUrl || 'https://i.pravatar.cc/300'} />
+          <Avatar.Image
+            key={
+              withCacheBuster(optimisticAvatarUrl ?? userProfile?.avatarUrl) ||
+              optimisticAvatarUrl ||
+              userProfile?.avatarUrl ||
+              'avatar'
+            }
+            src={
+              withCacheBuster(optimisticAvatarUrl ?? userProfile?.avatarUrl) ||
+              'https://i.pravatar.cc/300'
+            }
+          />
         </Avatar>
       </YStack>
 
@@ -450,7 +486,7 @@ export default function UserDetailScreen() {
         borderTopRightRadius="$6"
       >
         <Text fontSize="$8" fontWeight="700">
-          {profileData?.name ?? 'No name'}
+          {userProfile?.name ?? 'No name'}
         </Text>
 
         <Text fontSize="$4" color="$color10" textAlign="center">
@@ -507,7 +543,8 @@ export default function UserDetailScreen() {
         onSave={handleSave}
         open={openProfile}
         onOpenChange={setOpenProfile}
-        profileData={profileData}
+        profileData={profileDataForDialog}
+        avatarCacheKey={avatarCacheKey}
       />
     </YStack>
   )
