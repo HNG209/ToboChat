@@ -206,49 +206,54 @@ export default function UserDetailScreen() {
       }
 
       if (avatar) {
-        const contentType = avatar.type || 'application/octet-stream'
-        console.log('[avatar] requesting presigned url', { contentType })
-        const resp = await getAvatarUploadUrl({ contentType }).unwrap()
-        const presignedUrl =
-          typeof (resp as any)?.presignedUrl === 'string'
-            ? (resp as any).presignedUrl
-            : typeof (resp as any)?.url === 'string'
-              ? (resp as any).url
+        const confirmed = window.confirm('Xác nhận tải ảnh lên?')
+        if (!confirmed) {
+          console.log('Upload canceled')
+        } else {
+          const contentType = avatar.type || 'application/octet-stream'
+          console.log('[avatar] requesting presigned url', { contentType })
+          const resp = await getAvatarUploadUrl({ contentType }).unwrap()
+          const presignedUrl =
+            typeof (resp as any)?.presignedUrl === 'string'
+              ? (resp as any).presignedUrl
+              : typeof (resp as any)?.url === 'string'
+                ? (resp as any).url
+                : undefined
+
+          const derivedFileUrl =
+            typeof presignedUrl === 'string'
+              ? (() => {
+                  try {
+                    const u = new URL(presignedUrl)
+                    return `${u.origin}${u.pathname}`
+                  } catch {
+                    return presignedUrl.split('?')[0]
+                  }
+                })()
               : undefined
 
-        const derivedFileUrl =
-          typeof presignedUrl === 'string'
-            ? (() => {
-                try {
-                  const u = new URL(presignedUrl)
-                  return `${u.origin}${u.pathname}`
-                } catch {
-                  return presignedUrl.split('?')[0]
-                }
-              })()
-            : undefined
+          const fileUrl =
+            typeof (resp as any)?.fileUrl === 'string' ? (resp as any).fileUrl : derivedFileUrl
 
-        const fileUrl =
-          typeof (resp as any)?.fileUrl === 'string' ? (resp as any).fileUrl : derivedFileUrl
+          if (typeof presignedUrl !== 'string' || typeof fileUrl !== 'string') {
+            throw new Error(
+              `Invalid upload-url response. Expected { presignedUrl, fileUrl } or { url }, got: ${JSON.stringify(resp)}`
+            )
+          }
 
-        if (typeof presignedUrl !== 'string' || typeof fileUrl !== 'string') {
-          throw new Error(
-            `Invalid upload-url response. Expected { presignedUrl, fileUrl } or { url }, got: ${JSON.stringify(resp)}`
+          console.log('[avatar] uploading to S3', { fileUrl })
+          await uploadToPresignedUrl({ presignedUrl, file: avatar, contentType })
+
+          // Bust image cache so UI picks up the new avatar immediately
+          const cacheKey = Date.now()
+          setAvatarCacheKey(cacheKey)
+          setOptimisticAvatarUrl(fileUrl)
+          dispatch(
+            userApi.util.updateQueryData('getProfile', undefined, (draft: any) => {
+              if (draft) draft.avatarUrl = fileUrl
+            })
           )
         }
-
-        console.log('[avatar] uploading to S3', { fileUrl })
-        await uploadToPresignedUrl({ presignedUrl, file: avatar, contentType })
-
-        // Bust image cache so UI picks up the new avatar immediately
-        const cacheKey = Date.now()
-        setAvatarCacheKey(cacheKey)
-        setOptimisticAvatarUrl(fileUrl)
-        dispatch(
-          userApi.util.updateQueryData('getProfile', undefined, (draft: any) => {
-            if (draft) draft.avatarUrl = fileUrl
-          })
-        )
       }
 
       await refetch() // 👈 force reload

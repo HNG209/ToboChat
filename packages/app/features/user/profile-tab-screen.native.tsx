@@ -77,8 +77,18 @@ export default function ProfileTabScreen() {
   const [avatarCacheKey, setAvatarCacheKey] = useState(0)
   const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>(undefined)
 
+  const [pendingAvatar, setPendingAvatar] = useState<
+    | {
+        uri: string
+        fileName: string
+        contentType: string
+      }
+    | undefined
+  >(undefined)
+
   const withCacheBuster = (url?: string) => {
     if (!url || !avatarCacheKey) return url
+    if (!/^https?:\/\//i.test(url)) return url
     return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
   }
 
@@ -113,7 +123,7 @@ export default function ProfileTabScreen() {
     )
   }
 
-  const handlePickAndUploadAvatar = async () => {
+  const handlePickAvatar = async () => {
     if (isUploadingAvatar) return
 
     let ImagePicker: any | null = null
@@ -166,32 +176,68 @@ export default function ProfileTabScreen() {
     const contentType =
       asset.mimeType || guessMimeTypeFromFileName(fileName) || 'application/octet-stream'
 
+    if (!asset?.uri) return
+
+    setPendingAvatar({
+      uri: asset.uri,
+      fileName,
+      contentType,
+    })
+    setOptimisticAvatarUrl(asset.uri)
+  }
+
+  const handleCancelPendingAvatar = () => {
+    setPendingAvatar(undefined)
+    setOptimisticAvatarUrl(undefined)
+  }
+
+  const handleUploadPendingAvatar = async () => {
+    if (!pendingAvatar || isUploadingAvatar) return
+
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Xác nhận',
+        'Bạn có muốn cập nhật avatar không?',
+        [
+          { text: 'Hủy', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Cập nhật', onPress: () => resolve(true) },
+        ],
+        { cancelable: true, onDismiss: () => resolve(false) }
+      )
+    })
+
+    if (!confirmed) return
+
     try {
       setIsUploadingAvatar(true)
 
-      console.log('[profile] picked avatar asset', {
-        uri: asset?.uri,
-        scheme: typeof asset?.uri === 'string' ? asset.uri.split(':')[0] : undefined,
-        name: fileName,
-        contentType,
-        size: asset?.fileSize || asset?.size,
+      console.log('[profile] uploading avatar', {
+        uri: pendingAvatar.uri,
+        scheme: pendingAvatar.uri.split(':')[0],
+        name: pendingAvatar.fileName,
+        contentType: pendingAvatar.contentType,
       })
 
-      const uploadUrlRes = await getAvatarUploadUrl({ contentType }).unwrap()
+      const uploadUrlRes = await getAvatarUploadUrl({
+        contentType: pendingAvatar.contentType,
+      }).unwrap()
       const presignedUrl =
         'presignedUrl' in uploadUrlRes ? uploadUrlRes.presignedUrl : (uploadUrlRes as any).url
       const fileUrl = (uploadUrlRes as any).fileUrl as string | undefined
 
       let blob: Blob
       try {
-        const res = await fetch(asset.uri)
+        const res = await fetch(pendingAvatar.uri)
         blob = await res.blob()
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.warn('[profile] failed to read picked file as blob', { uri: asset?.uri, err: msg })
+        console.warn('[profile] failed to read picked file as blob', {
+          uri: pendingAvatar.uri,
+          err: msg,
+        })
         Alert.alert(
           'Không thể đọc ảnh đã chọn',
-          typeof asset?.uri === 'string' && asset.uri.startsWith('content://')
+          pendingAvatar.uri.startsWith('content://')
             ? 'Android trả URI dạng content:// nên fetch().blob() có thể thất bại. Hãy thử chọn lại; nếu vẫn lỗi, hãy rebuild Dev Client và đảm bảo expo-image-picker đã được cài và build vào app.'
             : 'Vui lòng thử chọn lại hoặc thử ảnh khác.'
         )
@@ -201,10 +247,11 @@ export default function ProfileTabScreen() {
       await uploadToPresignedUrl({
         presignedUrl,
         file: blob,
-        contentType,
+        contentType: pendingAvatar.contentType,
       })
 
       setAvatarCacheKey(Date.now())
+      setPendingAvatar(undefined)
 
       if (fileUrl) {
         setOptimisticAvatarUrl(fileUrl)
@@ -215,6 +262,8 @@ export default function ProfileTabScreen() {
             draft.avatarUrl = fileUrl
           }
         })
+      } else {
+        setOptimisticAvatarUrl(undefined)
       }
 
       await refetch()
@@ -381,13 +430,24 @@ export default function ProfileTabScreen() {
                 backgroundColor="$background"
                 borderWidth={1}
                 borderColor="$borderColor"
-                onPress={handlePickAndUploadAvatar}
+                onPress={handlePickAvatar}
                 disabled={isUploadingAvatar}
                 aria-label="Chỉnh sửa avatar"
               />
             </View>
 
             {isUploadingAvatar ? <Spinner size="small" /> : null}
+
+            {pendingAvatar && !isUploadingAvatar ? (
+              <XStack space="$2" marginTop="$2">
+                <Button size="$2" onPress={handleCancelPendingAvatar} chromeless>
+                  Hủy
+                </Button>
+                <Button size="$2" themeInverse onPress={handleUploadPendingAvatar}>
+                  Cập nhật avatar
+                </Button>
+              </XStack>
+            ) : null}
           </YStack>
 
           {/* Personal info */}
