@@ -87,7 +87,7 @@ export const ProfileDialog = ({
               borderColor="$borderColor"
             >
               <Dialog.Title asChild>
-                <Text fontSize="$3" fontWeight="700" color="$color">
+                <Text fontSize={15} fontWeight="700" color="$color">
                   Thông tin tài khoản
                 </Text>
               </Dialog.Title>

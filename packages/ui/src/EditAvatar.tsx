@@ -86,7 +86,7 @@ export const EditAvatar = ({
             borderColor="$borderColor"
           >
             <Dialog.Title asChild>
-              <Text fontSize="$3" fontWeight="700" color="$color">
+              <Text fontSize={15} fontWeight="700" color="$color">
                 Chỉnh sửa hình ảnh
               </Text>
             </Dialog.Title>

@@ -20,7 +20,10 @@ const nextConfig = {
     'expo-linking',
     'expo-constants',
     'expo-modules-core', // Quan trọng
-    '@repo/ui', // Thêm gói UI của bạn vào đây
+    // Workspace packages (Yarn workspaces): must be transpiled by Next
+    'app',
+    '@my/config',
+    '@my/ui',
   ],
   experimental: {
     scrollRestoration: true,

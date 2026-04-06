@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "node -e \"const fs=require('fs'); try{fs.rmSync('.next',{recursive:true,force:true});}catch(e){console.warn('Skip .next clean:', e.message)}\" && next dev",
     "build": "cd ../.. && yarn build && cd apps/next && next build",
     "start": "next start",
     "serve": "NODE_ENV=production next start --port 8151",
