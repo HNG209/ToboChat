@@ -46,6 +46,8 @@ export const EditProfileDialog = ({
           key="overlay"
           animation="quick"
           opacity={0.5}
+          backgroundColor="#000"
+          zIndex={100000}
           enterStyle={{ opacity: 0 }}
           exitStyle={{ opacity: 0 }}
         />
@@ -57,6 +59,8 @@ export const EditProfileDialog = ({
           elevate
           key="content"
           animation="quick"
+          enterStyle={{ opacity: 0, scale: 0.98, y: -10 }}
+          exitStyle={{ opacity: 0, scale: 0.98, y: -10 }}
           width={400}
           padding={0}
           borderRadius="$4"

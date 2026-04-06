@@ -14,7 +14,12 @@ import {
   useDisableMFAMutation,
   useInitMFAMutation,
 } from 'app/services/authApi'
-import { useGetProfileQuery, useUpdateProfileMutation } from 'app/services/userApi'
+import {
+  useGetAvatarUploadUrlMutation,
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+} from 'app/services/userApi'
+import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 
 export const ZaloSidebar = () => {
   const { push } = useRouter()
@@ -54,14 +59,63 @@ export const ZaloSidebar = () => {
 
   //dung cho phan update
   const [updateProfile] = useUpdateProfileMutation()
+  const [getAvatarUploadUrl] = useGetAvatarUploadUrlMutation()
   const { refetch } = useGetProfileQuery()
   const handleSave = async (data: { name?: string; avatar?: File; dateOfBirth?: string }) => {
     try {
-      await updateProfile(data).unwrap()
+      const { name, avatar, dateOfBirth } = data
+
+      const shouldUpdateProfile = Boolean(name) || Boolean(dateOfBirth)
+      if (shouldUpdateProfile) {
+        await updateProfile({ name, dateOfBirth }).unwrap()
+      }
+
+      if (avatar) {
+        const contentType = avatar.type || 'application/octet-stream'
+        console.log('[avatar] requesting presigned url', { contentType })
+        const resp = await getAvatarUploadUrl({ contentType }).unwrap()
+        const presignedUrl =
+          typeof (resp as any)?.presignedUrl === 'string'
+            ? (resp as any).presignedUrl
+            : typeof (resp as any)?.url === 'string'
+              ? (resp as any).url
+              : undefined
+
+        const derivedFileUrl =
+          typeof presignedUrl === 'string'
+            ? (() => {
+                try {
+                  const u = new URL(presignedUrl)
+                  return `${u.origin}${u.pathname}`
+                } catch {
+                  return presignedUrl.split('?')[0]
+                }
+              })()
+            : undefined
+
+        const fileUrl =
+          typeof (resp as any)?.fileUrl === 'string' ? (resp as any).fileUrl : derivedFileUrl
+
+        if (typeof presignedUrl !== 'string' || typeof fileUrl !== 'string') {
+          throw new Error(
+            `Invalid upload-url response. Expected { presignedUrl, fileUrl } or { url }, got: ${JSON.stringify(resp)}`
+          )
+        }
+
+        console.log('[avatar] uploading to S3', { fileUrl })
+        await uploadToPresignedUrl({ presignedUrl, file: avatar, contentType })
+      }
+
       await refetch()
       console.log('Update success')
     } catch (err) {
-      console.error(err)
+      const details =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object'
+            ? JSON.stringify(err)
+            : String(err)
+      console.warn('Update profile/avatar failed:', details)
     }
   }
   // Phan chuyen doi ngon ngu

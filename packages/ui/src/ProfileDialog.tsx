@@ -32,108 +32,127 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
   }, [userData?.dateOfBirth])
 
   return (
-    <Dialog modal open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay
-          key="overlay"
-          animation="quick"
-          opacity={0.5}
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
+    <>
+      <Dialog modal open={open} onOpenChange={onOpenChange}>
+        <Dialog.Portal>
+          <Dialog.Overlay
+            key="overlay"
+            animation="quick"
+            opacity={0.5}
+            backgroundColor="#000"
+            zIndex={100000}
+            enterStyle={{ opacity: 0 }}
+            exitStyle={{ opacity: 0 }}
+          />
 
-        <Dialog.Content
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-          bordered
-          elevate
-          key="content"
-          animation="quick"
-          width={400}
-          padding={0}
-          borderRadius="$4"
-          backgroundColor="$background"
-          overflow="hidden"
-        >
-          {/* Header */}
-          <XStack
-            padding="$2"
-            alignItems="center"
-            justifyContent="space-between"
-            borderBottomWidth={1}
-            borderColor="$borderColor"
+          <Dialog.Content
+            onInteractOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            bordered
+            elevate
+            key="content"
+            animation="quick"
+            enterStyle={{ opacity: 0, scale: 0.98, y: -10 }}
+            exitStyle={{ opacity: 0, scale: 0.98, y: -10 }}
+            width={400}
+            padding={0}
+            borderRadius="$4"
+            backgroundColor="$background"
+            overflow="hidden"
           >
-            <Dialog.Title asChild>
-              <Text fontSize="$3" fontWeight="700" color="$color">
-                Thông tin tài khoản
-              </Text>
-            </Dialog.Title>
-            <Dialog.Close asChild>
-              <Button size="$1" circular icon={X} chromeless />
-            </Dialog.Close>
-          </XStack>
+            {/* Header */}
+            <XStack
+              padding="$2"
+              alignItems="center"
+              justifyContent="space-between"
+              borderBottomWidth={1}
+              borderColor="$borderColor"
+            >
+              <Dialog.Title asChild>
+                <Text fontSize="$3" fontWeight="700" color="$color">
+                  Thông tin tài khoản
+                </Text>
+              </Dialog.Title>
+              <Dialog.Close asChild>
+                <Button size="$1" circular icon={X} chromeless />
+              </Dialog.Close>
+            </XStack>
 
-          {/* Body */}
-          <YStack padding="$4" space="$4">
-            {/* Avatar center */}
-            <YStack alignItems="center" space="$2">
-              <View position="relative">
-                <View
-                  width={96}
-                  height={96}
-                  borderRadius={999}
-                  borderWidth={2}
-                  borderColor="$borderColor"
-                  overflow="hidden"
-                  backgroundColor="$background"
-                >
-                  <Image
-                    source={{
-                      uri:
-                        userData?.avatarUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
+            {/* Body */}
+            <YStack padding="$4" space="$4">
+              {/* Avatar center */}
+              <YStack alignItems="center" space="$2">
+                <View position="relative">
+                  <View
+                    width={96}
+                    height={96}
+                    borderRadius={999}
+                    borderWidth={2}
+                    borderColor="$borderColor"
+                    overflow="hidden"
+                    backgroundColor="$background"
+                  >
+                    <Image
+                      source={{
+                        uri:
+                          userData?.avatarUrl ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
+                      }}
+                      width="100%"
+                      height="100%"
+                    />
+                  </View>
+
+                  {/* Edit avatar button */}
+                  <Button
+                    position="absolute"
+                    bottom={0}
+                    right={0}
+                    size="$2"
+                    circular
+                    icon={Camera}
+                    backgroundColor="$background"
+                    borderWidth={1}
+                    borderColor="$borderColor"
+                    onPress={() => {
+                      setOpenEditAvatar(true)
+                      setOpenEditProfile(false)
+                      onOpenChange(false)
                     }}
-                    width="100%"
-                    height="100%"
+                    aria-label="Chỉnh sửa avatar"
                   />
                 </View>
+              </YStack>
 
-                {/* Edit avatar button */}
-                <Button
-                  position="absolute"
-                  bottom={0}
-                  right={0}
-                  size="$2"
-                  circular
-                  icon={Camera}
-                  backgroundColor="$background"
-                  borderWidth={1}
-                  borderColor="$borderColor"
-                  onPress={() => setOpenEditAvatar(true)}
-                  aria-label="Chỉnh sửa avatar"
-                />
-              </View>
+              {/* Personal info */}
+              <YStack space="$2">
+                <Text fontWeight="600" fontSize="$4">
+                  Thông tin cá nhân
+                </Text>
+
+                <InfoRow label="Họ tên" value={userData?.name} optional />
+                <InfoRow label="Ngày sinh" value={formattedDob} optional />
+              </YStack>
+
+              <Spacer size="$2" />
+
+              {/* Update button */}
+              <Button
+                themeInverse
+                borderRadius="$10"
+                onPress={() => {
+                  setOpenEditProfile(true)
+                  setOpenEditAvatar(false)
+                  onOpenChange(false)
+                }}
+              >
+                Cập nhật
+              </Button>
             </YStack>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
 
-            {/* Personal info */}
-            <YStack space="$2">
-              <Text fontWeight="600" fontSize="$4">
-                Thông tin cá nhân
-              </Text>
-
-              <InfoRow label="Họ tên" value={userData?.name} optional />
-              <InfoRow label="Ngày sinh" value={formattedDob} optional />
-            </YStack>
-
-            <Spacer size="$2" />
-
-            {/* Update button */}
-            <Button themeInverse borderRadius="$10" onPress={() => setOpenEditProfile(true)}>
-              Cập nhật
-            </Button>
-          </YStack>
-        </Dialog.Content>
-      </Dialog.Portal>
       <EditAvatar
         open={openEditAvatar}
         onOpenChange={setOpenEditAvatar}
@@ -147,8 +166,8 @@ export const ProfileDialog = ({ open, onOpenChange, profileData, onSave }: Profi
         currentName={userData?.name}
         currentDateOfBirth={userData?.dateOfBirth}
         onSave={onSave}
-      ></EditProfileDialog>
-    </Dialog>
+      />
+    </>
   )
 }
 

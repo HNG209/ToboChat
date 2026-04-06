@@ -1,6 +1,16 @@
-import { ApiResponse, PageResponse, UserResponse } from 'app/types/Response'
+import { PageResponse, UserResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { FindUserByEmailRequest } from 'app/types/Request'
+
+type AvatarUploadUrlResponse =
+  | {
+      presignedUrl: string
+      fileUrl: string
+    }
+  | {
+      url: string
+      fileUrl?: string
+    }
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -18,31 +28,25 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ['UserSearch'],
     }),
 
-    updateProfile: builder.mutation<any, { name?: string; avatar?: File; dateOfBirth?: string }>({
-      query: ({ name, avatar, dateOfBirth }) => {
-        const formData = new FormData()
-
-        if (name) {
-          formData.append('name', name)
-        }
-
-        if (avatar) {
-          formData.append('avatar', avatar)
-        }
-
-        if (dateOfBirth) {
-          formData.append('dateOfBirth', dateOfBirth)
-        }
-
-        return {
-          url: '/users/me',
-          method: 'PUT',
-          data: formData,
-          headers: undefined,
-        }
-      },
+    updateProfile: builder.mutation<any, { name?: string; dateOfBirth?: string }>({
+      query: ({ name, dateOfBirth }) => ({
+        url: '/users/me',
+        method: 'PUT',
+        data: {
+          ...(name ? { name } : null),
+          ...(dateOfBirth ? { dateOfBirth } : null),
+        },
+      }),
 
       invalidatesTags: ['Profile'],
+    }),
+
+    getAvatarUploadUrl: builder.mutation<AvatarUploadUrlResponse, { contentType: string }>({
+      query: ({ contentType }) => ({
+        url: '/users/avatar/upload-url',
+        method: 'GET',
+        params: { contentType },
+      }),
     }),
   }),
   overrideExisting: false,
@@ -54,4 +58,5 @@ export const {
   useFindUserByEmailQuery,
   useLazyFindUserByEmailQuery,
   useUpdateProfileMutation,
+  useGetAvatarUploadUrlMutation,
 } = userApi
