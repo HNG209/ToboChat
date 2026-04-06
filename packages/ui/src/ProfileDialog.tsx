@@ -23,6 +23,8 @@ export const ProfileDialog = ({
 }: ProfileDialogProps) => {
   const userData = profileData?.result ?? profileData
 
+  const effectiveDob = userData?.dob ?? userData?.dateOfBirth
+
   const withCacheBuster = (url?: string) => {
     if (!url || !avatarCacheKey) return url
     return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
@@ -34,7 +36,7 @@ export const ProfileDialog = ({
   const effectiveAvatarUrl = avatarUrlOverride ?? userData?.avatarUrl
 
   const formattedDob = useMemo(() => {
-    const raw = userData?.dateOfBirth
+    const raw = effectiveDob
     if (!raw) return undefined
     // Nếu backend trả ISO, thử format nhẹ cho dễ đọc
     const d = new Date(raw)
@@ -45,7 +47,7 @@ export const ProfileDialog = ({
       return `${day}/${month}/${year}`
     }
     return raw
-  }, [userData?.dateOfBirth])
+  }, [effectiveDob])
 
   return (
     <>
@@ -186,7 +188,7 @@ export const ProfileDialog = ({
         open={openEditProfile}
         onOpenChange={setOpenEditProfile}
         currentName={userData?.name}
-        currentDateOfBirth={userData?.dateOfBirth}
+        currentDateOfBirth={effectiveDob}
         onSave={onSave}
       />
     </>

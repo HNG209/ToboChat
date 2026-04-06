@@ -31,7 +31,7 @@ import type { AppDispatch } from 'app/store'
 import {
   useGetAvatarUploadUrlMutation,
   useGetProfileQuery,
-  useUpdateProfileMutation,
+  useUpdateMeMutation,
   userApi,
 } from 'app/services/userApi'
 import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
@@ -101,7 +101,7 @@ export default function UserDetailScreen() {
   // Mo phan edit profile
   const [openProfile, setOpenProfile] = useState(false)
   //dung cho phan update
-  const [updateProfile] = useUpdateProfileMutation()
+  const [updateMe] = useUpdateMeMutation()
   const [getAvatarUploadUrl] = useGetAvatarUploadUrlMutation()
   const handleGoToUser = () => {
     push(`/user/me`)
@@ -202,7 +202,7 @@ export default function UserDetailScreen() {
 
       const shouldUpdateProfile = Boolean(name) || Boolean(dateOfBirth)
       if (shouldUpdateProfile) {
-        await updateProfile({ name, dateOfBirth }).unwrap()
+        await updateMe({ name, dob: dateOfBirth }).unwrap()
       }
 
       if (avatar) {

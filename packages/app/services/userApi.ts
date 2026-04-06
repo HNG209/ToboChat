@@ -19,6 +19,18 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ['Profile'],
     }),
 
+    updateMe: builder.mutation<UserResponse, { name?: string; dob?: string }>({
+      query: ({ name, dob }) => ({
+        url: '/users/me',
+        method: 'PUT',
+        data: {
+          ...(name ? { name } : null),
+          ...(dob ? { dob } : null),
+        },
+      }),
+      invalidatesTags: ['Profile'],
+    }),
+
     findUserByEmail: builder.query<PageResponse<UserResponse>, FindUserByEmailRequest>({
       query: ({ email, cursor, limit = 10 }) => ({
         url: `/users/${email}`,
@@ -55,6 +67,7 @@ export const userApi = baseApi.injectEndpoints({
 export const {
   useGetProfileQuery,
   useLazyGetProfileQuery,
+  useUpdateMeMutation,
   useFindUserByEmailQuery,
   useLazyFindUserByEmailQuery,
   useUpdateProfileMutation,

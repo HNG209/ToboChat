@@ -19,7 +19,7 @@ import {
 import {
   useGetAvatarUploadUrlMutation,
   useGetProfileQuery,
-  useUpdateProfileMutation,
+  useUpdateMeMutation,
   userApi,
 } from 'app/services/userApi'
 import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
@@ -62,7 +62,7 @@ export const ZaloSidebar = () => {
   const { theme, setTheme } = useAppTheme()
 
   //dung cho phan update
-  const [updateProfile] = useUpdateProfileMutation()
+  const [updateMe] = useUpdateMeMutation()
   const [getAvatarUploadUrl] = useGetAvatarUploadUrlMutation()
   const [avatarCacheKey, setAvatarCacheKey] = useState(0)
   const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>(undefined)
@@ -77,7 +77,7 @@ export const ZaloSidebar = () => {
 
       const shouldUpdateProfile = Boolean(name) || Boolean(dateOfBirth)
       if (shouldUpdateProfile) {
-        await updateProfile({ name, dateOfBirth }).unwrap()
+        await updateMe({ name, dob: dateOfBirth }).unwrap()
       }
 
       if (avatar) {
