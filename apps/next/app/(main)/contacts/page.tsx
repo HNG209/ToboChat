@@ -1,5 +1,5 @@
 'use client'
-import { YStack, Text } from 'tamagui'
+import { YStack, Text } from '@my/ui'
 
 export default function Page() {
   return (

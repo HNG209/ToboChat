@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router'
-import { MessageCircle, User, List } from '@tamagui/lucide-icons'
+import { MessageCircle, User, List, Settings } from '@tamagui/lucide-icons'
 import SearchHeader from '@my/ui/src/SearchHeader'
 import { useTranslation } from 'react-i18next'
 import ChatLayout from 'app/features/chat/ChatLayout'
@@ -26,6 +26,15 @@ export default function MainLayout() {
         options={{
           title: t('profile'),
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: t('settings'),
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
         }}
       />
       <Tabs.Screen

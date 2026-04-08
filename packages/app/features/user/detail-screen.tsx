@@ -23,10 +23,18 @@ import { LogOut } from '@tamagui/lucide-icons'
 import { Separator } from '@my/ui'
 
 import React, { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { fetchMFAPreference, signOut } from 'aws-amplify/auth'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { useTranslation } from 'react-i18next'
-import { useGetProfileQuery, useUpdateProfileMutation } from 'app/services/userApi'
+import type { AppDispatch } from 'app/store'
+import {
+  useGetAvatarUploadUrlMutation,
+  useGetProfileQuery,
+  useUpdateMeMutation,
+  userApi,
+} from 'app/services/userApi'
+import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 import {
   useConfirmMFAMutation,
   useDisableMFAMutation,
@@ -34,6 +42,7 @@ import {
 } from 'app/services/authApi'
 
 export default function UserDetailScreen() {
+  const dispatch = useDispatch<AppDispatch>()
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -43,6 +52,13 @@ export default function UserDetailScreen() {
   // undefined	  /users/me
   // "abc123"	    /users/abc123
   const { data: userProfile, refetch } = useGetProfileQuery()
+  const [avatarCacheKey, setAvatarCacheKey] = useState(0)
+  const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>(undefined)
+
+  const withCacheBuster = (url?: string) => {
+    if (!url || !avatarCacheKey) return url
+    return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
+  }
 
   // Chuyen doi ngon ngu
 
@@ -64,8 +80,7 @@ export default function UserDetailScreen() {
   const [openSignOut, setOpenSignOut] = useState(false)
   const [openSetting, setOpenSetting] = useState(false)
 
-  const { data: profileData } = useGetProfileQuery()
-  const userId = profileData?.id
+  const userId = userProfile?.id
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
   const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
@@ -86,7 +101,8 @@ export default function UserDetailScreen() {
   // Mo phan edit profile
   const [openProfile, setOpenProfile] = useState(false)
   //dung cho phan update
-  const [updateProfile] = useUpdateProfileMutation()
+  const [updateMe] = useUpdateMeMutation()
+  const [getAvatarUploadUrl] = useGetAvatarUploadUrlMutation()
   const handleGoToUser = () => {
     push(`/user/me`)
   }
@@ -116,7 +132,6 @@ export default function UserDetailScreen() {
       console.error('Sai mật khẩu', err)
     }
   }
-
   // Ham kiem tra ma OTP
   const [isVerifying, setIsVerifying] = useState(false)
 
@@ -176,13 +191,81 @@ export default function UserDetailScreen() {
 
     setOpenDisableMFA(true)
   }
-  const handleSave = async (data: { name?: string; avatar?: File }) => {
+
+  const profileDataForDialog =
+    optimisticAvatarUrl && userProfile
+      ? { ...userProfile, avatarUrl: optimisticAvatarUrl }
+      : userProfile
+  const handleSave = async (data: { name?: string; avatar?: File; dateOfBirth?: string }) => {
     try {
-      await updateProfile(data).unwrap()
+      const { name, avatar, dateOfBirth } = data
+
+      const shouldUpdateProfile = Boolean(name) || Boolean(dateOfBirth)
+      if (shouldUpdateProfile) {
+        await updateMe({ name, dob: dateOfBirth }).unwrap()
+      }
+
+      if (avatar) {
+        const confirmed = window.confirm('Xác nhận tải ảnh lên?')
+        if (!confirmed) {
+          console.log('Upload canceled')
+        } else {
+          const contentType = avatar.type || 'application/octet-stream'
+          console.log('[avatar] requesting presigned url', { contentType })
+          const resp = await getAvatarUploadUrl({ contentType }).unwrap()
+          const presignedUrl =
+            typeof (resp as any)?.presignedUrl === 'string'
+              ? (resp as any).presignedUrl
+              : typeof (resp as any)?.url === 'string'
+                ? (resp as any).url
+                : undefined
+
+          const derivedFileUrl =
+            typeof presignedUrl === 'string'
+              ? (() => {
+                  try {
+                    const u = new URL(presignedUrl)
+                    return `${u.origin}${u.pathname}`
+                  } catch {
+                    return presignedUrl.split('?')[0]
+                  }
+                })()
+              : undefined
+
+          const fileUrl =
+            typeof (resp as any)?.fileUrl === 'string' ? (resp as any).fileUrl : derivedFileUrl
+
+          if (typeof presignedUrl !== 'string' || typeof fileUrl !== 'string') {
+            throw new Error(
+              `Invalid upload-url response. Expected { presignedUrl, fileUrl } or { url }, got: ${JSON.stringify(resp)}`
+            )
+          }
+
+          console.log('[avatar] uploading to S3', { fileUrl })
+          await uploadToPresignedUrl({ presignedUrl, file: avatar, contentType })
+
+          // Bust image cache so UI picks up the new avatar immediately
+          const cacheKey = Date.now()
+          setAvatarCacheKey(cacheKey)
+          setOptimisticAvatarUrl(fileUrl)
+          dispatch(
+            userApi.util.updateQueryData('getProfile', undefined, (draft: any) => {
+              if (draft) draft.avatarUrl = fileUrl
+            })
+          )
+        }
+      }
+
       await refetch() // 👈 force reload
       console.log('Update success')
     } catch (err) {
-      console.error(err)
+      const details =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object'
+            ? JSON.stringify(err)
+            : String(err)
+      console.warn('Update profile/avatar failed:', details)
     }
   }
   // xac dinh trang thai MFA
@@ -382,7 +465,18 @@ export default function UserDetailScreen() {
           borderWidth={4}
           borderColor="white"
         >
-          <Avatar.Image src={profileData?.avatarUrl || 'https://i.pravatar.cc/300'} />
+          <Avatar.Image
+            key={
+              withCacheBuster(optimisticAvatarUrl ?? userProfile?.avatarUrl) ||
+              optimisticAvatarUrl ||
+              userProfile?.avatarUrl ||
+              'avatar'
+            }
+            src={
+              withCacheBuster(optimisticAvatarUrl ?? userProfile?.avatarUrl) ||
+              'https://i.pravatar.cc/300'
+            }
+          />
         </Avatar>
       </YStack>
 
@@ -397,7 +491,7 @@ export default function UserDetailScreen() {
         borderTopRightRadius="$6"
       >
         <Text fontSize="$8" fontWeight="700">
-          {profileData?.name ?? 'No name'}
+          {userProfile?.name ?? 'No name'}
         </Text>
 
         <Text fontSize="$4" color="$color10" textAlign="center">
@@ -406,7 +500,7 @@ export default function UserDetailScreen() {
 
         {/* ACTIONS */}
         <XStack space="$3" marginTop="$3">
-          <Button size="$4" theme="active">
+          <Button size="$4" backgroundColor="$blue10" color="white">
             Ket Ban
           </Button>
 
@@ -422,6 +516,10 @@ export default function UserDetailScreen() {
         setActiveTab={setActiveTab}
         isTwoFactorAuth={isTwoFactorAuth}
         handleToggleMFA={handleToggleMFA}
+        theme={theme}
+        onThemeChange={(nextTheme) => setTheme(nextTheme)}
+        language={i18n.language || 'vi'}
+        onToggleLanguage={toggleLanguage}
       />
       <EnableMFADialog
         openEnableMFA={openEnableMFA}
@@ -450,7 +548,8 @@ export default function UserDetailScreen() {
         onSave={handleSave}
         open={openProfile}
         onOpenChange={setOpenProfile}
-        profileData={profileData}
+        profileData={profileDataForDialog}
+        avatarCacheKey={avatarCacheKey}
       />
     </YStack>
   )

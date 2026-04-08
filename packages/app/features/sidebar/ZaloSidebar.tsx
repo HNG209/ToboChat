@@ -1,32 +1,31 @@
 'use client'
-import { Avatar, Dialog, Switch, Text, Theme, Tooltip, XStack } from '@my/ui'
-import { Button, Image, ListItem, Popover, Spacer, View, YStack } from '@my/ui'
-import {
-  Contact2,
-  Languages,
-  LogOut,
-  MessageSquare,
-  Settings,
-  Sun,
-  User,
-  X,
-} from '@tamagui/lucide-icons'
+import { Avatar, Button, ListItem, Popover, Spacer, YStack } from '@my/ui'
+import { Contact2, LogOut, MessageSquare, Settings, User } from '@tamagui/lucide-icons'
 
 import { signOut } from 'aws-amplify/auth'
 import React, { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { usePathname, useRouter } from 'solito/navigation'
 import { useTranslation } from 'react-i18next'
 import { FullSettingsDialog, EnableMFADialog, DisableMFADialog, ProfileDialog } from '@my/ui'
 import { useAppTheme } from '../../provider/ThemeContext'
 import { fetchMFAPreference } from 'aws-amplify/auth'
+import type { AppDispatch } from 'app/store'
 import {
   useConfirmMFAMutation,
   useDisableMFAMutation,
   useInitMFAMutation,
 } from 'app/services/authApi'
-import { useGetProfileQuery, useUpdateProfileMutation } from 'app/services/userApi'
+import {
+  useGetAvatarUploadUrlMutation,
+  useGetProfileQuery,
+  useUpdateMeMutation,
+  userApi,
+} from 'app/services/userApi'
+import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 
 export const ZaloSidebar = () => {
+  const dispatch = useDispatch<AppDispatch>()
   const { push } = useRouter()
   const router = useRouter()
   const pathname = usePathname()
@@ -37,9 +36,8 @@ export const ZaloSidebar = () => {
   const [confirmMFA] = useConfirmMFAMutation()
 
   const [openSignOut, setOpenSignOut] = useState(false)
-  const [openSetting, setOpenSetting] = useState(false)
 
-  const { data: profileData } = useGetProfileQuery()
+  const { data: profileData, refetch } = useGetProfileQuery()
   const userId = profileData?.id
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
@@ -63,20 +61,86 @@ export const ZaloSidebar = () => {
   // 1. Dùng light/dark đồng bộ với Context mới
   const { theme, setTheme } = useAppTheme()
 
-  const handleGoToUser = () => {
-    push(`/user/me`)
-  }
-
   //dung cho phan update
-  const [updateProfile] = useUpdateProfileMutation()
-  const { refetch } = useGetProfileQuery()
-  const handleSave = async (data: { name?: string; avatar?: File }) => {
+  const [updateMe] = useUpdateMeMutation()
+  const [getAvatarUploadUrl] = useGetAvatarUploadUrlMutation()
+  const [avatarCacheKey, setAvatarCacheKey] = useState(0)
+  const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>(undefined)
+
+  const withCacheBuster = (url?: string) => {
+    if (!url || !avatarCacheKey) return url
+    return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
+  }
+  const handleSave = async (data: { name?: string; avatar?: File; dateOfBirth?: string }) => {
     try {
-      await updateProfile(data).unwrap()
+      const { name, avatar, dateOfBirth } = data
+
+      const shouldUpdateProfile = Boolean(name) || Boolean(dateOfBirth)
+      if (shouldUpdateProfile) {
+        await updateMe({ name, dob: dateOfBirth }).unwrap()
+      }
+
+      if (avatar) {
+        const confirmed = window.confirm('Xác nhận tải ảnh lên?')
+        if (!confirmed) {
+          console.log('Upload canceled')
+        } else {
+          const contentType = avatar.type || 'application/octet-stream'
+          console.log('[avatar] requesting presigned url', { contentType })
+          const resp = await getAvatarUploadUrl({ contentType }).unwrap()
+          const presignedUrl =
+            typeof (resp as any)?.presignedUrl === 'string'
+              ? (resp as any).presignedUrl
+              : typeof (resp as any)?.url === 'string'
+                ? (resp as any).url
+                : undefined
+
+          const derivedFileUrl =
+            typeof presignedUrl === 'string'
+              ? (() => {
+                  try {
+                    const u = new URL(presignedUrl)
+                    return `${u.origin}${u.pathname}`
+                  } catch {
+                    return presignedUrl.split('?')[0]
+                  }
+                })()
+              : undefined
+
+          const fileUrl =
+            typeof (resp as any)?.fileUrl === 'string' ? (resp as any).fileUrl : derivedFileUrl
+
+          if (typeof presignedUrl !== 'string' || typeof fileUrl !== 'string') {
+            throw new Error(
+              `Invalid upload-url response. Expected { presignedUrl, fileUrl } or { url }, got: ${JSON.stringify(resp)}`
+            )
+          }
+
+          console.log('[avatar] uploading to S3', { fileUrl })
+          await uploadToPresignedUrl({ presignedUrl, file: avatar, contentType })
+
+          // Bust image cache so UI picks up the new avatar immediately
+          const cacheKey = Date.now()
+          setAvatarCacheKey(cacheKey)
+          setOptimisticAvatarUrl(fileUrl)
+          dispatch(
+            userApi.util.updateQueryData('getProfile', undefined, (draft: any) => {
+              if (draft) draft.avatarUrl = fileUrl
+            })
+          )
+        }
+      }
+
       await refetch()
       console.log('Update success')
     } catch (err) {
-      console.error(err)
+      const details =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object'
+            ? JSON.stringify(err)
+            : String(err)
+      console.warn('Update profile/avatar failed:', details)
     }
   }
   // Phan chuyen doi ngon ngu
@@ -215,6 +279,11 @@ export const ZaloSidebar = () => {
   const handleGoToChat = () => {
     push('/chat')
   }
+
+  const profileDataForDialog =
+    optimisticAvatarUrl && profileData
+      ? { ...profileData, avatarUrl: optimisticAvatarUrl }
+      : profileData
   return (
     <>
       <YStack
@@ -228,12 +297,18 @@ export const ZaloSidebar = () => {
 
         <Avatar circular size="$4">
           <Avatar.Image
-            src={
+            key={
+              withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
+              optimisticAvatarUrl ||
               profileData?.avatarUrl ||
+              'avatar'
+            }
+            src={
+              withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
               `https://ui-avatars.com/api/?name=${profileData?.name}&background=random`
             }
           />
-          <Avatar.Fallback backgroundColor="$gray5" />
+          <Avatar.Fallback />
         </Avatar>
 
         {/* Icon Tin nhan */}
@@ -243,7 +318,7 @@ export const ZaloSidebar = () => {
           size="$4"
           borderRadius={0}
           paddingVertical={30}
-          title={t('messages')}
+          aria-label={t('messages')}
           backgroundColor={isChat ? '#005ae0' : 'transparent'}
           icon={<MessageSquare size={24} color="$color" />}
           onPress={handleGoToChat}
@@ -251,7 +326,7 @@ export const ZaloSidebar = () => {
         <Button
           size="$4"
           borderRadius={0}
-          title={t('contacts')}
+          aria-label={t('contacts')}
           paddingVertical={30}
           backgroundColor={isFriend ? '#005ae0' : 'transparent'}
           icon={<Contact2 size={24} color="$color" />}
@@ -261,95 +336,25 @@ export const ZaloSidebar = () => {
 
         <YStack space="$2" alignItems="center" paddingBottom="$4">
           <Button
-            title={t('profile')}
+            aria-label={t('informationAccount')}
             backgroundColor="transparent"
-            onPress={() => handleGoToUser()}
+            onPress={() => setOpenProfile(true)}
             icon={<User size={24} color="$color" />}
           />
-          {/* Cai dat phan chuyen mau cho phan setting */}
-          <Popover open={openSetting} onOpenChange={setOpenSetting} placement="right">
-            <Popover.Trigger asChild>
-              <Button
-                title={t('settings')}
-                backgroundColor="transparent"
-                icon={<Settings size={24} color="$color" />}
-              />
-            </Popover.Trigger>
-            <Theme name={theme}>
-              <Popover.Content elevate backgroundColor="$background">
-                <YStack width={160}>
-                  {/* chinh sua thong tin nguoi dung */}
-                  {/* <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={User}
-                      title={t('informationAccount')}
-                    />
-                  </Popover.Close> */}
-                  <Tooltip delay={0} placement="right">
-                    <Tooltip.Trigger asChild>
-                      <View>
-                        <ListItem
-                          pressTheme
-                          icon={User}
-                          title={t('informationAccount')}
-                          onPress={() => {
-                            setOpenSetting(false)
-                            setOpenProfile(true)
-                          }}
-                        />
-                      </View>
-                    </Tooltip.Trigger>
 
-                    <Tooltip.Content
-                      sideOffset={10} // 👉 đẩy tooltip ra xa 1 chút
-                      zIndex={9999}
-                      elevate
-                      backgroundColor="$background"
-                      padding="$2"
-                      borderRadius="$2"
-                    >
-                      <Tooltip.Arrow />
-                      <Text>{t('informationAccount')}</Text>
-                    </Tooltip.Content>
-                  </Tooltip>
-                  <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={Sun}
-                      title={theme === 'light' ? t('darkMode') : t('lightMode')}
-                      onPress={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
-                    />
-                  </Popover.Close>
-                  {/* nut chuyen doi ngon ngu */}
-                  <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={Languages}
-                      title={i18n.language === 'vi' ? 'English' : 'Tieng Viet'}
-                      onPress={toggleLanguage}
-                    ></ListItem>
-                  </Popover.Close>
-                  {/* Phan cai dat */}
-                  <Popover.Close asChild>
-                    <ListItem
-                      pressTheme
-                      icon={Settings}
-                      title={t('settings')}
-                      onPress={() => {
-                        setOpenSetting(false) // Đóng cái popover nhỏ
-                        setShowFullSettings(true) // Mở cái khung cài đặt lớn
-                      }}
-                    />
-                  </Popover.Close>
-                </YStack>
-              </Popover.Content>
-            </Theme>
-          </Popover>
+          <Button
+            aria-label={t('settings')}
+            backgroundColor="transparent"
+            icon={<Settings size={24} color="$color" />}
+            onPress={() => {
+              setActiveTab('general')
+              setShowFullSettings(true)
+            }}
+          />
           <Popover open={openSignOut} onOpenChange={setOpenSignOut} placement="right">
             <Popover.Trigger asChild>
               <Button
-                title={t('logout')}
+                aria-label={t('logout')}
                 backgroundColor="transparent"
                 icon={<LogOut size={24} color="$color" />}
               />
@@ -370,7 +375,8 @@ export const ZaloSidebar = () => {
         onSave={handleSave}
         open={openProfile}
         onOpenChange={setOpenProfile}
-        profileData={profileData}
+        profileData={profileDataForDialog}
+        avatarCacheKey={avatarCacheKey}
       />
 
       {/* Phan mo full cai dat */}
@@ -381,6 +387,10 @@ export const ZaloSidebar = () => {
         setActiveTab={setActiveTab}
         isTwoFactorAuth={isTwoFactorAuth}
         handleToggleMFA={handleToggleMFA}
+        theme={theme}
+        onThemeChange={(nextTheme) => setTheme(nextTheme)}
+        language={i18n.language || 'vi'}
+        onToggleLanguage={toggleLanguage}
       />
       <EnableMFADialog
         openEnableMFA={openEnableMFA}

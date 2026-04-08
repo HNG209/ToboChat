@@ -42,7 +42,7 @@ export const ChatInboxItem = ({
   return (
     <ListItem
       pressTheme
-      backgroundColor={selected ? '$primary' : '$color3'}
+      backgroundColor={selected ? '$blue10' : '$color3'}
       onPress={onPress}
       borderRadius={14}
       marginVertical={2}
@@ -51,21 +51,21 @@ export const ChatInboxItem = ({
       borderWidth={selected ? 1 : 0}
       borderColor={selected ? '$accent1' : 'transparent'}
       hoverStyle={{
-        background: selected ? '$primary' : '$gray2',
+        background: selected ? '$blue10' : '$color2',
       }}
       title={
-        <Text fontWeight="700" fontSize={16} color={selected ? '$color1' : '$gray12'}>
+        <Text fontWeight="700" fontSize={16} color={selected ? '$color1' : '$color'}>
           {name}
         </Text>
       }
       subTitle={
         <Text
           fontSize={13}
-          color={selected ? '$color1' : '$gray10'}
+          color={selected ? '$color1' : '$color10'}
           numberOfLines={1}
           marginTop={2}
         >
-          {(latestMessage.self ? `Tôi: ${latestMessage.content}` : latestMessage.content) ||
+          {(latestMessage?.self ? `Tôi: ${latestMessage?.content}` : latestMessage?.content) ||
             'Chưa có tin nhắn'}
         </Text>
       }
@@ -78,13 +78,13 @@ export const ChatInboxItem = ({
       }
     >
       <YStack space="$1" alignItems="flex-end" justifyContent="center">
-        <Text fontSize={11} color={selected ? '$color1' : '$gray9'}>
+        <Text fontSize={11} color={selected ? '$color1' : '$color10'}>
           {formatTime(time)}
         </Text>
         {pinned ? (
           <Pin
             size={14}
-            color={selected ? '$color1' : '$gray8'}
+            color={selected ? '$color1' : '$color10'}
             rotate="45deg"
             fill="currentColor"
           />

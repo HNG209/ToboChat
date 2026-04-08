@@ -1,5 +1,5 @@
 import { useParams } from 'solito/navigation'
-import ChatDetailScreenMain from 'app/features/chat/ChatDetailScreenMain'
+import { ChatScreenWrapper } from 'app/features/chat/ChatScreenWrapper'
 import { Stack } from 'expo-router'
 
 export default function ChatScreen() {
@@ -11,7 +11,7 @@ export default function ChatScreen() {
       <Stack.Screen options={{ headerShown: false, animation: 'slide_from_right' }} />
 
       {/* Component hiển thị nội dung tin nhắn của bạn */}
-      <ChatDetailScreenMain id={id as string} />
+      <ChatScreenWrapper roomId={id as string} />
     </>
   )
 }

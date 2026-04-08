@@ -5,6 +5,8 @@ import { YStack } from '@my/ui'
 import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
 import { SearchUserCard } from '@my/ui'
 import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
+import { useSelector } from 'react-redux'
+import type { RootState } from 'app/store'
 import {
   useSendFriendRequestMutation,
   useCancelFriendRequestMutation,
@@ -12,6 +14,9 @@ import {
 } from 'app/services/contactApi'
 
 export default function SearchHeader() {
+  const hasSession = useSelector((s: RootState) => s.auth.hasSession)
+  const userId = useSelector((s: RootState) => s.auth.user?.id)
+
   const [searchFocus, setSearchFocus] = useState(false)
   const [keyword, setKeyword] = useState('')
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set())
@@ -20,14 +25,24 @@ export default function SearchHeader() {
   const [cancelFriendRequest] = useCancelFriendRequestMutation()
   const [respondFriendRequest] = useRespondFriendRequestMutation()
 
-  const [findUser, { data: searchData, isLoading: searchLoading }] = useLazyFindUserByEmailQuery()
+  const [findUser, { data: searchData, isLoading: searchLoading, reset: resetSearch }] =
+    useLazyFindUserByEmailQuery()
+
+  // Clear local search state when switching accounts / signing out
+  useEffect(() => {
+    setSearchFocus(false)
+    setKeyword('')
+    setSentRequests(new Set())
+    resetSearch()
+  }, [userId, hasSession, resetSearch])
 
   // Gọi API tìm kiếm khi keyword thay đổi
   useEffect(() => {
+    if (!hasSession) return
     if (!keyword.trim()) return
     const timeout = setTimeout(() => findUser({ email: keyword, limit: 10 }), 400)
     return () => clearTimeout(timeout)
-  }, [keyword, findUser])
+  }, [keyword, findUser, hasSession])
 
   const hasKeyword = keyword.trim() !== ''
   const hasResults = hasKeyword && !searchLoading && (searchData?.items?.length ?? 0) > 0

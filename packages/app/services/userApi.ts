@@ -1,12 +1,34 @@
-import { ApiResponse, PageResponse, UserResponse } from 'app/types/Response'
+import { PageResponse, UserResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { FindUserByEmailRequest } from 'app/types/Request'
+
+type AvatarUploadUrlResponse =
+  | {
+      presignedUrl: string
+      fileUrl: string
+    }
+  | {
+      url: string
+      fileUrl?: string
+    }
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getProfile: builder.query<UserResponse, void>({
       query: () => ({ url: '/users/me', method: 'GET' }),
       providesTags: ['Profile'],
+    }),
+
+    updateMe: builder.mutation<UserResponse, { name?: string; dob?: string }>({
+      query: ({ name, dob }) => ({
+        url: '/users/me',
+        method: 'PUT',
+        data: {
+          ...(name ? { name } : null),
+          ...(dob ? { dob } : null),
+        },
+      }),
+      invalidatesTags: ['Profile'],
     }),
 
     findUserByEmail: builder.query<PageResponse<UserResponse>, FindUserByEmailRequest>({
@@ -18,27 +40,25 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ['UserSearch'],
     }),
 
-    updateProfile: builder.mutation<any, { name?: string; avatar?: File }>({
-      query: ({ name, avatar }) => {
-        const formData = new FormData()
-
-        if (name) {
-          formData.append('name', name)
-        }
-
-        if (avatar) {
-          formData.append('avatar', avatar)
-        }
-
-        return {
-          url: '/users/me',
-          method: 'PUT',
-          data: formData,
-          headers: undefined,
-        }
-      },
+    updateProfile: builder.mutation<any, { name?: string; dateOfBirth?: string }>({
+      query: ({ name, dateOfBirth }) => ({
+        url: '/users/me',
+        method: 'PUT',
+        data: {
+          ...(name ? { name } : null),
+          ...(dateOfBirth ? { dateOfBirth } : null),
+        },
+      }),
 
       invalidatesTags: ['Profile'],
+    }),
+
+    getAvatarUploadUrl: builder.mutation<AvatarUploadUrlResponse, { contentType: string }>({
+      query: ({ contentType }) => ({
+        url: '/users/avatar/upload-url',
+        method: 'GET',
+        params: { contentType },
+      }),
     }),
   }),
   overrideExisting: false,
@@ -47,7 +67,9 @@ export const userApi = baseApi.injectEndpoints({
 export const {
   useGetProfileQuery,
   useLazyGetProfileQuery,
+  useUpdateMeMutation,
   useFindUserByEmailQuery,
   useLazyFindUserByEmailQuery,
   useUpdateProfileMutation,
+  useGetAvatarUploadUrlMutation,
 } = userApi

@@ -2,10 +2,10 @@ import { useRouter } from 'solito/navigation'
 import { ScrollView, Spinner, Text, YStack } from '@my/ui'
 import { useGetJoinedRoomsQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { roomApi } from 'app/services/roomApi'
 import { MessageResponse } from 'app/types/Response'
-import { AppDispatch } from 'app/store'
+import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 
@@ -18,8 +18,12 @@ export default function ChatInbox() {
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
   const [isSocketReady, setIsSocketReady] = useState(false)
+  const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
-  const { data, isLoading, isError } = useGetJoinedRoomsQuery()
+  const { data, isLoading, isError } = useGetJoinedRoomsQuery(undefined, {
+    skip: !hasSession,
+    refetchOnMountOrArgChange: true,
+  })
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
 
@@ -79,7 +83,7 @@ export default function ChatInbox() {
     }
   }, [dispatch, isSocketReady])
 
-  if (isLoading) {
+  if (!hasSession || isLoading) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
         <Spinner size="large" color="$blue10" />
@@ -99,7 +103,7 @@ export default function ChatInbox() {
             key={room.id}
             name={room.roomName}
             latestMessage={room.latestMessage}
-            time={room.latestMessage.createdAt}
+            time={room?.latestMessage?.createdAt ?? undefined}
             avatar={`https://i.pravatar.cc/150?u=${room.id}`}
             pinned={false}
             onPress={() => router.push(`/chat/${room.id}`)}

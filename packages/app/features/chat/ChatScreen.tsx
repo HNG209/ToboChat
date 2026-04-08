@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
-import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle } from 'tamagui'
+import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle } from '@my/ui'
 import {
   SendHorizontal,
   Heart,
@@ -20,10 +20,11 @@ import {
 } from 'app/services/chatApi'
 import { roomApi, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { MessageResponse } from 'app/types/Response'
-import { AppDispatch } from 'app/store'
+import { AppDispatch, RootState } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
+import { useAppTheme } from 'app/provider/ThemeContext'
 
 interface Props {
   roomId: string
@@ -32,14 +33,28 @@ interface Props {
 
 export function ChatScreen({ roomId, insets }: Props) {
   const [message, setMessage] = useState('')
+  const { theme } = useAppTheme()
   const linkProps = useLink({ href: '/chat' })
   const dispatch = useDispatch<AppDispatch>()
   const [isSocketReady, setIsSocketReady] = useState(false)
+  const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
   // 1. API Hooks
-  const { data, isLoading, isError } = useGetMessagesQuery({ roomId })
+  const { data, isLoading, isError } = useGetMessagesQuery(
+    { roomId },
+    {
+      skip: !hasSession || !roomId,
+      refetchOnMountOrArgChange: true,
+    }
+  )
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
-  const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery({ roomId })
+  const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery(
+    { roomId },
+    {
+      skip: !hasSession || !roomId,
+      refetchOnMountOrArgChange: true,
+    }
+  )
   const [sendMessage] = useSendMessageMutation()
 
   // 2. Load More Logic
@@ -147,7 +162,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   }, [roomId, isSocketReady, dispatch])
 
   return (
-    <Theme name="light">
+    <Theme name={theme}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -200,11 +215,11 @@ export function ChatScreen({ roomId, insets }: Props) {
           {/* --- BODY (FLATLIST) --- */}
           {/* Lần tải đầu tiên của cả phòng */}
           {isLoading ? (
-            <XStack justifyContent="center" alignItems="center" flex={1} bg="$color2">
+            <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
               <ActivityIndicator size="large" color="#888" />
             </XStack>
           ) : isError ? (
-            <XStack justifyContent="center" alignItems="center" flex={1} bg="$color2">
+            <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
               <Text color="red">Lỗi khi tải tin nhắn!</Text>
             </XStack>
           ) : (
@@ -226,6 +241,9 @@ export function ChatScreen({ roomId, insets }: Props) {
               }
               renderItem={({ item: msg, index }) => {
                 const isMe = msg.self
+                const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
+                const myBubbleText = 'white'
+                const otherBubbleBg = theme === 'dark' ? '$color3' : '$color2'
 
                 let showAvatar = false
                 if (!isMe) {
@@ -268,7 +286,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                       p="$3"
                       borderRadius="$5"
                       maxWidth="75%"
-                      bg={isMe ? '$blue10' : '$background'}
+                      bg={isMe ? myBubbleBg : otherBubbleBg}
+                      borderWidth={1}
+                      borderColor={isMe ? 'transparent' : '$borderColor'}
                       borderTopLeftRadius={!isMe ? 0 : '$5'}
                       borderTopRightRadius={isMe ? 0 : '$5'}
                       elevation="$1"
@@ -276,10 +296,16 @@ export function ChatScreen({ roomId, insets }: Props) {
                       shadowRadius={2}
                       shadowOffset={{ width: 0, height: 1 }}
                     >
-                      <Text fontSize="$4" color={isMe ? 'white' : '$color'} lineHeight={22}>
+                      <Text fontSize="$4" color={isMe ? myBubbleText : '$color'} lineHeight={22}>
                         {msg.content}
                       </Text>
-                      <Text fontSize="$1" textAlign="right" mt="$1" opacity={0.8}>
+                      <Text
+                        fontSize="$1"
+                        textAlign="right"
+                        mt="$1"
+                        opacity={0.9}
+                        color={isMe ? myBubbleText : '$color10'}
+                      >
                         {timeString}
                       </Text>
                     </YStack>
@@ -314,7 +340,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               <Button
                 size="$4"
                 circular
-                bg="$blue10"
+                bg={theme === 'dark' ? '$blue11' : '$blue10'}
                 color="white"
                 icon={<SendHorizontal size={20} />}
                 onPress={handleSendMessage}

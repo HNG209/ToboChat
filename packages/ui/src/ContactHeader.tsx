@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { XStack, YStack, H3, Text, Button } from 'tamagui'
+import { XStack, YStack, H3, Text, Button } from '@my/ui'
 import { ChevronLeft } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 
@@ -44,20 +44,14 @@ export const ContactHeader = ({
 
       {/* KHỐI TIÊU ĐỀ */}
       <YStack flex={1}>
-        <H3 fontWeight="bold">
-          {title}
-        </H3>
-        <Text color="$gray10" fontSize="$3">
+        <H3 fontWeight="bold">{title}</H3>
+        <Text color="$color10" fontSize="$3">
           {subtitle}
         </Text>
       </YStack>
 
       {/* KHỐI HÀNH ĐỘNG (Nút tạo nhóm, Select...) */}
-      {actionElement && (
-        <XStack alignItems="center">
-          {actionElement}
-        </XStack>
-      )}
+      {actionElement && <XStack alignItems="center">{actionElement}</XStack>}
     </XStack>
   )
 }

@@ -3,15 +3,25 @@ import { fetchAuthSession } from 'aws-amplify/auth'
 import Constants from 'expo-constants'
 import { ApiResponse } from 'app/types/Response'
 
-const getBaseUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl) {
-    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`
-  }
+function normalizeApiUrl(url: string) {
+  const trimmed = url.trim().replace(/\/$/, '')
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`
+}
 
-  const debuggerHost = Constants.expoConfig?.hostUri
-  const localhost = debuggerHost?.split(':')[0]
-  return localhost ? `http://${localhost}:8081/api` : 'http://localhost:8081/api'
+export const getApiBaseUrl = () => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL
+  if (envUrl) return normalizeApiUrl(envUrl)
+
+  const extraUrl = (Constants.expoConfig as any)?.extra?.apiUrl as string | undefined
+  if (extraUrl) return normalizeApiUrl(extraUrl)
+
+  const portFromEnv = process.env.EXPO_PUBLIC_API_PORT
+  const portFromExtra = (Constants.expoConfig as any)?.extra?.apiPort
+  const apiPort = String(portFromEnv || portFromExtra || '8081')
+
+  const hostUri = Constants.expoConfig?.hostUri
+  const host = hostUri?.split(':')[0]
+  return host ? `http://${host}:${apiPort}/api` : `http://localhost:${apiPort}/api`
 }
 
 let clientInstance: any = null
@@ -20,7 +30,7 @@ export const getAxiosClient = async () => {
   if (clientInstance) return clientInstance
 
   const client = axios.create({
-    baseURL: getBaseUrl(),
+    baseURL: getApiBaseUrl(),
     withCredentials: false,
   })
 

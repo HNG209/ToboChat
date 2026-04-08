@@ -23,7 +23,7 @@ cognitoUserPoolsTokenProvider.setKeyValueStorage({
 
 export const unstable_settings = {
   // Ensure that reloading on `/user` keeps a back button present.
-  initialRouteName: 'Home',
+  initialRouteName: '(auth)/login',
 }
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.

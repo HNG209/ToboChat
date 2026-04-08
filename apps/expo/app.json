@@ -20,7 +20,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tobochat.app"
+      "bundleIdentifier": "com.tobochat.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Cho phép ứng dụng truy cập thư viện ảnh để chọn ảnh đại diện."
+      }
     },
     "android": {
       "adaptiveIcon": {

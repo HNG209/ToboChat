@@ -1,7 +1,26 @@
 import { Dialog, Text, XStack, YStack, ListItem, Button, Switch } from '@my/ui'
 import ChangePasswordForm from '@my/ui/src/ChangePassworđForm'
 import { X } from '@tamagui/lucide-icons'
+import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'
+
+type SettingsTab = 'general' | 'security' | null
+
+type FullSettingsDialogProps = {
+  showFullSettings: boolean
+  setShowFullSettings: Dispatch<SetStateAction<boolean>>
+  activeTab: SettingsTab
+  setActiveTab: Dispatch<SetStateAction<SettingsTab>>
+  isTwoFactorAuth: boolean
+  handleToggleMFA: (val: boolean) => void
+
+  theme: 'light' | 'dark'
+  onThemeChange: (nextTheme: 'light' | 'dark') => void
+
+  language: string
+  onToggleLanguage: () => void
+}
+
 export const FullSettingsDialog = ({
   showFullSettings,
   setShowFullSettings,
@@ -9,8 +28,15 @@ export const FullSettingsDialog = ({
   setActiveTab,
   isTwoFactorAuth,
   handleToggleMFA,
-}) => {
+  theme,
+  onThemeChange,
+  language,
+  onToggleLanguage,
+}: FullSettingsDialogProps) => {
   const [showChangePassword, setShowChangePassword] = useState(false)
+
+  const menuTextColor = theme === 'dark' ? 'white' : '$color'
+  const activeMenuBackground = theme === 'dark' ? '$blue11' : '$blue10'
 
   return (
     <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
@@ -61,16 +87,32 @@ export const FullSettingsDialog = ({
               </Text>
 
               <ListItem
-                title="Cài đặt chung"
-                theme="white"
-                hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
+                title={
+                  <Text color={activeTab === 'general' ? 'white' : menuTextColor}>
+                    Cài đặt chung
+                  </Text>
+                }
+                backgroundColor={activeTab === 'general' ? activeMenuBackground : 'transparent'}
+                borderRadius="$3"
+                hoverStyle={{
+                  backgroundColor: activeTab === 'general' ? activeMenuBackground : '$color2',
+                  cursor: 'pointer',
+                }}
                 onPress={() => setActiveTab('general')}
               />
 
               <ListItem
-                title="Tài khoản & bảo mật"
-                theme="white"
-                hoverStyle={{ backgroundColor: '$color2', cursor: 'pointer' }}
+                title={
+                  <Text color={activeTab === 'security' ? 'white' : menuTextColor}>
+                    Tài khoản & bảo mật
+                  </Text>
+                }
+                backgroundColor={activeTab === 'security' ? activeMenuBackground : 'transparent'}
+                borderRadius="$3"
+                hoverStyle={{
+                  backgroundColor: activeTab === 'security' ? activeMenuBackground : '$color2',
+                  cursor: 'pointer',
+                }}
                 onPress={() => setActiveTab('security')}
               />
             </YStack>
@@ -111,6 +153,52 @@ export const FullSettingsDialog = ({
                   <Text fontSize={18} fontWeight="bold">
                     Cài đặt chung
                   </Text>
+
+                  <YStack space="$3" mt="$4">
+                    <XStack
+                      backgroundColor="$backgroundHover"
+                      padding="$4"
+                      borderRadius="$4"
+                      justifyContent="space-between"
+                      alignItems="flex-start"
+                      space="$4"
+                    >
+                      <YStack flex={1} space="$1">
+                        <Text fontWeight="bold">Giao diện</Text>
+                        <Text lineHeight={20} color="$color10">
+                          {theme === 'light' ? 'Chế độ sáng' : 'Chế độ tối'}
+                        </Text>
+                      </YStack>
+                      <Switch
+                        size="$3"
+                        checked={theme === 'dark'}
+                        onCheckedChange={(checked) => onThemeChange(checked ? 'dark' : 'light')}
+                        backgroundColor={theme === 'dark' ? '$blue11' : '$backgroundPress'}
+                      >
+                        <Switch.Thumb animation="quick" />
+                      </Switch>
+                    </XStack>
+
+                    <XStack
+                      backgroundColor="$backgroundHover"
+                      padding="$4"
+                      borderRadius="$4"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      space="$4"
+                    >
+                      <YStack flex={1} space="$1">
+                        <Text fontWeight="bold">Ngôn ngữ</Text>
+                        <Text lineHeight={20} color="$color10">
+                          {language?.includes('vi') ? 'Tiếng Việt' : 'English'}
+                        </Text>
+                      </YStack>
+
+                      <Button size="$3" onPress={onToggleLanguage}>
+                        {language?.includes('vi') ? 'English' : 'Tiếng Việt'}
+                      </Button>
+                    </XStack>
+                  </YStack>
                 </>
               )}
 
@@ -139,7 +227,9 @@ export const FullSettingsDialog = ({
                           size="$3"
                           checked={isTwoFactorAuth}
                           onCheckedChange={handleToggleMFA}
-                          backgroundColor={isTwoFactorAuth ? '#0068ff' : '$backgroundPress'}
+                          backgroundColor={
+                            isTwoFactorAuth ? activeMenuBackground : '$backgroundPress'
+                          }
                         >
                           <Switch.Thumb animation="quick" />
                         </Switch>
