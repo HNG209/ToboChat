@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
 import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle } from '@my/ui'
 import {
@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Image as ImageIcon,
   MoreHorizontal,
+  X,
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
 import {
@@ -25,6 +26,7 @@ import { MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
+import { MessageActionMenu } from './MessageActionMenu'
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000
 
@@ -57,6 +59,34 @@ function canGroup(
 
 const MESSAGE_AVATAR_SIZE = '$3' as const
 
+async function copyText(text: string) {
+  if (Platform.OS !== 'web') return
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return
+    }
+  } catch {
+    // ignore and fallback
+  }
+
+  try {
+    if (typeof document !== 'undefined') {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.setAttribute('readonly', '')
+      el.style.position = 'absolute'
+      el.style.left = '-9999px'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+  } catch {
+    // no-op
+  }
+}
+
 interface Props {
   roomId: string
   insets?: { top: number; bottom: number; left: number; right: number }
@@ -70,6 +100,16 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [isSocketReady, setIsSocketReady] = useState(false)
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
   const selfUserId = useSelector((s: RootState) => s.auth.user?.id)
+
+  // Web-only message actions (frontend only)
+  const isWeb = Platform.OS === 'web'
+  const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(() => new Set())
+  const [locallyRecalledIds, setLocallyRecalledIds] = useState<Set<string>>(() => new Set())
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
+
+  const selectedCount = selectedIds.size
 
   // 1. API Hooks
   const { data, isLoading, isError } = useGetMessagesQuery(
@@ -88,6 +128,24 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   )
   const [sendMessage] = useSendMessageMutation()
+
+  const normalizedMessages = useMemo(() => {
+    const items = data?.items || []
+    if (!isWeb || (locallyDeletedIds.size === 0 && locallyRecalledIds.size === 0)) return items
+    return items.map((m) => {
+      if (locallyRecalledIds.has(m.id)) {
+        return {
+          ...m,
+          content: 'Tin nhắn đã được thu hồi',
+        }
+      }
+      if (!locallyDeletedIds.has(m.id)) return m
+      return {
+        ...m,
+        content: 'Tin nhắn đã bị xóa',
+      }
+    })
+  }, [data?.items, isWeb, locallyDeletedIds, locallyRecalledIds])
 
   // 2. Load More Logic
   const handleLoadMore = async () => {
@@ -256,7 +314,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             </XStack>
           ) : (
             <StyledFlatList
-              data={data?.items}
+              data={normalizedMessages}
               inverted={true}
               keyExtractor={(item: MessageResponse) => item.id}
               onEndReached={handleLoadMore}
@@ -272,7 +330,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 ) : null
               }
               renderItem={({ item: msg, index }) => {
-                const items = data?.items || []
+                const items = normalizedMessages || []
                 const isMe = msg.self
                 const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
                 const myBubbleText = 'white'
@@ -304,6 +362,61 @@ export function ChatScreen({ roomId, insets }: Props) {
                 const minutes = date.getMinutes().toString().padStart(2, '0')
                 const timeString = `${hours}:${minutes}`
 
+                const isSelected = selectionMode && selectedIds.has(msg.id)
+
+                const bubbleBg = isMe ? myBubbleBg : otherBubbleBg
+                const bubbleBorderColor = isSelected
+                  ? '$accent1'
+                  : isMe
+                    ? 'transparent'
+                    : '$borderColor'
+                const bubbleBorderWidth = isSelected ? 2 : 1
+
+                const toggleSelected = (messageId: string) => {
+                  setSelectedIds((prev) => {
+                    const next = new Set(prev)
+                    if (next.has(messageId)) next.delete(messageId)
+                    else next.add(messageId)
+                    return next
+                  })
+                }
+
+                const enterMultiSelect = (message: MessageResponse) => {
+                  setReplyTo(null)
+                  setSelectionMode(true)
+                  setSelectedIds((prev) => {
+                    const next = new Set(prev)
+                    next.add(message.id)
+                    return next
+                  })
+                }
+
+                const deleteForMe = (message: MessageResponse) => {
+                  setLocallyRecalledIds((prev) => {
+                    const next = new Set(prev)
+                    next.delete(message.id)
+                    return next
+                  })
+                  setLocallyDeletedIds((prev) => {
+                    const next = new Set(prev)
+                    next.add(message.id)
+                    return next
+                  })
+                }
+
+                const recallMessage = (message: MessageResponse) => {
+                  setLocallyDeletedIds((prev) => {
+                    const next = new Set(prev)
+                    next.delete(message.id)
+                    return next
+                  })
+                  setLocallyRecalledIds((prev) => {
+                    const next = new Set(prev)
+                    next.add(message.id)
+                    return next
+                  })
+                }
+
                 return (
                   <XStack
                     justifyContent={isMe ? 'flex-end' : 'flex-start'}
@@ -328,35 +441,63 @@ export function ChatScreen({ roomId, insets }: Props) {
                         )}
                       </YStack>
                     )}
-                    <YStack
-                      p="$3"
-                      borderRadius="$5"
-                      maxWidth="75%"
-                      bg={isMe ? myBubbleBg : otherBubbleBg}
-                      borderWidth={1}
-                      borderColor={isMe ? 'transparent' : '$borderColor'}
-                      borderTopLeftRadius={!isMe ? 0 : '$5'}
-                      borderTopRightRadius={isMe ? 0 : '$5'}
-                      elevation="$1"
-                      shadowColor="$shadowColor"
-                      shadowRadius={2}
-                      shadowOffset={{ width: 0, height: 1 }}
+                    <MessageActionMenu
+                      message={msg}
+                      isMe={isMe}
+                      selectionMode={selectionMode}
+                      isSelected={isSelected}
+                      onToggleSelected={toggleSelected}
+                      onCopy={async (message) => {
+                        if (
+                          locallyDeletedIds.has(message.id) ||
+                          locallyRecalledIds.has(message.id)
+                        ) {
+                          return
+                        }
+                        await copyText(message.content)
+                      }}
+                      onReply={(message) => {
+                        setSelectionMode(false)
+                        setSelectedIds(new Set())
+                        setReplyTo(message)
+                      }}
+                      onForward={(message) => {
+                        setMessage(message.content)
+                      }}
+                      onEnterMultiSelect={enterMultiSelect}
+                      onDeleteForMe={deleteForMe}
+                      onRecall={isMe ? recallMessage : undefined}
                     >
-                      <Text fontSize="$4" color={isMe ? myBubbleText : '$color'} lineHeight={22}>
-                        {msg.content}
-                      </Text>
-                      {showTimestamp && (
-                        <Text
-                          fontSize="$1"
-                          textAlign="right"
-                          mt="$1"
-                          opacity={0.9}
-                          color={isMe ? myBubbleText : '$color10'}
-                        >
-                          {timeString}
+                      <YStack
+                        p="$3"
+                        borderRadius="$5"
+                        maxWidth="100%"
+                        bg={bubbleBg}
+                        borderWidth={bubbleBorderWidth}
+                        borderColor={bubbleBorderColor}
+                        borderTopLeftRadius={!isMe ? 0 : '$5'}
+                        borderTopRightRadius={isMe ? 0 : '$5'}
+                        elevation="$1"
+                        shadowColor="$shadowColor"
+                        shadowRadius={2}
+                        shadowOffset={{ width: 0, height: 1 }}
+                      >
+                        <Text fontSize="$4" color={isMe ? myBubbleText : '$color'} lineHeight={22}>
+                          {msg.content}
                         </Text>
-                      )}
-                    </YStack>
+                        {showTimestamp && (
+                          <Text
+                            fontSize="$1"
+                            textAlign="right"
+                            mt="$1"
+                            opacity={0.9}
+                            color={isMe ? myBubbleText : '$color10'}
+                          >
+                            {timeString}
+                          </Text>
+                        )}
+                      </YStack>
+                    </MessageActionMenu>
                   </XStack>
                 )
               }}
@@ -372,6 +513,56 @@ export function ChatScreen({ roomId, insets }: Props) {
             borderWidth={1}
             space="$2"
           >
+            {isWeb && replyTo && (
+              <XStack
+                position="absolute"
+                left={0}
+                right={0}
+                top={-44}
+                px="$3"
+                py="$2"
+                bg="$background"
+                borderColor="$borderColor"
+                borderWidth={1}
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Text numberOfLines={1} flex={1} marginRight="$2">
+                  Đang trả lời: {replyTo.content}
+                </Text>
+                <Button size="$2" circular chromeless icon={X} onPress={() => setReplyTo(null)} />
+              </XStack>
+            )}
+
+            {isWeb && selectionMode && (
+              <XStack
+                position="absolute"
+                left={0}
+                right={0}
+                top={-44}
+                px="$3"
+                py="$2"
+                bg="$background"
+                borderColor="$borderColor"
+                borderWidth={1}
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Text flex={1} marginRight="$2">
+                  Đã chọn: {selectedCount}
+                </Text>
+                <Button
+                  size="$2"
+                  onPress={() => {
+                    setSelectionMode(false)
+                    setSelectedIds(new Set())
+                  }}
+                >
+                  Hủy
+                </Button>
+              </XStack>
+            )}
+
             <Button size="$3" circular chromeless icon={MoreHorizontal} />
             <Button size="$3" circular chromeless icon={ImageIcon} />
             <Input
