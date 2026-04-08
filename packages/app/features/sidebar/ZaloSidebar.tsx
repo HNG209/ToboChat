@@ -30,8 +30,8 @@ export const ZaloSidebar = () => {
   const router = useRouter()
   const pathname = usePathname()
 
-  const isChat = pathname?.startsWith('/chat') && !pathname?.includes('/contacts')
-  const isFriend = pathname?.includes('/friends')
+  const isChat = pathname?.startsWith('/chat')
+  const isContacts = pathname?.startsWith('/contacts')
   const [initMFA] = useInitMFAMutation()
   const [confirmMFA] = useConfirmMFAMutation()
 
@@ -284,6 +284,10 @@ export const ZaloSidebar = () => {
     optimisticAvatarUrl && profileData
       ? { ...profileData, avatarUrl: optimisticAvatarUrl }
       : profileData
+
+  const activeNavBackground = theme === 'dark' ? '$blue11' : '$blue10'
+  const inactiveIconColor = '$color'
+  const activeIconColor = 'white'
   return (
     <>
       <YStack
@@ -295,43 +299,55 @@ export const ZaloSidebar = () => {
       >
         {/* Avatar */}
 
-        <Avatar circular size="$4">
-          <Avatar.Image
-            key={
-              withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
-              optimisticAvatarUrl ||
-              profileData?.avatarUrl ||
-              'avatar'
-            }
-            src={
-              withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
-              `https://ui-avatars.com/api/?name=${profileData?.name}&background=random`
-            }
+        <YStack
+          borderRadius={999}
+          backgroundColor="$background"
+          padding="$1"
+          borderWidth={1}
+          borderColor="$borderColor"
+          elevation="$4"
+          shadowColor="$shadowColor"
+          shadowOpacity={0.14}
+          shadowRadius={10}
+          shadowOffset={{ width: 0, height: 4 }}
+        >
+          <Avatar circular size="$5">
+            <Avatar.Image
+              key={
+                withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
+                optimisticAvatarUrl ||
+                profileData?.avatarUrl ||
+                'avatar'
+              }
+              src={
+                withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
+                `https://ui-avatars.com/api/?name=${profileData?.name}&background=random`
+              }
+            />
+            <Avatar.Fallback />
+          </Avatar>
+        </YStack>
+
+        {/* Nav icons (match bottom layout) */}
+        <YStack space="$2" alignItems="center" marginTop="$4">
+          <Button
+            aria-label={t('messages')}
+            borderRadius="$4"
+            padding="$3"
+            backgroundColor={isChat ? activeNavBackground : 'transparent'}
+            onPress={handleGoToChat}
+            icon={<MessageSquare size={28} color={isChat ? activeIconColor : inactiveIconColor} />}
           />
-          <Avatar.Fallback />
-        </Avatar>
 
-        {/* Icon Tin nhan */}
-
-        <Button
-          marginTop={20}
-          size="$4"
-          borderRadius={0}
-          paddingVertical={30}
-          aria-label={t('messages')}
-          backgroundColor={isChat ? '#005ae0' : 'transparent'}
-          icon={<MessageSquare size={24} color="$color" />}
-          onPress={handleGoToChat}
-        />
-        <Button
-          size="$4"
-          borderRadius={0}
-          aria-label={t('contacts')}
-          paddingVertical={30}
-          backgroundColor={isFriend ? '#005ae0' : 'transparent'}
-          icon={<Contact2 size={24} color="$color" />}
-          onPress={() => handleGoToFriend()}
-        />
+          <Button
+            aria-label={t('contacts')}
+            borderRadius="$4"
+            padding="$3"
+            backgroundColor={isContacts ? activeNavBackground : 'transparent'}
+            onPress={handleGoToFriend}
+            icon={<Contact2 size={28} color={isContacts ? activeIconColor : inactiveIconColor} />}
+          />
+        </YStack>
         <Spacer flex={1} />
 
         <YStack space="$2" alignItems="center" paddingBottom="$4">
@@ -339,13 +355,13 @@ export const ZaloSidebar = () => {
             aria-label={t('informationAccount')}
             backgroundColor="transparent"
             onPress={() => setOpenProfile(true)}
-            icon={<User size={24} color="$color" />}
+            icon={<User size={28} color="$color" />}
           />
 
           <Button
             aria-label={t('settings')}
             backgroundColor="transparent"
-            icon={<Settings size={24} color="$color" />}
+            icon={<Settings size={28} color="$color" />}
             onPress={() => {
               setActiveTab('general')
               setShowFullSettings(true)
@@ -356,7 +372,7 @@ export const ZaloSidebar = () => {
               <Button
                 aria-label={t('logout')}
                 backgroundColor="transparent"
-                icon={<LogOut size={24} color="$color" />}
+                icon={<LogOut size={28} color="$color" />}
               />
             </Popover.Trigger>
 
