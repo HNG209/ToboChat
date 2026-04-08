@@ -10,6 +10,9 @@ import {
   ChevronLeft,
   Image as ImageIcon,
   MoreHorizontal,
+  Copy,
+  Forward,
+  Trash2,
   X,
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
@@ -28,17 +31,9 @@ import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { MessageActionMenu } from './MessageActionMenu'
 
-const GROUP_WINDOW_MS = 5 * 60 * 1000
-
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
   return msg.user?.id || '__unknown__'
-}
-
-function getCreatedAtMs(createdAt?: string) {
-  if (!createdAt) return Number.NaN
-  const ms = new Date(createdAt).getTime()
-  return Number.isFinite(ms) ? ms : Number.NaN
 }
 
 function canGroup(
@@ -47,14 +42,43 @@ function canGroup(
   selfUserId?: string
 ) {
   if (!a || !b) return false
-  const aMs = getCreatedAtMs(a.createdAt)
-  const bMs = getCreatedAtMs(b.createdAt)
-  if (!Number.isFinite(aMs) || !Number.isFinite(bMs)) return false
+  return getSenderKey(a, selfUserId) === getSenderKey(b, selfUserId)
+}
 
-  const sameSender = getSenderKey(a, selfUserId) === getSenderKey(b, selfUserId)
-  if (!sameSender) return false
+function getDisplayNameForMessage(msg: MessageResponse, selfUserName?: string) {
+  if (msg.self) return selfUserName || 'Bạn'
+  return msg.user?.name || 'Người dùng'
+}
 
-  return Math.abs(aMs - bMs) < GROUP_WINDOW_MS
+function buildReplyEncodedContent(opts: {
+  replyName: string
+  replyText: string
+  messageText: string
+}) {
+  const replyName = (opts.replyName || '').replace(/\n/g, ' ').trim()
+  const replyText = (opts.replyText || '').replace(/\n/g, ' ').trim()
+  const messageText = (opts.messageText || '').trim()
+  return `[reply]\nname:${replyName}\ntext:${replyText}\n[/reply]\n${messageText}`
+}
+
+function parseReplyEncodedContent(content: string) {
+  if (!content?.startsWith('[reply]\n')) return null
+  const end = content.indexOf('\n[/reply]\n')
+  if (end === -1) return null
+  const header = content.slice('[reply]\n'.length, end)
+  const messageText = content.slice(end + '\n[/reply]\n'.length)
+
+  const nameLine = header.split('\n').find((l) => l.toLowerCase().startsWith('name:'))
+  const textLine = header.split('\n').find((l) => l.toLowerCase().startsWith('text:'))
+
+  const replyName = nameLine ? nameLine.slice('name:'.length).trim() : ''
+  const replyText = textLine ? textLine.slice('text:'.length).trim() : ''
+
+  return {
+    replyName,
+    replyText,
+    messageText: messageText.trimStart(),
+  }
 }
 
 const MESSAGE_AVATAR_SIZE = '$3' as const
@@ -100,6 +124,9 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [isSocketReady, setIsSocketReady] = useState(false)
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
   const selfUserId = useSelector((s: RootState) => s.auth.user?.id)
+  const selfUserName = useSelector(
+    (s: RootState) => (s as any).auth?.user?.name as string | undefined
+  )
 
   // Web-only message actions (frontend only)
   const isWeb = Platform.OS === 'web'
@@ -110,6 +137,8 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
 
   const selectedCount = selectedIds.size
+  const replyName = replyTo ? getDisplayNameForMessage(replyTo, selfUserName) : ''
+  const replyTag = replyTo ? `@${replyName}` : ''
 
   // 1. API Hooks
   const { data, isLoading, isError } = useGetMessagesQuery(
@@ -174,13 +203,31 @@ export function ChatScreen({ roomId, insets }: Props) {
   const handleSendMessage = async () => {
     if (!message.trim()) return
 
-    const tempContent = message
+    const reply = replyTo
+    let tempContent = message
+
+    if (reply && replyTag) {
+      const trimmedStart = tempContent.trimStart()
+      if (trimmedStart.startsWith(replyTag)) {
+        tempContent = trimmedStart.slice(replyTag.length).trimStart()
+      }
+    }
+
+    const outgoingContent = reply
+      ? buildReplyEncodedContent({
+          replyName: getDisplayNameForMessage(reply, selfUserName),
+          replyText: reply.content,
+          messageText: tempContent,
+        })
+      : tempContent
+
     setMessage('')
+    if (reply) setReplyTo(null)
 
     const tempMessageId = `temp_${Date.now()}`
     const optimisticMessage: MessageResponse = {
       id: tempMessageId,
-      content: tempContent,
+      content: outgoingContent,
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
@@ -209,10 +256,11 @@ export function ChatScreen({ roomId, insets }: Props) {
     )
 
     try {
-      await sendMessage({ roomId, content: tempContent, messageType: 'USER' }).unwrap()
+      await sendMessage({ roomId, content: outgoingContent, messageType: 'USER' }).unwrap()
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(tempContent)
+      if (reply) setReplyTo(reply)
       roomPatchResult.undo()
       patchResult.undo()
     }
@@ -338,7 +386,7 @@ export function ChatScreen({ roomId, insets }: Props) {
 
                 // items is newest -> oldest because we unshift new messages and push older messages.
                 // With inverted FlatList, index 0 is rendered at the bottom (newest).
-                // Grouping rules are based on consecutive messages in time (adjacent in this array).
+                // Grouping is based on consecutive messages from the same sender (adjacent in this array).
                 const newerMsg = items[index - 1]
                 const olderMsg = items[index + 1]
                 const groupsWithNewer = canGroup(msg, newerMsg, selfUserId)
@@ -365,12 +413,21 @@ export function ChatScreen({ roomId, insets }: Props) {
                 const isSelected = selectionMode && selectedIds.has(msg.id)
 
                 const bubbleBg = isMe ? myBubbleBg : otherBubbleBg
+                const selectedBg = isMe
+                  ? theme === 'dark'
+                    ? '$blue10'
+                    : '$blue9'
+                  : '$backgroundHover'
+                const effectiveBubbleBg = isSelected ? selectedBg : bubbleBg
                 const bubbleBorderColor = isSelected
-                  ? '$accent1'
+                  ? '$blue10'
                   : isMe
                     ? 'transparent'
                     : '$borderColor'
-                const bubbleBorderWidth = isSelected ? 2 : 1
+                const bubbleBorderWidth = 1
+
+                const parsedReply = parseReplyEncodedContent(msg.content)
+                const messageTextToRender = parsedReply?.messageText ?? msg.content
 
                 const toggleSelected = (messageId: string) => {
                   setSelectedIds((prev) => {
@@ -460,6 +517,14 @@ export function ChatScreen({ roomId, insets }: Props) {
                         setSelectionMode(false)
                         setSelectedIds(new Set())
                         setReplyTo(message)
+
+                        const name = getDisplayNameForMessage(message, selfUserName)
+                        const tagWithSpace = `@${name} `
+                        setMessage((prev) => {
+                          const next = (prev || '').trimStart()
+                          if (next.startsWith(tagWithSpace.trimEnd())) return prev || ''
+                          return tagWithSpace
+                        })
                       }}
                       onForward={(message) => {
                         setMessage(message.content)
@@ -472,18 +537,57 @@ export function ChatScreen({ roomId, insets }: Props) {
                         p="$3"
                         borderRadius="$5"
                         maxWidth="100%"
-                        bg={bubbleBg}
+                        bg={effectiveBubbleBg}
                         borderWidth={bubbleBorderWidth}
                         borderColor={bubbleBorderColor}
                         borderTopLeftRadius={!isMe ? 0 : '$5'}
                         borderTopRightRadius={isMe ? 0 : '$5'}
-                        elevation="$1"
+                        elevation={isSelected ? '$3' : '$1'}
                         shadowColor="$shadowColor"
-                        shadowRadius={2}
-                        shadowOffset={{ width: 0, height: 1 }}
+                        shadowRadius={isSelected ? 6 : 2}
+                        shadowOffset={{ width: 0, height: isSelected ? 2 : 1 }}
                       >
+                        {parsedReply && (
+                          <YStack marginBottom="$2" space="$1">
+                            <Text
+                              fontSize="$2"
+                              fontWeight="700"
+                              numberOfLines={1}
+                              color={isMe ? 'white' : '$blue11'}
+                              opacity={0.9}
+                            >
+                              {parsedReply.replyName}
+                            </Text>
+
+                            <YStack
+                              bg={
+                                isMe
+                                  ? theme === 'dark'
+                                    ? '$blue10'
+                                    : '$blue9'
+                                  : '$backgroundHover'
+                              }
+                              borderRadius="$3"
+                              padding="$2"
+                              borderWidth={1}
+                              borderColor={isMe ? 'transparent' : '$borderColor'}
+                              borderLeftWidth={3}
+                              borderLeftColor="$blue10"
+                            >
+                              <Text
+                                fontSize="$2"
+                                color={isMe ? 'white' : '$color10'}
+                                opacity={0.9}
+                                numberOfLines={3}
+                              >
+                                {parsedReply.replyText}
+                              </Text>
+                            </YStack>
+                          </YStack>
+                        )}
+
                         <Text fontSize="$4" color={isMe ? myBubbleText : '$color'} lineHeight={22}>
-                          {msg.content}
+                          {messageTextToRender}
                         </Text>
                         {showTimestamp && (
                           <Text
@@ -504,6 +608,139 @@ export function ChatScreen({ roomId, insets }: Props) {
             />
           )}
 
+          {/* --- COMPOSER BARS (WEB ONLY) --- */}
+          {isWeb && replyTo && (
+            <XStack
+              px="$3"
+              py="$2"
+              bg="$background"
+              borderColor="$borderColor"
+              borderTopWidth={1}
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <YStack flex={1} marginRight="$2">
+                <Text fontWeight="700" numberOfLines={1}>
+                  {replyName}
+                </Text>
+                <Text numberOfLines={1} color="$color10">
+                  {replyTo.content}
+                </Text>
+              </YStack>
+              <Button
+                size="$2"
+                circular
+                chromeless
+                icon={X}
+                onPress={() => {
+                  setReplyTo(null)
+                  setMessage('')
+                }}
+              />
+            </XStack>
+          )}
+
+          {isWeb && selectionMode && (
+            <XStack
+              px="$3"
+              py="$2"
+              bg="$background"
+              borderColor="$borderColor"
+              borderTopWidth={1}
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <XStack alignItems="center" space="$2" flex={1}>
+                <Text fontWeight="700">{selectedCount}</Text>
+                <Text color="$color10">Đã chọn</Text>
+              </XStack>
+
+              <XStack space="$2" alignItems="center">
+                <Button
+                  size="$3"
+                  borderRadius="$10"
+                  theme="blue"
+                  icon={<Copy size={16} />}
+                  disabled={selectedCount === 0}
+                  onPress={async () => {
+                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
+                    const text = selected
+                      .slice()
+                      .reverse()
+                      .map((m) => m.content)
+                      .join('\n')
+                    await copyText(text)
+                  }}
+                >
+                  Sao chép
+                </Button>
+
+                <Button
+                  size="$3"
+                  borderRadius="$10"
+                  theme="green"
+                  icon={<Forward size={16} />}
+                  disabled={selectedCount === 0}
+                  onPress={() => {
+                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
+                    const text = selected
+                      .slice()
+                      .reverse()
+                      .map((m) => m.content)
+                      .join('\n')
+                    setMessage(text)
+                    setSelectionMode(false)
+                    setSelectedIds(new Set())
+                  }}
+                >
+                  Chuyển tiếp
+                </Button>
+
+                <Button
+                  size="$3"
+                  borderRadius="$10"
+                  theme="red"
+                  icon={<Trash2 size={16} />}
+                  disabled={selectedCount === 0}
+                  onPress={() => {
+                    // Safety: only allow deleting your own selected messages (frontend-only)
+                    const mine = (normalizedMessages || []).filter(
+                      (m) => selectedIds.has(m.id) && m.self
+                    )
+                    if (mine.length > 0) {
+                      setLocallyRecalledIds((prev) => {
+                        const next = new Set(prev)
+                        for (const m of mine) next.delete(m.id)
+                        return next
+                      })
+                      setLocallyDeletedIds((prev) => {
+                        const next = new Set(prev)
+                        for (const m of mine) next.add(m.id)
+                        return next
+                      })
+                    }
+                    setSelectionMode(false)
+                    setSelectedIds(new Set())
+                  }}
+                >
+                  Xóa
+                </Button>
+
+                <Button
+                  size="$3"
+                  borderRadius="$10"
+                  chromeless
+                  onPress={() => {
+                    setSelectionMode(false)
+                    setSelectedIds(new Set())
+                  }}
+                >
+                  Hủy
+                </Button>
+              </XStack>
+            </XStack>
+          )}
+
           {/* --- FOOTER (INPUT) --- */}
           <XStack
             p="$2"
@@ -513,68 +750,20 @@ export function ChatScreen({ roomId, insets }: Props) {
             borderWidth={1}
             space="$2"
           >
-            {isWeb && replyTo && (
-              <XStack
-                position="absolute"
-                left={0}
-                right={0}
-                top={-44}
-                px="$3"
-                py="$2"
-                bg="$background"
-                borderColor="$borderColor"
-                borderWidth={1}
-                alignItems="center"
-                justifyContent="space-between"
-              >
-                <Text numberOfLines={1} flex={1} marginRight="$2">
-                  Đang trả lời: {replyTo.content}
-                </Text>
-                <Button size="$2" circular chromeless icon={X} onPress={() => setReplyTo(null)} />
-              </XStack>
-            )}
-
-            {isWeb && selectionMode && (
-              <XStack
-                position="absolute"
-                left={0}
-                right={0}
-                top={-44}
-                px="$3"
-                py="$2"
-                bg="$background"
-                borderColor="$borderColor"
-                borderWidth={1}
-                alignItems="center"
-                justifyContent="space-between"
-              >
-                <Text flex={1} marginRight="$2">
-                  Đã chọn: {selectedCount}
-                </Text>
-                <Button
-                  size="$2"
-                  onPress={() => {
-                    setSelectionMode(false)
-                    setSelectedIds(new Set())
-                  }}
-                >
-                  Hủy
-                </Button>
-              </XStack>
-            )}
-
             <Button size="$3" circular chromeless icon={MoreHorizontal} />
             <Button size="$3" circular chromeless icon={ImageIcon} />
+
             <Input
               flex={1}
               size="$4"
               borderRadius="$10"
               bg="$color3"
               borderWidth={0}
-              placeholder="Nhập tin nhắn..."
+              placeholder={replyTo ? `${replyTag} ...` : 'Nhập tin nhắn...'}
               value={message}
               onChangeText={setMessage}
             />
+
             {message ? (
               <Button
                 size="$4"
