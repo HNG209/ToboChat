@@ -75,8 +75,8 @@ export const EditProfileDialog = ({
             borderBottomWidth={1}
             borderColor="$borderColor"
           >
-            <Dialog.Title asChild>
-              <Text fontSize={15} fontWeight="700" color="$color">
+            <Dialog.Title asChild unstyled>
+              <Text fontSize="$5" fontWeight="700" color="$color">
                 Chỉnh sửa thông tin cá nhân
               </Text>
             </Dialog.Title>
