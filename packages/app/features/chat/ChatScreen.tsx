@@ -26,6 +26,37 @@ import { AppDispatch, RootState } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 
+const GROUP_WINDOW_MS = 5 * 60 * 1000
+
+function getSenderKey(msg: MessageResponse, selfUserId?: string) {
+  if (msg.self) return selfUserId || '__self__'
+  return msg.user?.id || '__unknown__'
+}
+
+function getCreatedAtMs(createdAt?: string) {
+  if (!createdAt) return Number.NaN
+  const ms = new Date(createdAt).getTime()
+  return Number.isFinite(ms) ? ms : Number.NaN
+}
+
+function canGroup(
+  a: MessageResponse | undefined,
+  b: MessageResponse | undefined,
+  selfUserId?: string
+) {
+  if (!a || !b) return false
+  const aMs = getCreatedAtMs(a.createdAt)
+  const bMs = getCreatedAtMs(b.createdAt)
+  if (!Number.isFinite(aMs) || !Number.isFinite(bMs)) return false
+
+  const sameSender = getSenderKey(a, selfUserId) === getSenderKey(b, selfUserId)
+  if (!sameSender) return false
+
+  return Math.abs(aMs - bMs) < GROUP_WINDOW_MS
+}
+
+const MESSAGE_AVATAR_SIZE = '$3' as const
+
 interface Props {
   roomId: string
   insets?: { top: number; bottom: number; left: number; right: number }
@@ -38,6 +69,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const dispatch = useDispatch<AppDispatch>()
   const [isSocketReady, setIsSocketReady] = useState(false)
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
+  const selfUserId = useSelector((s: RootState) => s.auth.user?.id)
 
   // 1. API Hooks
   const { data, isLoading, isError } = useGetMessagesQuery(
@@ -240,18 +272,32 @@ export function ChatScreen({ roomId, insets }: Props) {
                 ) : null
               }
               renderItem={({ item: msg, index }) => {
+                const items = data?.items || []
                 const isMe = msg.self
                 const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
                 const myBubbleText = 'white'
                 const otherBubbleBg = theme === 'dark' ? '$color3' : '$color2'
 
-                let showAvatar = false
-                if (!isMe) {
-                  const nextMsg = data?.items?.[index + 1]
-                  if (!nextMsg || nextMsg.self || nextMsg.user?.id !== msg.user?.id) {
-                    showAvatar = true
-                  }
-                }
+                // items is newest -> oldest because we unshift new messages and push older messages.
+                // With inverted FlatList, index 0 is rendered at the bottom (newest).
+                // Grouping rules are based on consecutive messages in time (adjacent in this array).
+                const newerMsg = items[index - 1]
+                const olderMsg = items[index + 1]
+                const groupsWithNewer = canGroup(msg, newerMsg, selfUserId)
+                const groupsWithOlder = canGroup(msg, olderMsg, selfUserId)
+
+                const isSolo = !groupsWithNewer && !groupsWithOlder
+                const isGroupStart = !groupsWithOlder && groupsWithNewer
+                const isGroupMiddle = groupsWithOlder && groupsWithNewer
+                const isGroupEnd = groupsWithOlder && !groupsWithNewer
+
+                // UI rules:
+                // - Start: show avatar
+                // - Middle: hide avatar + timestamp
+                // - End: show timestamp
+                // - Solo: show avatar + timestamp
+                const showAvatar = !isMe && (isSolo || isGroupStart)
+                const showTimestamp = isSolo || isGroupEnd
 
                 const date = new Date(msg.createdAt)
                 const hours = date.getHours().toString().padStart(2, '0')
@@ -261,26 +307,26 @@ export function ChatScreen({ roomId, insets }: Props) {
                 return (
                   <XStack
                     justifyContent={isMe ? 'flex-end' : 'flex-start'}
-                    alignItems="flex-end"
+                    alignItems={isMe ? 'flex-end' : 'flex-start'}
                     space="$2"
                     mb="$2"
                   >
-                    {!isMe && showAvatar && (
-                      <Avatar circular size="$2">
-                        <Avatar.Image
-                          src={
-                            msg?.user?.avatarUrl ||
-                            `https://ui-avatars.com/api/?name=${msg?.user?.name || 'User'}&background=random`
-                          }
-                        />
-                        <Avatar.Fallback borderColor="gray" />
-                      </Avatar>
-                    )}
-                    {!isMe && !showAvatar && (
-                      <Avatar circular size="$2">
-                        <Avatar.Image src={''} />
-                        <Avatar.Fallback borderColor="gray" />
-                      </Avatar>
+                    {!isMe && (
+                      <YStack width={MESSAGE_AVATAR_SIZE} alignItems="center">
+                        {showAvatar ? (
+                          <Avatar circular size={MESSAGE_AVATAR_SIZE}>
+                            <Avatar.Image
+                              src={
+                                msg?.user?.avatarUrl ||
+                                `https://ui-avatars.com/api/?name=${msg?.user?.name || 'User'}&background=random`
+                              }
+                            />
+                            <Avatar.Fallback borderColor="gray" />
+                          </Avatar>
+                        ) : (
+                          <YStack height={MESSAGE_AVATAR_SIZE} width={MESSAGE_AVATAR_SIZE} />
+                        )}
+                      </YStack>
                     )}
                     <YStack
                       p="$3"
@@ -299,15 +345,17 @@ export function ChatScreen({ roomId, insets }: Props) {
                       <Text fontSize="$4" color={isMe ? myBubbleText : '$color'} lineHeight={22}>
                         {msg.content}
                       </Text>
-                      <Text
-                        fontSize="$1"
-                        textAlign="right"
-                        mt="$1"
-                        opacity={0.9}
-                        color={isMe ? myBubbleText : '$color10'}
-                      >
-                        {timeString}
-                      </Text>
+                      {showTimestamp && (
+                        <Text
+                          fontSize="$1"
+                          textAlign="right"
+                          mt="$1"
+                          opacity={0.9}
+                          color={isMe ? myBubbleText : '$color10'}
+                        >
+                          {timeString}
+                        </Text>
+                      )}
                     </YStack>
                   </XStack>
                 )
