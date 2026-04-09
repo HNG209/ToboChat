@@ -4,10 +4,46 @@ import SearchHeader from '@my/ui/src/SearchHeader'
 import { useTranslation } from 'react-i18next'
 import ChatLayout from 'app/features/chat/ChatLayout'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useEffect, useRef } from 'react'
+import { BackHandler, Platform } from 'react-native'
 
 export default function MainLayout() {
   const { t } = useTranslation()
   const pathname = usePathname()
+  const lastBackPressAt = useRef<number>(0)
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+
+    const isRootTabRoute =
+      pathname === '/chat' ||
+      pathname === '/contacts' ||
+      pathname === '/profile' ||
+      pathname === '/settings'
+
+    if (!isRootTabRoute) return
+
+    const onHardwareBackPress = () => {
+      const now = Date.now()
+      const withinWindow = now - lastBackPressAt.current < 2000
+
+      if (withinWindow) {
+        BackHandler.exitApp()
+        return true
+      }
+
+      lastBackPressAt.current = now
+
+      // Lazy import to avoid any react-native-web quirks.
+      const ToastAndroid = require('react-native')
+        .ToastAndroid as typeof import('react-native').ToastAndroid
+      ToastAndroid?.show?.('Nhấn back lần nữa để thoát', ToastAndroid.SHORT)
+      return true
+    }
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBackPress)
+    return () => sub.remove()
+  }, [pathname])
 
   const isChatThreadScreen = /^\/chat\/[^/]+$/.test(pathname)
   const shouldShowSearchHeader =
