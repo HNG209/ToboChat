@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Image as ImageIcon,
   MoreHorizontal,
+  Check,
   Copy,
   Forward,
   Trash2,
@@ -35,6 +36,7 @@ import { MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
+import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
 
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
@@ -90,31 +92,7 @@ function parseReplyEncodedContent(content: string) {
 const MESSAGE_AVATAR_SIZE = '$3' as const
 
 async function copyText(text: string) {
-  if (Platform.OS !== 'web') return
-  try {
-    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text)
-      return
-    }
-  } catch {
-    // ignore and fallback
-  }
-
-  try {
-    if (typeof document !== 'undefined') {
-      const el = document.createElement('textarea')
-      el.value = text
-      el.setAttribute('readonly', '')
-      el.style.position = 'absolute'
-      el.style.left = '-9999px'
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-  } catch {
-    // no-op
-  }
+  await copyToClipboard(text)
 }
 
 interface Props {
@@ -138,7 +116,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     (s: RootState) => (s as any).auth?.user?.name as string | undefined
   )
 
-  // Web-only message actions (frontend only)
+  // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
   const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(() => new Set())
   const [locallyRecalledIds, setLocallyRecalledIds] = useState<Set<string>>(() => new Set())
@@ -218,7 +196,7 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
-    if (!isWeb || (locallyDeletedIds.size === 0 && locallyRecalledIds.size === 0)) return items
+    if (locallyDeletedIds.size === 0 && locallyRecalledIds.size === 0) return items
     return items.map((m) => {
       if (locallyRecalledIds.has(m.id)) {
         return {
@@ -232,8 +210,7 @@ export function ChatScreen({ roomId, insets }: Props) {
         content: 'Tin nhắn đã bị xóa',
       }
     })
-  }, [data?.items, isWeb, locallyDeletedIds, locallyRecalledIds])
-
+  }, [data?.items, locallyDeletedIds, locallyRecalledIds])
   // 2. Load More Logic
   const handleLoadMore = async () => {
     const nextCursor = data?.nextCursor
@@ -452,7 +429,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                 const isMe = msg.self
                 const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
                 const myBubbleText = 'white'
-                const otherBubbleBg = theme === 'dark' ? '$color3' : '$color2'
 
                 // items is newest -> oldest because we unshift new messages and push older messages.
                 // With inverted FlatList, index 0 is rendered at the bottom (newest).
@@ -482,22 +458,38 @@ export function ChatScreen({ roomId, insets }: Props) {
 
                 const isSelected = selectionMode && selectedIds.has(msg.id)
 
-                const bubbleBg = isMe ? myBubbleBg : otherBubbleBg
+                const parsedReply = parseReplyEncodedContent(msg.content)
+                const isReplyMessage = !!parsedReply
+                const messageTextToRender = parsedReply?.messageText ?? msg.content
+
+                // Reference-image styling for replied messages only
+                const replyBubbleBg = theme === 'dark' ? '$blue3' : '$blue2'
+                const replyBubbleBorderColor = '$blue5'
+                const replyPreviewBg = theme === 'dark' ? '$blue6' : '$blue5'
+                const replyNameColor = '$blue11'
+                const replyPreviewTextColor = '$color10'
+                const replyMainTextColor = '$color12'
+                const replyTimeColor = '$color10'
+
+                const bubbleTextColor = replyMainTextColor
+
+                const otherBubbleBg = theme === 'dark' ? '$color2' : '$background'
+
+                const bubbleBg = isMe ? replyBubbleBg : otherBubbleBg
                 const selectedBg = isMe
                   ? theme === 'dark'
-                    ? '$blue10'
-                    : '$blue9'
-                  : '$backgroundHover'
+                    ? '$blue6'
+                    : '$blue5'
+                  : theme === 'dark'
+                    ? '$color3'
+                    : '$backgroundHover'
                 const effectiveBubbleBg = isSelected ? selectedBg : bubbleBg
                 const bubbleBorderColor = isSelected
                   ? '$blue10'
                   : isMe
-                    ? 'transparent'
+                    ? replyBubbleBorderColor
                     : '$borderColor'
-                const bubbleBorderWidth = 1
-
-                const parsedReply = parseReplyEncodedContent(msg.content)
-                const messageTextToRender = parsedReply?.messageText ?? msg.content
+                const bubbleBorderWidth = isSelected ? 2 : 1
 
                 const toggleSelected = (messageId: string) => {
                   setSelectedIds((prev) => {
@@ -551,6 +543,17 @@ export function ChatScreen({ roomId, insets }: Props) {
                     space="$2"
                     mb="$2"
                   >
+                    {!isMe && selectionMode && (
+                      <YStack width={22} alignItems="center" justifyContent="center">
+                        {isSelected ? (
+                          <Circle size={18} bg="$blue10">
+                            <Check size={12} color="white" />
+                          </Circle>
+                        ) : (
+                          <YStack width={18} height={18} />
+                        )}
+                      </YStack>
+                    )}
                     {!isMe && (
                       <YStack width={MESSAGE_AVATAR_SIZE} alignItems="center">
                         {showAvatar ? (
@@ -605,73 +608,73 @@ export function ChatScreen({ roomId, insets }: Props) {
                     >
                       <YStack
                         p="$3"
-                        borderRadius="$5"
-                        maxWidth="100%"
+                        borderRadius="$4"
+                        maxWidth={'100%'}
                         bg={effectiveBubbleBg}
                         borderWidth={bubbleBorderWidth}
                         borderColor={bubbleBorderColor}
-                        borderTopLeftRadius={!isMe ? 0 : '$5'}
-                        borderTopRightRadius={isMe ? 0 : '$5'}
                         elevation={isSelected ? '$3' : '$1'}
                         shadowColor="$shadowColor"
                         shadowRadius={isSelected ? 6 : 2}
                         shadowOffset={{ width: 0, height: isSelected ? 2 : 1 }}
                       >
                         {parsedReply && (
-                          <YStack marginBottom="$2" space="$1">
+                          <YStack
+                            bg={replyPreviewBg}
+                            borderRadius="$3"
+                            paddingHorizontal="$2"
+                            paddingVertical="$2"
+                            marginBottom="$2"
+                            space="$1"
+                          >
                             <Text
-                              fontSize="$2"
+                              fontSize="$3"
                               fontWeight="700"
                               numberOfLines={1}
-                              color={isMe ? 'white' : '$blue11'}
-                              opacity={0.9}
+                              color={replyNameColor}
                             >
                               {parsedReply.replyName}
                             </Text>
 
-                            <YStack
-                              bg={
-                                isMe
-                                  ? theme === 'dark'
-                                    ? '$blue10'
-                                    : '$blue9'
-                                  : '$backgroundHover'
-                              }
-                              borderRadius="$3"
-                              padding="$2"
-                              borderWidth={1}
-                              borderColor={isMe ? 'transparent' : '$borderColor'}
-                              borderLeftWidth={3}
-                              borderLeftColor="$blue10"
+                            <Text
+                              fontSize="$2"
+                              color={replyPreviewTextColor}
+                              opacity={0.85}
+                              numberOfLines={1}
                             >
-                              <Text
-                                fontSize="$2"
-                                color={isMe ? 'white' : '$color10'}
-                                opacity={0.9}
-                                numberOfLines={3}
-                              >
-                                {parsedReply.replyText}
-                              </Text>
-                            </YStack>
+                              {parsedReply.replyText}
+                            </Text>
                           </YStack>
                         )}
 
-                        <Text fontSize="$4" color={isMe ? myBubbleText : '$color'} lineHeight={22}>
+                        <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
                           {messageTextToRender}
                         </Text>
                         {showTimestamp && (
                           <Text
-                            fontSize="$1"
-                            textAlign="right"
+                            fontSize={isReplyMessage ? '$1' : '$1'}
+                            textAlign={isMe ? 'right' : 'left'}
                             mt="$1"
-                            opacity={0.9}
-                            color={isMe ? myBubbleText : '$color10'}
+                            opacity={1}
+                            color={replyTimeColor}
                           >
                             {timeString}
                           </Text>
                         )}
                       </YStack>
                     </MessageActionMenu>
+
+                    {isMe && selectionMode && (
+                      <YStack width={22} alignItems="center" justifyContent="center">
+                        {isSelected ? (
+                          <Circle size={18} bg="$blue10">
+                            <Check size={12} color="white" />
+                          </Circle>
+                        ) : (
+                          <YStack width={18} height={18} />
+                        )}
+                      </YStack>
+                    )}
                   </XStack>
                 )
               }}
@@ -710,7 +713,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             </XStack>
           )}
 
-          {isWeb && selectionMode && (
+          {selectionMode && (
             <XStack
               px="$3"
               py="$2"
@@ -839,7 +842,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               borderRadius="$10"
               bg="$color3"
               borderWidth={0}
-              placeholder={replyTo ? `${replyTag} ...` : 'Nhập tin nhắn...'}
+              placeholder="Nhập tin nhắn..."
               value={message}
               onChangeText={setMessage}
             />

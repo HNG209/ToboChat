@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Platform } from 'react-native'
-import { Button, ListItem, Popover, Separator, Text, YStack, XStack } from '@my/ui'
+import { Platform, Pressable } from 'react-native'
+import { Button, Dialog, ListItem, Popover, Separator, Text, YStack, XStack } from '@my/ui'
 import {
   ArrowLeft,
   CheckSquare,
@@ -62,14 +62,183 @@ export function MessageActionMenu({
 
   const placement = useMemo(() => (isMe ? 'top-end' : 'top-start'), [isMe])
 
-  if (!isWeb) return <>{children}</>
-
   const openMenu = () => {
     if (selectionMode) {
       onToggleSelected(message.id)
       return
     }
     setOpen(true)
+  }
+
+  if (!isWeb) {
+    const tileBaseStyle = {
+      flexGrow: 1,
+      width: '100%',
+      height: 72,
+      borderWidth: 0,
+      borderRadius: '$3',
+      backgroundColor: 'white',
+      hoverStyle: { backgroundColor: '$backgroundHover' },
+      pressStyle: { backgroundColor: '$backgroundHover' },
+    } as const
+
+    const tileWrapStyle = {
+      width: '50%',
+      padding: '$1',
+    } as const
+
+    const Tile = ({
+      title,
+      icon,
+      onPress,
+      disabled,
+    }: {
+      title: string
+      icon: React.ReactNode
+      onPress: () => void
+      disabled?: boolean
+    }) => (
+      <YStack {...(tileWrapStyle as any)}>
+        <Dialog.Close asChild>
+          <Button disabled={disabled} onPress={onPress} {...(tileBaseStyle as any)} padding="$2">
+            <YStack alignItems="center" justifyContent="center" space="$1">
+              {icon}
+              <Text fontSize="$1" textAlign="center" numberOfLines={2}>
+                {title}
+              </Text>
+            </YStack>
+          </Button>
+        </Dialog.Close>
+      </YStack>
+    )
+
+    return (
+      <>
+        <Pressable
+          onLongPress={() => openMenu()}
+          delayLongPress={250}
+          onPress={selectionMode ? () => onToggleSelected(message.id) : undefined}
+        >
+          {children}
+        </Pressable>
+
+        <Dialog modal open={open} onOpenChange={setOpen}>
+          <Dialog.Portal>
+            <Dialog.Close asChild>
+              <Dialog.Overlay
+                key="overlay"
+                animation="100ms"
+                opacity={0.5}
+                enterStyle={{ opacity: 0 }}
+                exitStyle={{ opacity: 0 }}
+                backgroundColor="#000"
+              />
+            </Dialog.Close>
+
+            <Dialog.Content
+              key="content"
+              bordered
+              elevate
+              animation="100ms"
+              enterStyle={{ opacity: 0, scale: 0.98 }}
+              exitStyle={{ opacity: 0, scale: 0.98 }}
+              padding="$2"
+              width="50%"
+              maxWidth={360}
+              backgroundColor="$background"
+            >
+              {view === 'main' ? (
+                <YStack paddingVertical="$1">
+                  <XStack flexWrap="wrap">
+                    <Tile
+                      title="Sao chép"
+                      icon={<Copy size={18} color="#3b82f6" />}
+                      onPress={() => onCopy(message)}
+                    />
+                    <Tile
+                      title="Trả lời"
+                      icon={<CornerUpLeft size={18} color="#10b981" />}
+                      onPress={() => onReply(message)}
+                    />
+                    <Tile
+                      title="Chuyển tiếp"
+                      icon={<Forward size={18} color="#6366f1" />}
+                      onPress={() => onForward(message)}
+                    />
+                    <Tile
+                      title="Chọn nhiều"
+                      icon={<CheckSquare size={18} color="#f59e0b" />}
+                      onPress={() => onEnterMultiSelect(message)}
+                    />
+                    {isMe ? (
+                      <YStack {...(tileWrapStyle as any)}>
+                        <Button
+                          onPress={() => setView('delete')}
+                          {...(tileBaseStyle as any)}
+                          padding="$2"
+                        >
+                          <YStack alignItems="center" justifyContent="center" space="$1">
+                            <Trash2 size={18} color="#ef4444" />
+                            <Text fontSize="$1" textAlign="center" numberOfLines={2}>
+                              Xóa
+                            </Text>
+                          </YStack>
+                        </Button>
+                      </YStack>
+                    ) : (
+                      <Tile
+                        title="Xóa"
+                        icon={<Trash2 size={18} color="#ef4444" />}
+                        onPress={() => onDeleteForMe(message)}
+                      />
+                    )}
+                  </XStack>
+                </YStack>
+              ) : (
+                <YStack paddingVertical="$2">
+                  <XStack
+                    alignItems="center"
+                    justifyContent="space-between"
+                    paddingHorizontal="$2"
+                    height={40}
+                  >
+                    <Button
+                      aria-label="Quay lại"
+                      size="$2"
+                      circular
+                      chromeless
+                      icon={ArrowLeft}
+                      onPress={() => setView('main')}
+                    />
+                    <Text fontWeight="700" fontSize={15}>
+                      Xóa tin nhắn
+                    </Text>
+                    <XStack width={28} />
+                  </XStack>
+
+                  <Separator marginVertical="$2" />
+
+                  <XStack flexWrap="wrap">
+                    <Tile
+                      title="Xóa phía bạn"
+                      icon={<Trash2 size={18} color="#ef4444" />}
+                      onPress={() => onDeleteForMe(message)}
+                    />
+                    {onRecall && (
+                      <Tile
+                        title="Thu hồi"
+                        icon={<Trash2 size={18} color="#ef4444" />}
+                        onPress={() => onRecall(message)}
+                      />
+                    )}
+                  </XStack>
+                </YStack>
+              )}
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog>
+      </>
+    )
   }
 
   const onContextMenu = (e: any) => {

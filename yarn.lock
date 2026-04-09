@@ -10731,6 +10731,7 @@ __metadata:
     async-mutex: "npm:^0.5.0"
     axios: "npm:^1.13.2"
     burnt: "npm:^0.12.2"
+    expo-clipboard: "npm:~8.0.8"
     expo-image-picker: "npm:~17.0.10"
     expo-linking: "npm:~7.1.4"
     expo-secure-store: "npm:^15.0.8"
@@ -13740,6 +13741,7 @@ __metadata:
     babel-plugin-module-resolver: "npm:^5.0.2"
     burnt: "npm:^0.12.2"
     expo: "npm:^54.0.31"
+    expo-clipboard: "npm:~8.0.8"
     expo-constants: "npm:~18.0.13"
     expo-dev-client: "npm:~6.0.20"
     expo-font: "npm:~14.0.10"
@@ -13776,6 +13778,17 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: 10/7034316d820837c92ac70274be56a8e59181f1513805f8a4c85e16f12e1dd75ac6d6ae0b231bd8a76adbb71be6163c05b31b1d437f15b14745c70cc1f255c8a1
+  languageName: node
+  linkType: hard
+
+"expo-clipboard@npm:~8.0.8":
+  version: 8.0.8
+  resolution: "expo-clipboard@npm:8.0.8"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+  checksum: 10/f51f5043c2bc7c6f4a7805607fa984952e674c401bd4f7c98a7569a49ceaa244f6e68fe3d18012fed0a0f5a35ac9395dcfc99ff3b2e3366ee083632d38b44d86
   languageName: node
   linkType: hard
 
