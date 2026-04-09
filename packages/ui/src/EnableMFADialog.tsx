@@ -1,4 +1,5 @@
-import { Dialog, Text, Button, Image, YStack, Input, InputFrame } from '@my/ui'
+import { Dialog, Text, Button, Image, YStack, Input, XStack } from '@my/ui'
+import { X } from '@tamagui/lucide-icons'
 import React from 'react'
 
 export const EnableMFADialog = ({
@@ -22,33 +23,75 @@ export const EnableMFADialog = ({
     <Dialog
       open={openEnableMFA}
       onOpenChange={(open) => {
-        if (!open) {
-          if (!isTwoFactorAuth) {
-            setSecretCode(null)
-            setPassword('')
-            setOtpCode('')
-          }
-        }
         setOpenEnableMFA(open)
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay key="overlay" opacity={0.5} backgroundColor="#000" />
+        <Dialog.Overlay
+          key="overlay"
+          animation="100ms"
+          opacity={0.5}
+          enterStyle={{ opacity: 0 }}
+          exitStyle={{ opacity: 0 }}
+          backgroundColor="#000"
+        />
 
-        <Dialog.Content key="content" padding="$5" width={400}>
+        <Dialog.Content
+          key="content"
+          bordered
+          elevate
+          animation="100ms"
+          enterStyle={{ opacity: 0, scale: 0.98 }}
+          exitStyle={{ opacity: 0, scale: 0.98 }}
+          padding="$4"
+          width="92%"
+          maxWidth={420}
+          backgroundColor="$background"
+        >
+          <XStack alignItems="center" justifyContent="space-between" marginBottom="$2">
+            <Text fontWeight="700" fontSize="$6">
+              Bảo mật 2 lớp
+            </Text>
+            <Button
+              size="$3"
+              circular
+              chromeless
+              icon={X}
+              hoverStyle={{ backgroundColor: '$backgroundHover' }}
+              pressStyle={{ opacity: 0.6 }}
+              onPress={() => setOpenEnableMFA(false)}
+            />
+          </XStack>
+
           {!secretCode && (
             <YStack space="$3">
-              <Text fontWeight="bold">Nhập lại mật khẩu</Text>
+              <Text color="$color10" fontSize="$2">
+                Nhập mật khẩu để bật bảo mật 2 lớp
+              </Text>
 
-              <Input secureTextEntry value={password} onChangeText={setPassword} />
+              <Input
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Nhập mật khẩu"
+              />
 
-              <Button onPress={handleSubmitPassword}>Xác nhận</Button>
+              <XStack justifyContent="flex-end" space="$2">
+                <Button chromeless onPress={() => setOpenEnableMFA(false)}>
+                  Đóng
+                </Button>
+                <Button themeInverse onPress={handleSubmitPassword}>
+                  Tiếp tục
+                </Button>
+              </XStack>
             </YStack>
           )}
 
           {secretCode && (
             <YStack space="$3">
-              <Text fontWeight="bold">Quét mã bằng Google Authenticator</Text>
+              <Text color="$color10" fontSize="$2">
+                Quét QR bằng Google Authenticator (hoặc app tương tự), sau đó nhập mã OTP 6 số.
+              </Text>
 
               <Image
                 source={{
@@ -59,9 +102,21 @@ export const EnableMFADialog = ({
                 style={{ width: 200, height: 200 }}
               />
 
-              <Input placeholder="Nhập mã OTP" value={otpCode} onChangeText={setOtpCode} />
+              <Input
+                placeholder="Nhập mã OTP"
+                keyboardType="number-pad"
+                value={otpCode}
+                onChangeText={setOtpCode}
+              />
 
-              <Button onPress={handleVerifyOTP}>Xác nhận OTP</Button>
+              <XStack justifyContent="flex-end" space="$2">
+                <Button chromeless onPress={() => setOpenEnableMFA(false)}>
+                  Đóng
+                </Button>
+                <Button themeInverse onPress={handleVerifyOTP}>
+                  Xác nhận
+                </Button>
+              </XStack>
             </YStack>
           )}
         </Dialog.Content>
