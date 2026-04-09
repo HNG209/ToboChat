@@ -4,6 +4,7 @@ import React from 'react'
 import { XStack, YStack, H3, Text, Button } from '@my/ui'
 import { ChevronLeft } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
+import { Platform } from 'react-native'
 
 interface ContactHeaderProps {
   title: string
@@ -44,8 +45,14 @@ export const ContactHeader = ({
 
       {/* KHỐI TIÊU ĐỀ */}
       <YStack flex={1}>
-        <H3 fontWeight="bold">{title}</H3>
-        <Text color="$color10" fontSize="$3">
+        {Platform.OS === 'web' ? (
+          <H3 fontWeight="bold">{title}</H3>
+        ) : (
+          <Text fontSize="$4" fontWeight="700" numberOfLines={1}>
+            {title}
+          </Text>
+        )}
+        <Text color="$color10" fontSize={Platform.OS === 'web' ? '$3' : '$2'} numberOfLines={1}>
           {subtitle}
         </Text>
       </YStack>

@@ -3,6 +3,7 @@ import { YStack, XStack, Input, Button, H3, Text, ScrollView, Avatar } from 'tam
 import { Search, Plus, Users, ChevronLeft } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 import { ContactHeader, UserCard } from '@my/ui'
+import { Platform } from 'react-native'
 
 // Dữ liệu giả để hiển thị giao diện
 const MOCK_GROUPS = [
@@ -19,13 +20,21 @@ const MOCK_GROUPS = [
 export default function GroupPage() {
   const [keyword, setKeyword] = useState('')
 
+  const isWeb = Platform.OS === 'web'
+
   // Logic lọc tìm kiếm đơn giản cho Mock Data
   const filteredGroups = MOCK_GROUPS.filter((group) =>
     group.name.toLowerCase().includes(keyword.toLowerCase())
   )
 
   return (
-    <XStack flex={1} height="100vh" padding="$4" gap="$4" alignItems="stretch">
+    <XStack
+      flex={1}
+      padding="$4"
+      gap="$4"
+      alignItems="stretch"
+      {...(isWeb ? { height: '100vh' } : {})}
+    >
       <YStack flex={1} gap="$4">
         {/* HEADER */}
         <ContactHeader

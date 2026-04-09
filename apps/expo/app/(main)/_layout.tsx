@@ -1,5 +1,5 @@
 import { Tabs, usePathname } from 'expo-router'
-import { MessageCircle, User, List, Settings } from '@tamagui/lucide-icons'
+import { MessageCircle, User, Users, Settings } from '@tamagui/lucide-icons'
 import SearchHeader from '@my/ui/src/SearchHeader'
 import { useTranslation } from 'react-i18next'
 import ChatLayout from 'app/features/chat/ChatLayout'
@@ -40,7 +40,7 @@ export default function MainLayout() {
         name="contacts"
         options={{
           title: 'Kết nối',
-          tabBarIcon: ({ color, size }) => <List color={color as any} size={size} />,
+          tabBarIcon: ({ color, size }) => <Users color={color as any} size={size} />,
         }}
       />
 
