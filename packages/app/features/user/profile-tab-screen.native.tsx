@@ -1,7 +1,8 @@
-import { Camera, X } from '@tamagui/lucide-icons'
+import { Camera, Check, X } from '@tamagui/lucide-icons'
 import {
   Button,
   DatePickerField,
+  Dialog,
   Image,
   Input,
   Label,
@@ -24,6 +25,7 @@ import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 import type { AppDispatch } from 'app/store'
 import React, { useMemo, useState } from 'react'
 import { Alert } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useDispatch } from 'react-redux'
 
 function guessMimeTypeFromFileName(fileName?: string): string | undefined {
@@ -67,6 +69,7 @@ function deriveFileUrlFromPresignedUrl(presignedUrl: string): string {
 
 export default function ProfileTabScreen() {
   const dispatch = useDispatch<AppDispatch>()
+  const insets = useSafeAreaInsets()
   const {
     data: userProfileData,
     isFetching,
@@ -94,6 +97,8 @@ export default function ProfileTabScreen() {
       }
     | undefined
   >(undefined)
+
+  const [isAvatarConfirmOpen, setIsAvatarConfirmOpen] = useState(false)
 
   const withCacheBuster = (url?: string) => {
     if (!url || !avatarCacheKey) return url
@@ -202,29 +207,17 @@ export default function ProfileTabScreen() {
       contentType,
     })
     setOptimisticAvatarUrl(asset.uri)
+    setIsAvatarConfirmOpen(true)
   }
 
   const handleCancelPendingAvatar = () => {
     setPendingAvatar(undefined)
     setOptimisticAvatarUrl(undefined)
+    setIsAvatarConfirmOpen(false)
   }
 
   const handleUploadPendingAvatar = async () => {
     if (!pendingAvatar || isUploadingAvatar) return
-
-    const confirmed = await new Promise<boolean>((resolve) => {
-      Alert.alert(
-        'Xác nhận',
-        'Bạn có muốn cập nhật avatar không?',
-        [
-          { text: 'Hủy', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Cập nhật', onPress: () => resolve(true) },
-        ],
-        { cancelable: true, onDismiss: () => resolve(false) }
-      )
-    })
-
-    if (!confirmed) return
 
     try {
       setIsUploadingAvatar(true)
@@ -275,6 +268,8 @@ export default function ProfileTabScreen() {
       setAvatarCacheKey(Date.now())
       setPendingAvatar(undefined)
 
+      setIsAvatarConfirmOpen(false)
+
       setOptimisticAvatarUrl(resolvedFileUrl)
       patchProfileCache((draft) => {
         if (draft?.result) {
@@ -311,31 +306,116 @@ export default function ProfileTabScreen() {
 
   return (
     <YStack flex={1} backgroundColor="$background">
+      <Dialog
+        modal
+        open={isAvatarConfirmOpen && Boolean(pendingAvatar)}
+        onOpenChange={(open) => {
+          setIsAvatarConfirmOpen(open)
+          if (!open) handleCancelPendingAvatar()
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay
+            key="overlay"
+            animation="quick"
+            opacity={0.12}
+            backgroundColor="#000"
+            zIndex={100000}
+            enterStyle={{ opacity: 0 }}
+            exitStyle={{ opacity: 0 }}
+          />
+
+          <Dialog.Content
+            key="content"
+            bordered
+            elevate
+            animation="quick"
+            enterStyle={{ opacity: 0, scale: 0.98, y: 10 }}
+            exitStyle={{ opacity: 0, scale: 0.98, y: 10 }}
+            width="100%"
+            padding={0}
+            borderTopLeftRadius="$4"
+            borderTopRightRadius="$4"
+            backgroundColor="$background"
+            overflow="hidden"
+            position="absolute"
+            bottom={insets.bottom}
+            left={0}
+            right={0}
+          >
+            <YStack padding="$4" space="$3">
+              <Text fontSize="$5" fontWeight="700" color="$color" textAlign="center">
+                Cập nhật ảnh đại diện
+              </Text>
+
+              <YStack alignItems="center" space="$2">
+                <View
+                  width={84}
+                  height={84}
+                  borderRadius={999}
+                  borderWidth={2}
+                  borderColor="$borderColor"
+                  overflow="hidden"
+                  backgroundColor="$background"
+                >
+                  <Image
+                    source={{
+                      uri:
+                        optimisticAvatarUrl ||
+                        effectiveAvatarUrl ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
+                    }}
+                    width="100%"
+                    height="100%"
+                  />
+                </View>
+
+                <Text fontSize="$3" color="$color10" textAlign="center">
+                  Bạn có muốn cập nhật avatar không?
+                </Text>
+
+                {isUploadingAvatar ? <Spinner size="small" /> : null}
+              </YStack>
+
+              <XStack space="$2">
+                <Button
+                  flex={1}
+                  theme="red"
+                  variant="outlined"
+                  borderRadius="$10"
+                  icon={X}
+                  onPress={handleCancelPendingAvatar}
+                  disabled={isUploadingAvatar}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  flex={1}
+                  themeInverse
+                  borderRadius="$10"
+                  icon={Check}
+                  onPress={handleUploadPendingAvatar}
+                  disabled={isUploadingAvatar}
+                >
+                  {isUploadingAvatar ? 'Đang cập nhật...' : 'Cập nhật'}
+                </Button>
+              </XStack>
+            </YStack>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
+
       {/* Header giống ProfileDialog nhưng không dùng Dialog */}
       <XStack
         padding="$2"
         alignItems="center"
-        justifyContent="space-between"
+        justifyContent="center"
         borderBottomWidth={1}
         borderColor="$borderColor"
       >
-        <Text fontSize="$3" fontWeight="700" color="$color">
+        <Text fontSize="$6" fontWeight="700" color="$color">
           Thông tin tài khoản
         </Text>
-
-        <Button
-          size="$1"
-          circular
-          icon={X}
-          chromeless
-          onPress={() => {
-            if (isEditing) {
-              handleCancelEdit()
-              return
-            }
-          }}
-          aria-label={isEditing ? 'Hủy chỉnh sửa' : 'Đóng'}
-        />
       </XStack>
 
       <ScrollView flex={1}>
@@ -455,17 +535,6 @@ export default function ProfileTabScreen() {
             </View>
 
             {isUploadingAvatar ? <Spinner size="small" /> : null}
-
-            {pendingAvatar && !isUploadingAvatar ? (
-              <XStack space="$2" marginTop="$2">
-                <Button size="$2" onPress={handleCancelPendingAvatar} chromeless>
-                  Hủy
-                </Button>
-                <Button size="$2" themeInverse onPress={handleUploadPendingAvatar}>
-                  Cập nhật avatar
-                </Button>
-              </XStack>
-            ) : null}
           </YStack>
 
           {/* Personal info */}
@@ -494,9 +563,6 @@ export default function ProfileTabScreen() {
                 <YStack space="$2">
                   <Label>Ngày sinh</Label>
                   <DatePickerField value={tempDob} onChange={setTempDob} placeholder="DD/MM/YYYY" />
-                  <Text fontSize="$2" color="$color10">
-                    Trống nếu bạn chưa muốn cập nhật
-                  </Text>
                 </YStack>
               </YStack>
             )}
@@ -514,14 +580,29 @@ export default function ProfileTabScreen() {
               Cập nhật
             </Button>
           ) : (
-            <Button
-              themeInverse
-              borderRadius="$10"
-              onPress={handleSaveProfile}
-              disabled={isUpdatingMe}
-            >
-              {isUpdatingMe ? 'Đang lưu...' : 'Lưu thay đổi'}
-            </Button>
+            <XStack space="$2">
+              <Button
+                flex={1}
+                theme="red"
+                variant="outlined"
+                borderRadius="$10"
+                icon={X}
+                onPress={handleCancelEdit}
+                disabled={isUpdatingMe}
+              >
+                Hủy
+              </Button>
+              <Button
+                flex={1}
+                themeInverse
+                borderRadius="$10"
+                icon={Check}
+                onPress={handleSaveProfile}
+                disabled={isUpdatingMe}
+              >
+                {isUpdatingMe ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Button>
+            </XStack>
           )}
         </YStack>
       </ScrollView>
