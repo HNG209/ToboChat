@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Platform,
+  KeyboardAvoidingView,
+  ActivityIndicator,
+  Keyboard,
+  useWindowDimensions,
+} from 'react-native'
 import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle } from '@my/ui'
 import {
   SendHorizontal,
@@ -117,7 +123,11 @@ interface Props {
 }
 
 export function ChatScreen({ roomId, insets }: Props) {
+  const { height: windowHeight } = useWindowDimensions()
+  const androidBaselineHeightRef = useRef(windowHeight)
   const [message, setMessage] = useState('')
+  const [composerHeight, setComposerHeight] = useState(0)
+  const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0)
   const { theme } = useAppTheme()
   const linkProps = useLink({ href: '/chat' })
   const dispatch = useDispatch<AppDispatch>()
@@ -135,6 +145,54 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
+
+  const listBottomSpacer = isWeb ? 0 : composerHeight
+
+  // Android keyboard handling: don't rely on KeyboardAvoidingView only.
+  // On some devices KAV can leave a "stuck" gap after dismiss; keyboard events are deterministic.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+
+    const updateFromEvent = (e: any) => {
+      const coords = e?.endCoordinates
+      const reportedHeight = typeof coords?.height === 'number' ? coords.height : 0
+      const screenY = typeof coords?.screenY === 'number' ? coords.screenY : undefined
+      const fallbackHeight = typeof screenY === 'number' ? Math.max(0, windowHeight - screenY) : 0
+      const nextHeight = reportedHeight > 0 ? reportedHeight : fallbackHeight
+      setAndroidKeyboardHeight(Math.max(0, Math.min(nextHeight, windowHeight)))
+    }
+
+    const showSub = Keyboard.addListener('keyboardDidShow', updateFromEvent)
+    const frameSub = Keyboard.addListener('keyboardDidChangeFrame', updateFromEvent)
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setAndroidKeyboardHeight(0)
+    })
+
+    return () => {
+      showSub.remove()
+      frameSub.remove()
+      hideSub.remove()
+    }
+  }, [windowHeight])
+
+  // If Android is already resizing the window when the keyboard opens
+  // (because `softwareKeyboardLayoutMode: "resize"` is enabled), then adding
+  // manual padding creates a visible empty gap. Only apply padding as a fallback
+  // when the window height doesn't change.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+    if (androidKeyboardHeight === 0) {
+      androidBaselineHeightRef.current = windowHeight
+    }
+  }, [androidKeyboardHeight, windowHeight])
+
+  const isWindowResizedByKeyboard =
+    Platform.OS === 'android' &&
+    androidKeyboardHeight > 0 &&
+    androidBaselineHeightRef.current - windowHeight > 50
+
+  const effectiveAndroidKeyboardHeight =
+    Platform.OS === 'android' && !isWindowResizedByKeyboard ? androidKeyboardHeight : 0
 
   const selectedCount = selectedIds.size
   const replyName = replyTo ? getDisplayNameForMessage(replyTo, selfUserName) : ''
@@ -302,11 +360,16 @@ export function ChatScreen({ roomId, insets }: Props) {
   return (
     <Theme name={theme}>
       <KeyboardAvoidingView
+        enabled={Platform.OS === 'ios'}
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        <YStack flex={1} bg="$background">
+        <YStack
+          flex={1}
+          bg="$background"
+          paddingBottom={Platform.OS === 'android' ? effectiveAndroidKeyboardHeight : 0}
+        >
           {/* --- HEADER --- */}
           <XStack
             alignItems="center"
@@ -365,6 +428,13 @@ export function ChatScreen({ roomId, insets }: Props) {
               data={normalizedMessages}
               inverted={true}
               keyExtractor={(item: MessageResponse) => item.id}
+              contentContainerStyle={{
+                // FlatList is inverted, so paddingTop becomes the *bottom* spacing.
+                // This prevents the newest message + avatar from being hidden under the composer.
+                paddingTop: listBottomSpacer + 13,
+                // In inverted mode, paddingBottom becomes the *top* spacing.
+                paddingBottom: 20,
+              }}
               onEndReached={handleLoadMore}
               onEndReachedThreshold={0.1}
               keyboardDismissMode="interactive"
@@ -743,7 +813,16 @@ export function ChatScreen({ roomId, insets }: Props) {
 
           {/* --- FOOTER (INPUT) --- */}
           <XStack
-            p="$2"
+            px="$2"
+            py={Platform.OS === 'web' ? '$2' : '$1.5'}
+            paddingBottom={Platform.OS === 'web' ? undefined : (insets?.bottom ?? 0) + 8}
+            onLayout={(e) => {
+              if (isWeb) return
+              const nextHeight = Math.round(e.nativeEvent.layout.height)
+              if (nextHeight > 0 && nextHeight !== composerHeight) {
+                setComposerHeight(nextHeight)
+              }
+            }}
             alignItems="center"
             bg="$background"
             borderColor="$borderColor"
@@ -755,7 +834,8 @@ export function ChatScreen({ roomId, insets }: Props) {
 
             <Input
               flex={1}
-              size="$4"
+              size={Platform.OS === 'web' ? '$4' : '$3'}
+              height={Platform.OS === 'web' ? undefined : 40}
               borderRadius="$10"
               bg="$color3"
               borderWidth={0}
