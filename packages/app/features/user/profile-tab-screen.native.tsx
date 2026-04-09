@@ -104,6 +104,15 @@ export default function ProfileTabScreen() {
   const effectiveAvatarUrl = optimisticAvatarUrl ?? userData?.avatarUrl
   const effectiveDobRaw = userData?.dob ?? userData?.dateOfBirth
 
+  // Khi đổi tài khoản (A -> B) hoặc logout, phải reset optimistic state
+  // để tránh hiển thị avatar của user cũ.
+  React.useEffect(() => {
+    setOptimisticAvatarUrl(undefined)
+    setPendingAvatar(undefined)
+    setAvatarCacheKey(0)
+    setIsEditing(false)
+  }, [userData?.id])
+
   const formattedDob = useMemo(() => formatDobForDisplay(effectiveDobRaw), [effectiveDobRaw])
 
   const [isEditing, setIsEditing] = useState(false)
@@ -484,7 +493,7 @@ export default function ProfileTabScreen() {
 
                 <YStack space="$2">
                   <Label>Ngày sinh</Label>
-                  <DatePickerField value={tempDob} onChange={setTempDob} placeholder="YYYY-MM-DD" />
+                  <DatePickerField value={tempDob} onChange={setTempDob} placeholder="DD/MM/YYYY" />
                   <Text fontSize="$2" color="$color10">
                     Trống nếu bạn chưa muốn cập nhật
                   </Text>

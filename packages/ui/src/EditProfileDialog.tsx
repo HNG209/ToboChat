@@ -96,10 +96,7 @@ export const EditProfileDialog = ({
             {/* DOB */}
             <YStack space="$2">
               <Label>Ngày sinh</Label>
-              <DatePickerField value={tempDob} onChange={setTempDob} placeholder="YYYY-MM-DD" />
-              <Text fontSize="$2" color="$color10">
-                Trống nếu bạn chưa muốn cập nhật
-              </Text>
+              <DatePickerField value={tempDob} onChange={setTempDob} placeholder="DD/MM/YYYY" />
             </YStack>
 
             {/* Button */}

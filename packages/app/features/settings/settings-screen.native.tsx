@@ -34,7 +34,12 @@ export default function SettingsScreen() {
 
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
   const userIdFromStore = useSelector((s: RootState) => s.auth.user?.id)
-  const { data: profileData } = useGetProfileQuery(undefined, { skip: !hasSession })
+  const { data: profileData } = useGetProfileQuery(undefined, {
+    skip: !hasSession,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  })
   const userId =
     userIdFromStore ??
     ((profileData as any)?.id as string | undefined) ??
