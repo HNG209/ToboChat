@@ -1,4 +1,4 @@
-import { MessageResponse, PageResponse, RoomResponse } from 'app/types/Response'
+import { MessageResponse, PageResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { SendMessageRequest } from 'app/types/Request'
 
@@ -8,7 +8,10 @@ export const chatApi = baseApi.injectEndpoints({
       query: (sendMessageRequest) => ({
         url: `/chat/rooms/${sendMessageRequest.roomId}/messages`,
         method: 'POST',
-        data: { content: sendMessageRequest.content, messageType: sendMessageRequest.messageType },
+        data: {
+          content: sendMessageRequest.content,
+          messageType: sendMessageRequest.messageType,
+        },
       }),
     }),
 
@@ -17,16 +20,47 @@ export const chatApi = baseApi.injectEndpoints({
       { roomId: string; cursor?: string; limit?: number; direction?: 'before' | 'after' }
     >({
       query: (params) => ({
-        url: `/chat/rooms/${params.roomId}/messages`, // Trả lại URL sạch sẽ, không có dấu ?
+        url: `/chat/rooms/${params.roomId}/messages`,
         method: 'GET',
         params: {
-          // Chỉ truyền những gì cần làm query string vào đây
-          // Nếu cursor rỗng, truyền undefined để HTTP Client bỏ qua param đó
           cursor: params.cursor || undefined,
           limit: params.limit || 20,
           direction: params.direction || 'before',
         },
       }),
+
+      // gom cache theo roomId
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        return `${endpointName}-${queryArgs.roomId}`
+      },
+
+      // Cho phép gọi lại API khi cursor thay đổi
+      forceRefetch({ currentArg, previousArg }) {
+        return (
+          currentArg?.cursor !== previousArg?.cursor ||
+          currentArg?.direction !== previousArg?.direction
+        )
+      },
+
+      // Optional: merge tự động
+      merge: (currentCache, newData, { arg }) => {
+        if (!currentCache.items) {
+          currentCache.items = []
+        }
+
+        const existingIds = new Set(currentCache.items.map((i) => i.id))
+        const newItems = newData.items.filter((i) => !existingIds.has(i.id))
+
+        if (arg.direction === 'after') {
+          // tin mới → lên đầu
+          currentCache.items.unshift(...newItems)
+          currentCache.prevCursor = newData.prevCursor
+        } else {
+          // tin cũ → xuống cuối
+          currentCache.items.push(...newItems)
+          currentCache.nextCursor = newData.nextCursor
+        }
+      },
     }),
   }),
 })

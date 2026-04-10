@@ -181,7 +181,9 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   // 1. API Hooks
   const { data, isLoading, isError } = useGetMessagesQuery(
-    { roomId },
+    {
+      roomId,
+    },
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
@@ -235,32 +237,12 @@ export function ChatScreen({ roomId, insets }: Props) {
     else prevCursorRef.current = data?.prevCursor
 
     try {
-      const response = await triggerGetMessages({
+      await triggerGetMessages({
         roomId,
         cursor: direction === 'before' ? nextCursorRef.current : prevCursorRef.current,
         limit: 20,
         direction,
       }).unwrap()
-
-      if (response.items && response.items.length > 0) {
-        // Cập nhật cache để thêm tin nhắn cũ vào cuối mảng
-        dispatch(
-          chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-            // clone để tránh mutation bug
-            const newItems = response.items
-
-            if (direction === 'before') {
-              // thêm tin cũ → cuối mảng
-              draft.items.push(...newItems)
-              draft.nextCursor = response.nextCursor
-            } else {
-              // thêm tin mới → đầu mảng
-              draft.items.unshift(...newItems)
-              draft.prevCursor = response.prevCursor
-            }
-          })
-        )
-      }
     } catch (error) {
       console.error('Lỗi khi tải thêm tin nhắn cũ:', error)
     }
