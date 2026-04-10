@@ -14,7 +14,7 @@ export const chatApi = baseApi.injectEndpoints({
 
     getMessages: builder.query<
       PageResponse<MessageResponse>,
-      { roomId: string; cursor?: string; limit?: number }
+      { roomId: string; cursor?: string; limit?: number; direction?: 'before' | 'after' }
     >({
       query: (params) => ({
         url: `/chat/rooms/${params.roomId}/messages`, // Trả lại URL sạch sẽ, không có dấu ?
@@ -24,6 +24,7 @@ export const chatApi = baseApi.injectEndpoints({
           // Nếu cursor rỗng, truyền undefined để HTTP Client bỏ qua param đó
           cursor: params.cursor || undefined,
           limit: params.limit || 20,
+          direction: params.direction || 'before',
         },
       }),
     }),

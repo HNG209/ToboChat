@@ -9,6 +9,7 @@ export interface ApiResponse<T = unknown> {
 export interface PageResponse<T> {
   items: T[]
   nextCursor?: string
+  prevCursor?: string
 }
 
 export interface FriendResponse {

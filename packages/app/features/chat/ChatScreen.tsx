@@ -38,6 +38,7 @@ import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
+import { dir } from 'i18next'
 
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
@@ -115,6 +116,8 @@ export function ChatScreen({ roomId, insets }: Props) {
   const selfUserName = useSelector(
     (s: RootState) => (s as any).auth?.user?.name as string | undefined
   )
+  const nextCursorRef = useRef<string | undefined>(undefined)
+  const prevCursorRef = useRef<string | undefined>(undefined)
 
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
@@ -211,21 +214,50 @@ export function ChatScreen({ roomId, insets }: Props) {
       }
     })
   }, [data?.items, locallyDeletedIds, locallyRecalledIds])
+
   // 2. Load More Logic
-  const handleLoadMore = async () => {
-    const nextCursor = data?.nextCursor
-    if (isFetchingMore || !nextCursor) return
+  const handleLoadMore = async (direction: 'before' | 'after') => {
+    if (isFetchingMore) return
+
+    if (direction === 'before' && !data?.nextCursor) {
+      console.log('Không còn tin nhắn cũ để tải')
+      nextCursorRef.current = undefined
+      return
+    }
+
+    if (direction === 'after' && !data?.prevCursor) {
+      console.log('Không còn tin nhắn mới để tải')
+      prevCursorRef.current = undefined
+      return
+    }
+
+    if (direction === 'before') nextCursorRef.current = data?.nextCursor
+    else prevCursorRef.current = data?.prevCursor
 
     try {
-      const response = await triggerGetMessages({ roomId, cursor: nextCursor, limit: 20 }).unwrap()
+      const response = await triggerGetMessages({
+        roomId,
+        cursor: direction === 'before' ? nextCursorRef.current : prevCursorRef.current,
+        limit: 20,
+        direction,
+      }).unwrap()
 
       if (response.items && response.items.length > 0) {
         // Cập nhật cache để thêm tin nhắn cũ vào cuối mảng
         dispatch(
           chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-            // Push tin cũ vào cuối mảng (FlatList inverted sẽ đẩy nó lên trên cùng)
-            draft.items.push(...response.items)
-            ;(draft as any).nextCursor = (response as any).nextCursor
+            // clone để tránh mutation bug
+            const newItems = response.items
+
+            if (direction === 'before') {
+              // thêm tin cũ → cuối mảng
+              draft.items.push(...newItems)
+              draft.nextCursor = response.nextCursor
+            } else {
+              // thêm tin mới → đầu mảng
+              draft.items.unshift(...newItems)
+              draft.prevCursor = response.prevCursor
+            }
           })
         )
       }
@@ -412,7 +444,8 @@ export function ChatScreen({ roomId, insets }: Props) {
                 // In inverted mode, paddingBottom becomes the *top* spacing.
                 paddingBottom: 20,
               }}
-              onEndReached={handleLoadMore}
+              onEndReached={() => handleLoadMore('before')}
+              onStartReached={() => handleLoadMore('after')}
               onEndReachedThreshold={0.1}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
