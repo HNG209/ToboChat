@@ -122,6 +122,8 @@ export function ChatScreen({ roomId, insets }: Props) {
   const replyCursorRef = useRef<string | undefined>(undefined)
   const hasJumpedToReplyRef = useRef(false) // chặn nhiều lần scroll khi cursor thay đổi liên tục
   const isJumpingToReplyRef = useRef(false) // đánh dấu đang trong quá trình scroll tới tin nhắn reply, để tạm thời disable tính năng load more tránh xung đột
+  const isUserAtBottomRef = useRef(true)
+  const justNudgedRef = useRef(false)
 
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
@@ -228,6 +230,16 @@ export function ChatScreen({ roomId, insets }: Props) {
       }, 100)
     }
   }, [data?.items])
+
+  // Nudge slider lên một chút khi có tin nhắn mới và user đang ở cuối
+  useEffect(() => {
+    if (!flatListRef.current) return
+    if (!data?.items?.length) return
+    if (isUserAtBottomRef.current) {
+      justNudgedRef.current = true // Đánh dấu vừa nudge
+      flatListRef.current.scrollToOffset({ offset: 200, animated: false })
+    }
+  }, [data?.items?.length])
 
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
@@ -507,8 +519,30 @@ export function ChatScreen({ roomId, insets }: Props) {
                 handleLoadMore('before')
               }}
               onStartReached={() => {
-                console.log('onStartReached (load newer messages)')
-                handleLoadMore('after')
+                if (
+                  !isFetchingMore &&
+                  !isJumpingToReplyRef.current &&
+                  data?.prevCursor &&
+                  isUserAtBottomRef.current &&
+                  !justNudgedRef.current // Chặn fetch nếu vừa nudge
+                ) {
+                  console.log('onStartReached (load newer messages)')
+                  handleLoadMore('after')
+                }
+              }}
+              maintainVisibleContentPosition={{
+                // Giữ nguyên vị trí hiển thị khi load thêm tin nhắn
+                minIndexForVisible: 1,
+                autoscrollToTopThreshold: 10,
+              }}
+              onScroll={(e) => {
+                const { contentOffset } = e.nativeEvent
+                const atBottom = contentOffset.y < 20
+                if (atBottom && justNudgedRef.current) {
+                  // User đã scroll về cuối sau khi nudge, cho phép fetch lại
+                  justNudgedRef.current = false
+                }
+                isUserAtBottomRef.current = atBottom
               }}
               onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
                 if (flatListRef.current) {
