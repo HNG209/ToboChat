@@ -119,6 +119,9 @@ export function ChatScreen({ roomId, insets }: Props) {
   const nextCursorRef = useRef<string | undefined>(undefined)
   const prevCursorRef = useRef<string | undefined>(undefined)
   const flatListRef = useRef<any>(null)
+  const replyCursorRef = useRef<string | undefined>(undefined)
+  const hasJumpedToReplyRef = useRef(false) // chặn nhiều lần scroll khi cursor thay đổi liên tục
+  const isJumpingToReplyRef = useRef(false) // đánh dấu đang trong quá trình scroll tới tin nhắn reply, để tạm thời disable tính năng load more tránh xung đột
 
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
@@ -127,7 +130,6 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
-  const [replyCursor, setReplyCursor] = useState<string | undefined>(undefined)
   const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
 
   const listBottomSpacer = isWeb ? 0 : composerHeight
@@ -186,7 +188,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const { data, isLoading, isError } = useGetMessagesQuery(
     {
       roomId,
-      cursor: replyCursor,
+      cursor: replyCursorRef.current,
       direction,
     },
     {
@@ -203,6 +205,29 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   )
   const [sendMessage] = useSendMessageMutation()
+
+  // Tự động cuộn tới tin nhắn reply sau khi fetch xong trang chứa nó
+  useEffect(() => {
+    if (!replyCursorRef.current) return // chỉ scroll khi có cursor reply, tránh scroll khi load more
+    if (!data?.items?.length) return // chỉ scroll khi đã có dữ liệu
+    if (hasJumpedToReplyRef.current) return // chỉ scroll 1 lần cho mỗi cursor reply, tránh scroll khi load more hoặc refetch do các nguyên nhân khác
+
+    const match = replyCursorRef.current?.match(/^MSG#(.+)$/)
+    const replyMessageId = match ? match[1] : null
+    if (!replyMessageId) return
+
+    const index = findMessageIndex(replyMessageId)
+    if (index !== -1) {
+      isJumpingToReplyRef.current = true
+      setTimeout(() => {
+        scrollToMessage(index)
+        setTimeout(() => {
+          isJumpingToReplyRef.current = false
+          hasJumpedToReplyRef.current = true // Đánh dấu đã scroll xong
+        }, 500)
+      }, 100)
+    }
+  }, [data?.items])
 
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
@@ -224,7 +249,7 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   // 2. Load More Logic
   const handleLoadMore = async (direction: 'before' | 'after') => {
-    if (isFetchingMore) return
+    if (isFetchingMore || isJumpingToReplyRef.current) return
 
     if (direction === 'before' && !data?.nextCursor) {
       console.log('Không còn tin nhắn cũ để tải')
@@ -263,11 +288,14 @@ export function ChatScreen({ roomId, insets }: Props) {
     flatListRef.current.scrollToIndex({
       index,
       animated: true,
+      viewPosition: 0.5, // Cố gắng đưa tin nhắn vào giữa màn hình
     })
   }
 
   const handlePressReply = async (replyMessageId: string) => {
     if (!replyMessageId) return
+
+    // Nếu tin nhắn đã có trong cache, scroll tới đó ngay mà không cần gọi API
     const index = findMessageIndex(replyMessageId)
 
     if (index !== -1) {
@@ -275,6 +303,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       return
     }
 
+    // Reset cache rtk
     dispatch(
       chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
         draft.items = []
@@ -282,7 +311,10 @@ export function ChatScreen({ roomId, insets }: Props) {
         draft.prevCursor = undefined
       })
     )
-    setReplyCursor(`MSG#${replyMessageId}`)
+
+    // Set cursor để kích hoạt lại query và fetch đúng trang chứa tin nhắn reply
+    replyCursorRef.current = `MSG#${replyMessageId}`
+    hasJumpedToReplyRef.current = false
     setDirection('both')
   }
 
@@ -470,8 +502,28 @@ export function ChatScreen({ roomId, insets }: Props) {
                 // In inverted mode, paddingBottom becomes the *top* spacing.
                 paddingBottom: 20,
               }}
-              onEndReached={() => handleLoadMore('before')}
-              onStartReached={() => handleLoadMore('after')}
+              onEndReached={() => {
+                console.log('onEndReached (load older messages)')
+                handleLoadMore('before')
+              }}
+              onStartReached={() => {
+                console.log('onStartReached (load newer messages)')
+                handleLoadMore('after')
+              }}
+              onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToOffset({
+                    offset: highestMeasuredFrameIndex * averageItemLength,
+                    animated: true,
+                  })
+                  setTimeout(() => {
+                    flatListRef.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 })
+                    isJumpingToReplyRef.current = false
+                  }, 300)
+                } else {
+                  isJumpingToReplyRef.current = false
+                }
+              }}
               onEndReachedThreshold={0.1}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
