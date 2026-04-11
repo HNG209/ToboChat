@@ -124,6 +124,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const isJumpingToReplyRef = useRef(false) // đánh dấu đang trong quá trình scroll tới tin nhắn reply, để tạm thời disable tính năng load more tránh xung đột
   const isUserAtBottomRef = useRef(true)
   const justNudgedRef = useRef(false)
+  const loadMoreDirectionRef = useRef<'before' | 'after' | null>(null)
 
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
@@ -262,6 +263,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   // 2. Load More Logic
   const handleLoadMore = async (direction: 'before' | 'after') => {
     if (isFetchingMore || isJumpingToReplyRef.current) return
+    loadMoreDirectionRef.current = direction
 
     if (direction === 'before' && !data?.nextCursor) {
       console.log('Không còn tin nhắn cũ để tải')
@@ -563,7 +565,14 @@ export function ChatScreen({ roomId, insets }: Props) {
               keyboardShouldPersistTaps="handled"
               // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
               ListFooterComponent={
-                isFetchingMore ? (
+                isFetchingMore && loadMoreDirectionRef.current === 'before' ? (
+                  <XStack justifyContent="center" alignItems="center" py="$4">
+                    <ActivityIndicator size="small" color="#888" />
+                  </XStack>
+                ) : null
+              }
+              ListHeaderComponent={
+                isFetchingMore && loadMoreDirectionRef.current === 'after' ? (
                   <XStack justifyContent="center" alignItems="center" py="$4">
                     <ActivityIndicator size="small" color="#888" />
                   </XStack>
