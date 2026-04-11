@@ -42,6 +42,7 @@ import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
 import { useChatAttachment } from './../../hooks/useChatAttechment'
+import { MediaGrid } from './MediaGrid'
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
   return msg.user?.id || '__unknown__'
@@ -501,6 +502,22 @@ export function ChatScreen({ roomId, insets }: Props) {
 
                 const bubbleTextColor = replyMainTextColor
 
+                // Tách danh sách media (ảnh/video) và tài liệu (pdf, doc...)
+                const mediaAttachments =
+                  msg.attachments?.filter(
+                    (at) =>
+                      at.contentType?.startsWith('image/') || at.contentType?.startsWith('video/')
+                  ) || []
+
+                const fileAttachments =
+                  msg.attachments?.filter(
+                    (at) =>
+                      !at.contentType?.startsWith('image/') && !at.contentType?.startsWith('video/')
+                  ) || []
+
+                const hasMedia = mediaAttachments.length > 0
+                const hasFiles = fileAttachments.length > 0
+                const hasText = !!messageTextToRender.trim()
                 const otherBubbleBg = theme === 'dark' ? '$color2' : '$background'
 
                 const bubbleBg = isMe ? replyBubbleBg : otherBubbleBg
@@ -634,95 +651,158 @@ export function ChatScreen({ roomId, insets }: Props) {
                       onDeleteForMe={deleteForMe}
                       onRecall={isMe ? recallMessage : undefined}
                     >
-                      <YStack
-                        p="$3"
-                        borderRadius="$4"
-                        maxWidth={'100%'}
-                        bg={effectiveBubbleBg}
-                        borderWidth={bubbleBorderWidth}
-                        borderColor={bubbleBorderColor}
-                        elevation={isSelected ? '$3' : '$1'}
-                        shadowColor="$shadowColor"
-                        shadowRadius={isSelected ? 6 : 2}
-                        shadowOffset={{ width: 0, height: isSelected ? 2 : 1 }}
-                      >
-                        <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
-    
-    {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
-    {hasMedia && (
-      <YStack
-        borderRadius="$4"
-        overflow="hidden"
-        bg={effectiveBubbleBg}
-        borderWidth={bubbleBorderWidth}
-        borderColor={bubbleBorderColor}
-        maxWidth={300}
-      >
-        {/* Render Grid cho Media */}
-        <MediaGrid media={mediaAttachments} />
+                      <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
+                        {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
+                        {hasMedia && (
+                          <YStack
+                            borderRadius="$4"
+                            overflow="hidden"
+                            bg={effectiveBubbleBg}
+                            borderWidth={bubbleBorderWidth}
+                            borderColor={bubbleBorderColor}
+                            maxWidth={300}
+                            position="relative"
+                          >
+                            <MediaGrid media={mediaAttachments} />
 
-        {/* 2.1.1: Nếu có Media + Text thì hiển thị Text ngay dưới ảnh trong cùng 1 Box */}
-        {hasText && (
-          <YStack p="$2.5">
-            <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
-              {messageTextToRender}
-            </Text>
-            {showTimestamp && (
-              <Text fontSize="$1" textAlign="right" mt="$1" color={replyTimeColor}>
-                {timeString}
-              </Text>
-            )}
-          </YStack>
-        )}
-      </YStack>
-    )}
+                            {/* Caption Text nằm trong cùng box với Media */}
+                            {hasText && (
+                              <YStack p="$2.5">
+                                <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+                                  {messageTextToRender}
+                                </Text>
+                                {/* Nếu là cuối group hoặc solo thì hiện giờ ngay dưới text */}
+                                {showTimestamp && (
+                                  <Text
+                                    fontSize="$1"
+                                    textAlign="right"
+                                    mt="$1"
+                                    color={replyTimeColor}
+                                  >
+                                    {timeString}
+                                  </Text>
+                                )}
+                              </YStack>
+                            )}
 
-    {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
-    {hasText && !hasMedia && (
-      <YStack
-        p="$3"
-        borderRadius="$4"
-        maxWidth={300}
-        bg={effectiveBubbleBg}
-        borderWidth={bubbleBorderWidth}
-        borderColor={bubbleBorderColor}
-      >
-        {parsedReply && (/* ... logic reply giữ nguyên ... */)}
-        <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
-          {messageTextToRender}
-        </Text>
-        {showTimestamp && (
-          <Text fontSize="$1" textAlign={isMe ? 'right' : 'left'} mt="$1" color={replyTimeColor}>
-            {timeString}
-          </Text>
-        )}
-      </YStack>
-    )}
+                            {/* Nếu CHỈ CÓ Media (không chữ) + showTimestamp: Hiện giờ đè lên ảnh */}
+                            {!hasText && showTimestamp && (
+                              <YStack
+                                position="absolute"
+                                bottom={6}
+                                right={8}
+                                bg="rgba(0,0,0,0.4)"
+                                px="$1.5"
+                                py="$0.5"
+                                borderRadius="$2"
+                              >
+                                <Text fontSize="$1" color="white">
+                                  {timeString}
+                                </Text>
+                              </YStack>
+                            )}
+                          </YStack>
+                        )}
 
-    {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
-    {hasFiles && (
-      <YStack space="$1" maxWidth={250}>
-        {fileAttachments.map((at, idx) => (
-          <XStack
-            key={idx}
-            p="$2"
-            bg="$color3"
-            borderRadius="$3"
-            alignItems="center"
-            space="$2"
-            onPress={() => window.open(at.fileUrl)}
-          >
-            <File size={20} />
-            <YStack flex={1}>
-              <Text numberOfLines={1} fontSize="$3">{at.fileName}</Text>
-              <Text fontSize="$1" color="$color10">{(at.fileSize / 1024).toFixed(1)} KB</Text>
-            </YStack>
-            <Download size={16} />
-          </XStack>
-        ))}
-      </YStack>
-    )}
-  </YStack>
+                        {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
+                        {hasText && !hasMedia && (
+                          <YStack
+                            p="$3"
+                            borderRadius="$4"
+                            maxWidth={300}
+                            bg={effectiveBubbleBg}
+                            borderWidth={bubbleBorderWidth}
+                            borderColor={bubbleBorderColor}
+                          >
+                            {/* Phần hiển thị tin nhắn đang trả lời (Reply) */}
+                            {parsedReply && (
+                              <YStack
+                                bg={replyPreviewBg}
+                                borderRadius="$3"
+                                paddingHorizontal="$2"
+                                paddingVertical="$2"
+                                marginBottom="$2"
+                                space="$1"
+                              >
+                                <Text
+                                  fontSize="$3"
+                                  fontWeight="700"
+                                  numberOfLines={1}
+                                  color={replyNameColor}
+                                >
+                                  {parsedReply.replyName}
+                                </Text>
+                                <Text
+                                  fontSize="$2"
+                                  color={replyPreviewTextColor}
+                                  opacity={0.85}
+                                  numberOfLines={1}
+                                >
+                                  {parsedReply.replyText}
+                                </Text>
+                              </YStack>
+                            )}
+
+                            {/* Nội dung tin nhắn chữ */}
+                            <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+                              {messageTextToRender}
+                            </Text>
+
+                            {/* Thời gian gửi tin nhắn */}
+                            {showTimestamp && (
+                              <Text
+                                fontSize="$1"
+                                textAlign={isMe ? 'right' : 'left'}
+                                mt="$1"
+                                color={replyTimeColor}
+                              >
+                                {timeString}
+                              </Text>
+                            )}
+                          </YStack>
+                        )}
+
+                        {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
+                        {/* --- 3. KHỐI FILE TÀI LIỆU (Tách riêng) --- */}
+                        {hasFiles && (
+                          <YStack
+                            space="$1"
+                            maxWidth={250}
+                            alignItems={isMe ? 'flex-end' : 'flex-start'}
+                          >
+                            {fileAttachments.map((at, idx) => (
+                              <YStack key={idx} alignItems={isMe ? 'flex-end' : 'flex-start'}>
+                                <XStack
+                                  p="$2"
+                                  bg="$color3"
+                                  borderRadius="$3"
+                                  alignItems="center"
+                                  space="$2"
+                                  onPress={() => window.open(at.fileUrl)}
+                                >
+                                  <File size={20} color="$color11" />
+                                  <YStack flex={1}>
+                                    <Text numberOfLines={1} fontSize="$3" fontWeight="500">
+                                      {at.fileName}
+                                    </Text>
+                                    <Text fontSize="$1" color="$color10">
+                                      {(at.fileSize / 1024).toFixed(1)} KB
+                                    </Text>
+                                  </YStack>
+                                  <Download size={16} color="$color10" />
+                                </XStack>
+
+                                {/* Hiển thị giờ dưới file cuối cùng nếu là cuối group */}
+                                {showTimestamp && idx === fileAttachments.length - 1 && (
+                                  <Text fontSize="$1" mt="$1" color={replyTimeColor}>
+                                    {timeString}
+                                  </Text>
+                                )}
+                              </YStack>
+                            ))}
+                          </YStack>
+                        )}
+                      </YStack>
                     </MessageActionMenu>
 
                     {isMe && selectionMode && (
@@ -734,60 +814,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                         ) : (
                           <YStack width={18} height={18} />
                         )}
-                      </YStack>
-                    )}
-                    {/* Trong phần render tin nhắn của FlatList */}
-                    {msg.attachments && msg.attachments.length > 0 && (
-                      <YStack mt="$2" space="$2" maxWidth={250}>
-                        {msg.attachments.map((at, idx) => {
-                          const isImg = at.contentType?.startsWith('image/')
-                          const isVid = at.contentType?.startsWith('video/')
-
-                          if (isImg) {
-                            return (
-                              <Image
-                                key={idx}
-                                source={{ uri: at.fileUrl }}
-                                style={{ width: 200, height: 150, borderRadius: 8 }}
-                              />
-                            )
-                          }
-
-                          if (isVid) {
-                            return (
-                              <video
-                                key={idx}
-                                src={at.fileUrl}
-                                controls
-                                style={{ width: '100%', borderRadius: 8, maxHeight: 200 }}
-                              />
-                            )
-                          }
-
-                          // Nếu là File (PDF, Zip...) thì hiện nút Download
-                          return (
-                            <XStack
-                              key={idx}
-                              p="$2"
-                              bg="$color3"
-                              borderRadius="$3"
-                              alignItems="center"
-                              space="$2"
-                              onPress={() => window.open(at.fileUrl)}
-                            >
-                              <File size={20} />
-                              <YStack flex={1}>
-                                <Text numberOfLines={1} fontSize="$3">
-                                  {at.fileName}
-                                </Text>
-                                <Text fontSize="$1" color="$color10">
-                                  {(at.fileSize / 1024).toFixed(1)} KB
-                                </Text>
-                              </YStack>
-                              <Download size={16} />
-                            </XStack>
-                          )
-                        })}
                       </YStack>
                     )}
                   </XStack>
