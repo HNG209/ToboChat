@@ -7,8 +7,8 @@ export function useChatAttachment(roomId: string) {
   const [drafts, setDrafts] = useState<DraftFile[]>([])
   const [triggerGetUrl] = useLazyGetPresignedUrlQuery()
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-  const MAX_FILES = 5
+  const MAX_FILE_SIZE = 100 * 1024 * 1024 // 5MB
+  const MAX_FILES = 20
 
   const handlePickFile = async () => {
     // --- XỬ LÝ CHO MOBILE (NATIVE) ---
