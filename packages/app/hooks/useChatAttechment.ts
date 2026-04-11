@@ -71,17 +71,20 @@ export function useChatAttachment(roomId: string) {
       setDrafts((prev) =>
         prev.map((d) =>
           d.id === tempId
-            ? {
-                ...d, // GIỮ LẠI fileName, fileSize, contentType cũ
-                isUploading: false,
-                fileUrl: fileUrl, // Cập nhật link S3 mới
-              }
+            ? { ...d, isUploading: false, fileUrl: fileUrl } // Cập nhật S3 link
             : d
         )
       )
     } catch (error) {
-      console.error('Lỗi rồi:', error)
-      setDrafts((prev) => prev.filter((d) => d.id !== tempId))
+      console.error('Lỗi upload S3:', error)
+      // Thay vì filter xóa luôn, hãy đánh dấu nó bị lỗi
+      setDrafts((prev) =>
+        prev.map((d) =>
+          d.id === tempId
+            ? { ...d, isUploading: false, error: true } // Thêm field error
+            : d
+        )
+      )
     }
   }
   const removeDraft = (id: string) => {

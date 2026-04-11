@@ -6,7 +6,7 @@ import {
   Keyboard,
   useWindowDimensions,
 } from 'react-native'
-import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle, Image } from '@my/ui'
+import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle, Image, ZStack } from '@my/ui'
 import {
   SendHorizontal,
   Heart,
@@ -251,23 +251,32 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   // 3. Send Message Logic
   const handleSendMessage = async () => {
-    // 1. Kiểm tra: Nếu danh sách ảnh có cái nào đang 'isUploading', thì BẮT BUỘC phải đợi
+    // 1. Kiểm tra trạng thái upload
     const isStillUploading = drafts.some((d) => d.isUploading)
+    const hasError = drafts.some((d) => (d as any).error)
+
     if (isStillUploading) {
-      alert('Ảnh đang được tải lên S3, vui lòng đợi trong giây lát!')
+      alert('Vui lòng đợi tệp tin đang được tải lên...')
       return
     }
-    // Cho phép gửi nếu có tin nhắn HOẶC có ảnh
-    if (!message.trim() && drafts.length === 0) return
 
-    // Chuẩn bị danh sách attachment đúng cấu trúc Backend yêu cầu
-    const attachments = drafts.map((d) => ({
-      fileUrl: d.fileUrl,
-      fileName: d.fileName,
-      contentType: d.contentType,
-      fileSize: d.fileSize,
-    }))
-    console.log(attachments)
+    if (hasError) {
+      alert('Có tệp tin bị lỗi upload, vui lòng xóa hoặc thử lại!')
+      return
+    }
+
+    // 2. Chỉ lấy những attachments thực sự có fileUrl (URL từ S3)
+    const attachments = drafts
+      .filter((d) => d.fileUrl && d.fileUrl.startsWith('http'))
+      .map((d) => ({
+        fileUrl: d.fileUrl,
+        fileName: d.fileName,
+        contentType: d.contentType,
+        fileSize: d.fileSize,
+      }))
+
+    // Nếu người dùng cố tình xóa hết ảnh lỗi và không nhập chữ, thì không cho gửi
+    if (!message.trim() && attachments.length === 0) return
 
     const reply = replyTo
     let tempContent = message
@@ -321,7 +330,8 @@ export function ChatScreen({ roomId, insets }: Props) {
         }
       })
     )
-
+    setDrafts([])
+    setMessage('')
     try {
       await sendMessage({
         roomId,
@@ -329,8 +339,7 @@ export function ChatScreen({ roomId, insets }: Props) {
         messageType: 'USER',
         attachments: attachments.length > 0 ? attachments : undefined,
       }).unwrap()
-      setDrafts([])
-      setMessage('')
+
       if (replyTo) setReplyTo(null)
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
@@ -993,33 +1002,64 @@ export function ChatScreen({ roomId, insets }: Props) {
                       bg="$color5"
                       position="relative"
                     >
-                      {isImage ? (
-                        <Image
-                          source={{ uri: item.localUri }}
-                          style={{ width: '100%', height: '100%' }}
-                        />
-                      ) : isVideo ? (
-                        <YStack fullscreen alignItems="center" justifyContent="center" bg="$blue5">
-                          <Video size={24} color="$blue10" /> {/* Icon từ lucide-icons */}
-                          <Text fontSize="$1" textAlign="center">
-                            Video
-                          </Text>
-                        </YStack>
-                      ) : (
-                        <YStack
-                          fullscreen
-                          alignItems="center"
-                          justifyContent="center"
-                          bg="$orange5"
-                        >
-                          <FileText size={24} color="$orange10" />
-                          <Text fontSize="$1" numberOfLines={1} px="$1">
-                            {item.fileName}
-                          </Text>
-                        </YStack>
-                      )}
+                      <ZStack fullscreen>
+                        {/* 1. Hiển thị nội dung (Dùng localUri để hiện ảnh ngay lập tức) */}
+                        {isImage ? (
+                          <Image
+                            source={{ uri: item.localUri }}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              opacity: item.isUploading ? 0.5 : 1,
+                            }}
+                          />
+                        ) : (
+                          <YStack
+                            fullscreen
+                            alignItems="center"
+                            justifyContent="center"
+                            bg="$blue5"
+                            opacity={item.isUploading ? 0.5 : 1}
+                          >
+                            {isVideo ? (
+                              <Video size={20} color="$blue10" />
+                            ) : (
+                              <FileText size={20} color="$orange10" />
+                            )}
+                          </YStack>
+                        )}
 
-                      {/* Icon loading và nút X giữ nguyên */}
+                        {/* 2. LỚP PHỦ LOADING (Chỉ hiện khi isUploading = true) */}
+                        {item.isUploading && (
+                          <YStack
+                            fullscreen
+                            alignItems="center"
+                            justifyContent="center"
+                            backgroundColor="rgba(0,0,0,0.2)"
+                          >
+                            <ActivityIndicator size="small" color="white" />
+                          </YStack>
+                        )}
+
+                        {/* 3. NÚT XÓA (Chỉ hiện khi không đang upload hoặc hiển thị ở góc) */}
+                        {!item.isUploading && (
+                          <XStack
+                            position="absolute"
+                            top={2}
+                            right={2}
+                            onPress={() => removeDraft(item.id)}
+                          >
+                            <Circle
+                              size={18}
+                              bg="rgba(0,0,0,0.5)"
+                              alignItems="center"
+                              justifyContent="center"
+                            >
+                              <X size={12} color="white" />
+                            </Circle>
+                          </XStack>
+                        )}
+                      </ZStack>
                     </YStack>
                   )
                 }}
