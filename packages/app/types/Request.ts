@@ -40,4 +40,5 @@ export interface SendMessageRequest {
   roomId: string
   content: string
   messageType: string
+  replyTo?: string
 }

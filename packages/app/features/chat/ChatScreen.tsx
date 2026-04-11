@@ -118,6 +118,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   )
   const nextCursorRef = useRef<string | undefined>(undefined)
   const prevCursorRef = useRef<string | undefined>(undefined)
+  const flatListRef = useRef<any>(null)
 
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
@@ -126,6 +127,8 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
+  const [replyCursor, setReplyCursor] = useState<string | undefined>(undefined)
+  const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
 
   const listBottomSpacer = isWeb ? 0 : composerHeight
 
@@ -183,6 +186,8 @@ export function ChatScreen({ roomId, insets }: Props) {
   const { data, isLoading, isError } = useGetMessagesQuery(
     {
       roomId,
+      cursor: replyCursor,
+      direction,
     },
     {
       skip: !hasSession || !roomId,
@@ -248,6 +253,39 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   }
 
+  const findMessageIndex = (messageId: string) => {
+    return data?.items?.findIndex((m) => m.id === messageId) ?? -1
+  }
+
+  const scrollToMessage = (index: number) => {
+    if (index < 0 || !flatListRef.current) return
+
+    flatListRef.current.scrollToIndex({
+      index,
+      animated: true,
+    })
+  }
+
+  const handlePressReply = async (replyMessageId: string) => {
+    if (!replyMessageId) return
+    const index = findMessageIndex(replyMessageId)
+
+    if (index !== -1) {
+      scrollToMessage(index)
+      return
+    }
+
+    dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        draft.items = []
+        draft.nextCursor = undefined
+        draft.prevCursor = undefined
+      })
+    )
+    setReplyCursor(`MSG#${replyMessageId}`)
+    setDirection('both')
+  }
+
   // 3. Send Message Logic
   const handleSendMessage = async () => {
     if (!message.trim()) return
@@ -305,7 +343,12 @@ export function ChatScreen({ roomId, insets }: Props) {
     )
 
     try {
-      await sendMessage({ roomId, content: outgoingContent, messageType: 'USER' }).unwrap()
+      await sendMessage({
+        roomId,
+        content: outgoingContent,
+        messageType: 'USER',
+        replyTo: replyTo?.id,
+      }).unwrap()
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(tempContent)
@@ -416,6 +459,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             </XStack>
           ) : (
             <StyledFlatList
+              ref={flatListRef}
               data={normalizedMessages}
               inverted={true}
               keyExtractor={(item: MessageResponse) => item.id}
@@ -633,8 +677,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                         shadowRadius={isSelected ? 6 : 2}
                         shadowOffset={{ width: 0, height: isSelected ? 2 : 1 }}
                       >
-                        {parsedReply && (
+                        {msg?.replyTo && (
                           <YStack
+                            onPress={() => handlePressReply(msg.replyTo.id)}
                             bg={replyPreviewBg}
                             borderRadius="$3"
                             paddingHorizontal="$2"
@@ -648,7 +693,8 @@ export function ChatScreen({ roomId, insets }: Props) {
                               numberOfLines={1}
                               color={replyNameColor}
                             >
-                              {parsedReply.replyName}
+                              Anonymous User
+                              {/* {parsedReply.replyName} */}
                             </Text>
 
                             <Text
@@ -657,7 +703,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                               opacity={0.85}
                               numberOfLines={1}
                             >
-                              {parsedReply.replyText}
+                              {msg.replyTo.content.length > 100
+                                ? msg.replyTo.content.slice(0, 100) + '...'
+                                : msg.replyTo.content}
                             </Text>
                           </YStack>
                         )}

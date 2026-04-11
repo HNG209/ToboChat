@@ -4,6 +4,6 @@ import { axiosBaseQuery } from 'app/store/axiosBaseQuery'
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['FriendList', 'FriendRequests', 'UserSearch', 'Profile'],
+  tagTypes: ['FriendList', 'FriendRequests', 'UserSearch', 'Profile', 'ChatRooms', 'Messages'],
   endpoints: () => ({}),
 })

@@ -11,23 +11,26 @@ export const chatApi = baseApi.injectEndpoints({
         data: {
           content: sendMessageRequest.content,
           messageType: sendMessageRequest.messageType,
+          replyTo: sendMessageRequest.replyTo,
         },
       }),
     }),
 
     getMessages: builder.query<
       PageResponse<MessageResponse>,
-      { roomId: string; cursor?: string; limit?: number; direction?: 'before' | 'after' }
+      { roomId: string; cursor?: string; limit?: number; direction?: 'before' | 'after' | 'both' }
     >({
-      query: (params) => ({
-        url: `/chat/rooms/${params.roomId}/messages`,
-        method: 'GET',
-        params: {
-          cursor: params.cursor || undefined,
-          limit: params.limit || 20,
-          direction: params.direction || 'before',
-        },
-      }),
+      query: (params) => {
+        return {
+          url: `/chat/rooms/${params.roomId}/messages`,
+          method: 'GET',
+          params: {
+            cursor: params.cursor ?? undefined,
+            limit: params.limit || 20,
+            direction: params.direction || 'before',
+          },
+        }
+      },
 
       // gom cache theo roomId
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
@@ -51,16 +54,29 @@ export const chatApi = baseApi.injectEndpoints({
         const existingIds = new Set(currentCache.items.map((i) => i.id))
         const newItems = newData.items.filter((i) => !existingIds.has(i.id))
 
+        // Nếu cache rỗng (lần đầu load hoặc vừa reply), gán cả 2 cursor và items
+        if (currentCache.items.length === 0) {
+          console.log('Cache empty, setting new data')
+          currentCache.items = newData.items
+          currentCache.nextCursor = newData.nextCursor
+          currentCache.prevCursor = newData.prevCursor
+          return
+        }
+
         if (arg.direction === 'after') {
-          // tin mới → lên đầu
+          console.log('Merging new items at the beginning')
+          // Tin mới → lên đầu, chỉ cập nhật prevCursor
           currentCache.items.unshift(...newItems)
           currentCache.prevCursor = newData.prevCursor
         } else {
-          // tin cũ → xuống cuối
+          console.log('Merging new items at the end')
+          // Tin cũ → xuống cuối, chỉ cập nhật nextCursor
           currentCache.items.push(...newItems)
           currentCache.nextCursor = newData.nextCursor
         }
       },
+
+      providesTags: (result, error, arg) => [{ type: 'Messages', id: arg.roomId }],
     }),
   }),
 })

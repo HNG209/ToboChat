@@ -47,6 +47,7 @@ export interface MessageResponse {
   id: string
   roomId: string
   user?: UserResponse
+  replyTo?: MessageResponse
   content: string
   self: boolean
   createdAt: string
