@@ -6,7 +6,7 @@ import {
   Keyboard,
   useWindowDimensions,
 } from 'react-native'
-import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle } from '@my/ui'
+import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle, Image } from '@my/ui'
 import {
   SendHorizontal,
   Heart,
@@ -21,6 +21,9 @@ import {
   Forward,
   Trash2,
   X,
+  Download,
+  File,
+  FileText,
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
 import {
@@ -38,7 +41,7 @@ import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
-
+import { useChatAttachment } from './../../hooks/useChatAttechment'
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
   return msg.user?.id || '__unknown__'
@@ -125,7 +128,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
 
   const listBottomSpacer = isWeb ? 0 : composerHeight
-
+  const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
   // Android keyboard handling: don't rely on KeyboardAvoidingView only.
   // On some devices KAV can leave a "stuck" gap after dismiss; keyboard events are deterministic.
   useEffect(() => {
@@ -236,7 +239,23 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   // 3. Send Message Logic
   const handleSendMessage = async () => {
-    if (!message.trim()) return
+    // 1. Kiểm tra: Nếu danh sách ảnh có cái nào đang 'isUploading', thì BẮT BUỘC phải đợi
+    const isStillUploading = drafts.some((d) => d.isUploading)
+    if (isStillUploading) {
+      alert('Ảnh đang được tải lên S3, vui lòng đợi trong giây lát!')
+      return
+    }
+    // Cho phép gửi nếu có tin nhắn HOẶC có ảnh
+    if (!message.trim() && drafts.length === 0) return
+
+    // Chuẩn bị danh sách attachment đúng cấu trúc Backend yêu cầu
+    const attachments = drafts.map((d) => ({
+      fileUrl: d.fileUrl,
+      fileName: d.fileName,
+      contentType: d.contentType,
+      fileSize: d.fileSize,
+    }))
+    console.log(attachments)
 
     const reply = replyTo
     let tempContent = message
@@ -266,6 +285,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
+      attachments: attachments,
     }
 
     // Cập nhật cache ngay lập tức với tin nhắn giả định (optimistic update)
@@ -291,7 +311,15 @@ export function ChatScreen({ roomId, insets }: Props) {
     )
 
     try {
-      await sendMessage({ roomId, content: outgoingContent, messageType: 'USER' }).unwrap()
+      await sendMessage({
+        roomId,
+        content: outgoingContent,
+        messageType: 'USER',
+        attachments: attachments.length > 0 ? attachments : undefined,
+      }).unwrap()
+      setDrafts([])
+      setMessage('')
+      if (replyTo) setReplyTo(null)
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(tempContent)
@@ -618,50 +646,83 @@ export function ChatScreen({ roomId, insets }: Props) {
                         shadowRadius={isSelected ? 6 : 2}
                         shadowOffset={{ width: 0, height: isSelected ? 2 : 1 }}
                       >
-                        {parsedReply && (
-                          <YStack
-                            bg={replyPreviewBg}
-                            borderRadius="$3"
-                            paddingHorizontal="$2"
-                            paddingVertical="$2"
-                            marginBottom="$2"
-                            space="$1"
-                          >
-                            <Text
-                              fontSize="$3"
-                              fontWeight="700"
-                              numberOfLines={1}
-                              color={replyNameColor}
-                            >
-                              {parsedReply.replyName}
-                            </Text>
+                        <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
+    
+    {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
+    {hasMedia && (
+      <YStack
+        borderRadius="$4"
+        overflow="hidden"
+        bg={effectiveBubbleBg}
+        borderWidth={bubbleBorderWidth}
+        borderColor={bubbleBorderColor}
+        maxWidth={300}
+      >
+        {/* Render Grid cho Media */}
+        <MediaGrid media={mediaAttachments} />
 
-                            <Text
-                              fontSize="$2"
-                              color={replyPreviewTextColor}
-                              opacity={0.85}
-                              numberOfLines={1}
-                            >
-                              {parsedReply.replyText}
-                            </Text>
-                          </YStack>
-                        )}
+        {/* 2.1.1: Nếu có Media + Text thì hiển thị Text ngay dưới ảnh trong cùng 1 Box */}
+        {hasText && (
+          <YStack p="$2.5">
+            <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+              {messageTextToRender}
+            </Text>
+            {showTimestamp && (
+              <Text fontSize="$1" textAlign="right" mt="$1" color={replyTimeColor}>
+                {timeString}
+              </Text>
+            )}
+          </YStack>
+        )}
+      </YStack>
+    )}
 
-                        <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
-                          {messageTextToRender}
-                        </Text>
-                        {showTimestamp && (
-                          <Text
-                            fontSize={isReplyMessage ? '$1' : '$1'}
-                            textAlign={isMe ? 'right' : 'left'}
-                            mt="$1"
-                            opacity={1}
-                            color={replyTimeColor}
-                          >
-                            {timeString}
-                          </Text>
-                        )}
-                      </YStack>
+    {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
+    {hasText && !hasMedia && (
+      <YStack
+        p="$3"
+        borderRadius="$4"
+        maxWidth={300}
+        bg={effectiveBubbleBg}
+        borderWidth={bubbleBorderWidth}
+        borderColor={bubbleBorderColor}
+      >
+        {parsedReply && (/* ... logic reply giữ nguyên ... */)}
+        <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+          {messageTextToRender}
+        </Text>
+        {showTimestamp && (
+          <Text fontSize="$1" textAlign={isMe ? 'right' : 'left'} mt="$1" color={replyTimeColor}>
+            {timeString}
+          </Text>
+        )}
+      </YStack>
+    )}
+
+    {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
+    {hasFiles && (
+      <YStack space="$1" maxWidth={250}>
+        {fileAttachments.map((at, idx) => (
+          <XStack
+            key={idx}
+            p="$2"
+            bg="$color3"
+            borderRadius="$3"
+            alignItems="center"
+            space="$2"
+            onPress={() => window.open(at.fileUrl)}
+          >
+            <File size={20} />
+            <YStack flex={1}>
+              <Text numberOfLines={1} fontSize="$3">{at.fileName}</Text>
+              <Text fontSize="$1" color="$color10">{(at.fileSize / 1024).toFixed(1)} KB</Text>
+            </YStack>
+            <Download size={16} />
+          </XStack>
+        ))}
+      </YStack>
+    )}
+  </YStack>
                     </MessageActionMenu>
 
                     {isMe && selectionMode && (
@@ -673,6 +734,60 @@ export function ChatScreen({ roomId, insets }: Props) {
                         ) : (
                           <YStack width={18} height={18} />
                         )}
+                      </YStack>
+                    )}
+                    {/* Trong phần render tin nhắn của FlatList */}
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <YStack mt="$2" space="$2" maxWidth={250}>
+                        {msg.attachments.map((at, idx) => {
+                          const isImg = at.contentType?.startsWith('image/')
+                          const isVid = at.contentType?.startsWith('video/')
+
+                          if (isImg) {
+                            return (
+                              <Image
+                                key={idx}
+                                source={{ uri: at.fileUrl }}
+                                style={{ width: 200, height: 150, borderRadius: 8 }}
+                              />
+                            )
+                          }
+
+                          if (isVid) {
+                            return (
+                              <video
+                                key={idx}
+                                src={at.fileUrl}
+                                controls
+                                style={{ width: '100%', borderRadius: 8, maxHeight: 200 }}
+                              />
+                            )
+                          }
+
+                          // Nếu là File (PDF, Zip...) thì hiện nút Download
+                          return (
+                            <XStack
+                              key={idx}
+                              p="$2"
+                              bg="$color3"
+                              borderRadius="$3"
+                              alignItems="center"
+                              space="$2"
+                              onPress={() => window.open(at.fileUrl)}
+                            >
+                              <File size={20} />
+                              <YStack flex={1}>
+                                <Text numberOfLines={1} fontSize="$3">
+                                  {at.fileName}
+                                </Text>
+                                <Text fontSize="$1" color="$color10">
+                                  {(at.fileSize / 1024).toFixed(1)} KB
+                                </Text>
+                              </YStack>
+                              <Download size={16} />
+                            </XStack>
+                          )
+                        })}
                       </YStack>
                     )}
                   </XStack>
@@ -815,6 +930,62 @@ export function ChatScreen({ roomId, insets }: Props) {
           )}
 
           {/* --- FOOTER (INPUT) --- */}
+          {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}
+          {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ --- */}
+          {drafts.length > 0 && (
+            <XStack px="$3" py="$2" space="$2" bg="$background">
+              <StyledFlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={drafts}
+                keyExtractor={(item: any) => item.id}
+                renderItem={({ item }: { item: any }) => {
+                  const isImage = item.contentType?.startsWith('image/')
+                  const isVideo = item.contentType?.startsWith('video/')
+
+                  return (
+                    <YStack
+                      width={70}
+                      height={70}
+                      marginRight="$2"
+                      borderRadius="$3"
+                      overflow="hidden"
+                      bg="$color5"
+                      position="relative"
+                    >
+                      {isImage ? (
+                        <Image
+                          source={{ uri: item.localUri }}
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      ) : isVideo ? (
+                        <YStack fullscreen alignItems="center" justifyContent="center" bg="$blue5">
+                          <Video size={24} color="$blue10" /> {/* Icon từ lucide-icons */}
+                          <Text fontSize="$1" textAlign="center">
+                            Video
+                          </Text>
+                        </YStack>
+                      ) : (
+                        <YStack
+                          fullscreen
+                          alignItems="center"
+                          justifyContent="center"
+                          bg="$orange5"
+                        >
+                          <FileText size={24} color="$orange10" />
+                          <Text fontSize="$1" numberOfLines={1} px="$1">
+                            {item.fileName}
+                          </Text>
+                        </YStack>
+                      )}
+
+                      {/* Icon loading và nút X giữ nguyên */}
+                    </YStack>
+                  )
+                }}
+              />
+            </XStack>
+          )}
           <XStack
             px="$2"
             py={Platform.OS === 'web' ? '$2' : '$1.5'}
@@ -833,7 +1004,13 @@ export function ChatScreen({ roomId, insets }: Props) {
             space="$2"
           >
             <Button size="$3" circular chromeless icon={MoreHorizontal} />
-            <Button size="$3" circular chromeless icon={ImageIcon} />
+            <Button
+              size="$3"
+              circular
+              chromeless
+              icon={ImageIcon}
+              onPress={handlePickFile} // Gọi hàm từ Hook của bạn
+            />
 
             <Input
               flex={1}
@@ -847,7 +1024,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               onChangeText={setMessage}
             />
 
-            {message ? (
+            {message.trim() || drafts.length > 0 ? ( // SỬA ĐIỀU KIỆN Ở ĐÂY
               <Button
                 size="$4"
                 circular
@@ -855,6 +1032,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                 color="white"
                 icon={<SendHorizontal size={20} />}
                 onPress={handleSendMessage}
+                // Chặn người dùng bấm gửi khi ảnh chưa upload xong lên S3
+                disabled={drafts.some((d) => d.isUploading)}
+                opacity={drafts.some((d) => d.isUploading) ? 0.5 : 1}
               />
             ) : (
               <Button size="$3" circular chromeless icon={<Heart size={20} />} />
