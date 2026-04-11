@@ -42,7 +42,8 @@ import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
 import { useChatAttachment } from './../../hooks/useChatAttechment'
-import { MediaGrid } from './MediaGrid'
+import { MediaGrid } from 'app/media/MediaGrid'
+import { MediaViewer } from 'app/media/MediaViewer'
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
   return msg.user?.id || '__unknown__'
@@ -119,6 +120,16 @@ export function ChatScreen({ roomId, insets }: Props) {
   const selfUserName = useSelector(
     (s: RootState) => (s as any).auth?.user?.name as string | undefined
   )
+  // Thêm state vào ChatScreen
+  const [viewerVisible, setViewerVisible] = useState(false)
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0)
+  const [currentMediaList, setCurrentMediaList] = useState<any[]>([])
+
+  const openViewer = (mediaList: any[], index: number) => {
+    setCurrentMediaList(mediaList)
+    setActiveMediaIndex(index)
+    setViewerVisible(true)
+  }
 
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
@@ -663,7 +674,10 @@ export function ChatScreen({ roomId, insets }: Props) {
                             maxWidth={300}
                             position="relative"
                           >
-                            <MediaGrid media={mediaAttachments} />
+                            <MediaGrid
+                              media={mediaAttachments}
+                              onPressMedia={(index) => openViewer(mediaAttachments, index)}
+                            />
 
                             {/* Caption Text nằm trong cùng box với Media */}
                             {hasText && (
@@ -1067,6 +1081,14 @@ export function ChatScreen({ roomId, insets }: Props) {
             )}
           </XStack>
         </YStack>
+        <MediaViewer
+          visible={viewerVisible}
+          mediaList={currentMediaList}
+          activeIndex={activeMediaIndex}
+          onClose={() => setViewerVisible(false)}
+          onNext={() => setActiveMediaIndex((prev) => prev + 1)}
+          onPrev={() => setActiveMediaIndex((prev) => prev - 1)}
+        />
       </KeyboardAvoidingView>
     </Theme>
   )

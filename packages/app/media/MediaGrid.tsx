@@ -1,15 +1,17 @@
-import { Image } from 'react-native'
+import { Image, Pressable } from 'react-native' // Import thêm Pressable để bắt sự kiện chạm
 import { YStack, XStack, Text, ZStack } from 'tamagui'
 import { Play } from '@tamagui/lucide-icons'
 
-interface MediaGridProps {
+export const MediaGrid = ({
+  media,
+  onPressMedia,
+}: {
   media: any[]
-}
-
-export const MediaGrid = ({ media }: MediaGridProps) => {
+  onPressMedia: (index: number) => void
+}) => {
   if (!media || media.length === 0) return null
 
-  const displayLimit = 4 // Giới hạn hiển thị 4 ô
+  const displayLimit = 4
   const displayMedia = media.slice(0, displayLimit)
   const remainingCount = media.length - displayLimit
 
@@ -18,12 +20,18 @@ export const MediaGrid = ({ media }: MediaGridProps) => {
     const item = media[0]
     const isVideo = item.contentType?.startsWith('video/')
     return (
-      <YStack width={300} height={200} backgroundColor="$color5">
+      <YStack
+        width={300}
+        height={200}
+        backgroundColor="$color5"
+        onPress={() => onPressMedia(0)} // Gắn sự kiện bấm cho ảnh duy nhất
+        cursor="pointer"
+      >
         {isVideo ? (
+          /* Video lẻ thì nên để controls để xem trực tiếp hoặc thumbnail */
           <video
             src={item.fileUrl}
-            controls
-            style={{ width: '100%', height: '100%', borderRadius: 8 }}
+            style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }}
           />
         ) : (
           <Image
@@ -43,7 +51,6 @@ export const MediaGrid = ({ media }: MediaGridProps) => {
         const isVideo = item.contentType?.startsWith('video/')
         const isLastItem = idx === displayLimit - 1 && remainingCount > 0
 
-        // Tính toán width: 2 ảnh thì mỗi cái 50%, >2 ảnh thì chia ô vuông
         const itemWidth = media.length === 2 ? '50%' : '50%'
         const itemHeight = 150
 
@@ -55,10 +62,12 @@ export const MediaGrid = ({ media }: MediaGridProps) => {
             borderWidth={0.5}
             borderColor="$background"
             position="relative"
+            onPress={() => onPressMedia(idx)} // Gắn sự kiện bấm cho từng item trong grid
+            cursor="pointer"
+            hoverStyle={{ opacity: 0.9 }} // Hiệu ứng nhẹ khi hover trên Web
           >
             <ZStack fullscreen>
               {isVideo ? (
-                /* Video trong grid nên là một frame tĩnh kèm nút Play */
                 <YStack
                   fullscreen
                   backgroundColor="black"
@@ -75,11 +84,10 @@ export const MediaGrid = ({ media }: MediaGridProps) => {
                 <Image source={{ uri: item.fileUrl }} style={{ width: '100%', height: '100%' }} />
               )}
 
-              {/* Lớp phủ mờ hiện số lượng ảnh còn lại (+X) */}
               {isLastItem && (
                 <YStack
                   fullscreen
-                  backgroundColor="rgba(0,0,0,0.5)"
+                  backgroundColor="rgba(0,0,0,0.6)"
                   alignItems="center"
                   justifyContent="center"
                 >
