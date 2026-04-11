@@ -1,4 +1,4 @@
-import { Image, Pressable } from 'react-native' // Import thêm Pressable để bắt sự kiện chạm
+import { Image, Platform } from 'react-native'
 import { YStack, XStack, Text, ZStack } from 'tamagui'
 import { Play } from '@tamagui/lucide-icons'
 
@@ -15,6 +15,41 @@ export const MediaGrid = ({
   const displayMedia = media.slice(0, displayLimit)
   const remainingCount = media.length - displayLimit
 
+  // Hàm render Video an toàn cho cả 2 nền tảng
+  const renderVideoItem = (url: string, isGrid: boolean) => {
+    if (Platform.OS === 'web') {
+      return (
+        <video
+          src={url}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: isGrid ? 0 : 8,
+            opacity: isGrid ? 0.8 : 1,
+          }}
+        />
+      )
+    }
+
+    // Đối với Native (iOS/Android): Dùng require động để tránh lỗi Next.js
+    try {
+      const { Video, ResizeMode } = require('expo-av')
+      return (
+        <Video
+          source={{ uri: url }}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay={false}
+          isMuted={true}
+          style={{ width: '100%', height: '100%', opacity: isGrid ? 0.8 : 1 }}
+        />
+      )
+    } catch (error) {
+      console.error('expo-av not found on native', error)
+      return <YStack fullscreen bg="black" />
+    }
+  }
+
   // 1. Trường hợp 1 file duy nhất
   if (media.length === 1) {
     const item = media[0]
@@ -24,22 +59,27 @@ export const MediaGrid = ({
         width={300}
         height={200}
         backgroundColor="$color5"
-        onPress={() => onPressMedia(0)} // Gắn sự kiện bấm cho ảnh duy nhất
+        onPress={() => onPressMedia(0)}
         cursor="pointer"
+        borderRadius={8}
+        overflow="hidden"
       >
-        {isVideo ? (
-          /* Video lẻ thì nên để controls để xem trực tiếp hoặc thumbnail */
-          <video
-            src={item.fileUrl}
-            style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }}
-          />
-        ) : (
-          <Image
-            source={{ uri: item.fileUrl }}
-            style={{ width: '100%', height: '100%', borderRadius: 8 }}
-            resizeMode="cover"
-          />
-        )}
+        <ZStack fullscreen>
+          {isVideo ? (
+            <>
+              {renderVideoItem(item.fileUrl, false)}
+              <YStack fullscreen alignItems="center" justifyContent="center">
+                <Play size={40} color="white" />
+              </YStack>
+            </>
+          ) : (
+            <Image
+              source={{ uri: item.fileUrl }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          )}
+        </ZStack>
       </YStack>
     )
   }
@@ -51,20 +91,17 @@ export const MediaGrid = ({
         const isVideo = item.contentType?.startsWith('video/')
         const isLastItem = idx === displayLimit - 1 && remainingCount > 0
 
-        const itemWidth = media.length === 2 ? '50%' : '50%'
-        const itemHeight = 150
-
         return (
           <YStack
-            key={idx}
-            width={itemWidth}
-            height={itemHeight}
+            key={item.fileUrl || idx}
+            width="50%"
+            height={150}
             borderWidth={0.5}
             borderColor="$background"
             position="relative"
-            onPress={() => onPressMedia(idx)} // Gắn sự kiện bấm cho từng item trong grid
+            onPress={() => onPressMedia(idx)}
             cursor="pointer"
-            hoverStyle={{ opacity: 0.9 }} // Hiệu ứng nhẹ khi hover trên Web
+            hoverStyle={{ opacity: 0.9 }}
           >
             <ZStack fullscreen>
               {isVideo ? (
@@ -74,11 +111,8 @@ export const MediaGrid = ({
                   alignItems="center"
                   justifyContent="center"
                 >
-                  <video
-                    src={item.fileUrl}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }}
-                  />
-                  <Play size={30} color="white" />
+                  {renderVideoItem(item.fileUrl, true)}
+                  <Play size={30} color="white" position="absolute" style={{ zIndex: 5 }} />
                 </YStack>
               ) : (
                 <Image source={{ uri: item.fileUrl }} style={{ width: '100%', height: '100%' }} />
@@ -90,6 +124,7 @@ export const MediaGrid = ({
                   backgroundColor="rgba(0,0,0,0.6)"
                   alignItems="center"
                   justifyContent="center"
+                  zIndex={10}
                 >
                   <Text color="white" fontWeight="bold" fontSize="$6">
                     +{remainingCount}

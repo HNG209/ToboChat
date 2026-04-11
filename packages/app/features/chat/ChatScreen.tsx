@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Keyboard,
   useWindowDimensions,
+  Linking,
 } from 'react-native'
 import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle, Image, ZStack } from '@my/ui'
 import {
@@ -680,7 +681,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                             bg={effectiveBubbleBg}
                             borderWidth={bubbleBorderWidth}
                             borderColor={bubbleBorderColor}
-                            maxWidth={300}
+                            maxWidth={280}
                             position="relative"
                           >
                             <MediaGrid
@@ -790,34 +791,64 @@ export function ChatScreen({ roomId, insets }: Props) {
                         {hasFiles && (
                           <YStack
                             space="$1"
-                            maxWidth={250}
+                            maxWidth={280} // Tăng nhẹ maxWidth để hiển thị tên file rõ hơn
+                            // QUAN TRỌNG: alignItems giúp bong bóng file co lại theo nội dung
                             alignItems={isMe ? 'flex-end' : 'flex-start'}
                           >
                             {fileAttachments.map((at, idx) => (
-                              <YStack key={idx} alignItems={isMe ? 'flex-end' : 'flex-start'}>
+                              <YStack
+                                key={idx}
+                                // Đảm bảo từng item cũng tuân thủ lề trái/phải
+                                alignItems={isMe ? 'flex-end' : 'flex-start'}
+                                width="100%"
+                              >
                                 <XStack
-                                  p="$2"
+                                  p="$2.5" // Tăng nhẹ padding cho dễ bấm trên mobile
                                   bg="$color3"
                                   borderRadius="$3"
                                   alignItems="center"
-                                  space="$2"
-                                  onPress={() => window.open(at.fileUrl)}
+                                  space="$3"
+                                  // Tự động co lại theo nội dung nếu có thể, hoặc chiếm hết maxWidth của cha
+                                  alignSelf={isMe ? 'flex-end' : 'flex-start'}
+                                  onPress={() => {
+                                    if (Platform.OS === 'web') {
+                                      window.open(at.fileUrl, '_blank')
+                                    } else {
+                                      Linking.openURL(at.fileUrl).catch((err) =>
+                                        console.error('Không thể mở file', err)
+                                      )
+                                    }
+                                  }}
                                 >
-                                  <File size={20} color="$color11" />
-                                  <YStack flex={1}>
-                                    <Text numberOfLines={1} fontSize="$3" fontWeight="500">
+                                  {/* Icon file */}
+                                  <File size={22} color="$color11" />
+
+                                  <YStack flexShrink={1} flexGrow={0}>
+                                    <Text
+                                      numberOfLines={1}
+                                      fontSize="$3"
+                                      fontWeight="500"
+                                      ellipse // Tamagui tương đương với tailwind truncate
+                                    >
                                       {at.fileName}
                                     </Text>
                                     <Text fontSize="$1" color="$color10">
                                       {(at.fileSize / 1024).toFixed(1)} KB
                                     </Text>
                                   </YStack>
-                                  <Download size={16} color="$color10" />
+
+                                  <Download size={18} color="$color10" />
                                 </XStack>
 
-                                {/* Hiển thị giờ dưới file cuối cùng nếu là cuối group */}
+                                {/* Timestamp */}
                                 {showTimestamp && idx === fileAttachments.length - 1 && (
-                                  <Text fontSize="$1" mt="$1" color={replyTimeColor}>
+                                  <Text
+                                    fontSize="$1"
+                                    mt="$1"
+                                    color={replyTimeColor}
+                                    // Đảm bảo text giờ nằm đúng góc của file
+                                    alignSelf={isMe ? 'flex-end' : 'flex-start'}
+                                  >
                                     {timeString}
                                   </Text>
                                 )}
