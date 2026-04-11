@@ -188,7 +188,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const replyTag = replyTo ? `@${replyName}` : ''
 
   // 1. API Hooks
-  const { data, isLoading, isError } = useGetMessagesQuery(
+  const { data, isLoading, isFetching, isError } = useGetMessagesQuery(
     {
       roomId,
       cursor: replyCursorRef.current,
@@ -241,24 +241,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       flatListRef.current.scrollToOffset({ offset: 200, animated: false })
     }
   }, [data?.items?.length])
-
-  const normalizedMessages = useMemo(() => {
-    const items = data?.items || []
-    if (locallyDeletedIds.size === 0 && locallyRecalledIds.size === 0) return items
-    return items.map((m) => {
-      if (locallyRecalledIds.has(m.id)) {
-        return {
-          ...m,
-          content: 'Tin nhắn đã được thu hồi',
-        }
-      }
-      if (!locallyDeletedIds.has(m.id)) return m
-      return {
-        ...m,
-        content: 'Tin nhắn đã bị xóa',
-      }
-    })
-  }, [data?.items, locallyDeletedIds, locallyRecalledIds])
 
   // 2. Load More Logic
   const handleLoadMore = async (direction: 'before' | 'after') => {
@@ -331,7 +313,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     hasJumpedToReplyRef.current = false
     setDirection('both')
   }
-
   // 3. Send Message Logic
   const handleSendMessage = async () => {
     if (!message.trim()) return
@@ -364,6 +345,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
+      replyTo: reply || undefined,
     }
 
     // Cập nhật cache ngay lập tức với tin nhắn giả định (optimistic update)
@@ -506,7 +488,7 @@ export function ChatScreen({ roomId, insets }: Props) {
           ) : (
             <StyledFlatList
               ref={flatListRef}
-              data={normalizedMessages}
+              data={data?.items || []}
               inverted={true}
               keyExtractor={(item: MessageResponse) => item.id}
               contentContainerStyle={{
@@ -579,7 +561,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 ) : null
               }
               renderItem={({ item: msg, index }) => {
-                const items = normalizedMessages || []
+                const items = data?.items || []
                 const isMe = msg.self
                 const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
                 const myBubbleText = 'white'
@@ -788,8 +770,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                               numberOfLines={1}
                               color={replyNameColor}
                             >
-                              Anonymous User
-                              {/* {parsedReply.replyName} */}
+                              {`${msg.replyTo.user?.name || 'User'}`}
                             </Text>
 
                             <Text
@@ -894,7 +875,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Copy size={16} />}
                   disabled={selectedCount === 0}
                   onPress={async () => {
-                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
+                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
                     const text = selected
                       .slice()
                       .reverse()
@@ -913,7 +894,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Forward size={16} />}
                   disabled={selectedCount === 0}
                   onPress={() => {
-                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
+                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
                     const text = selected
                       .slice()
                       .reverse()
@@ -935,9 +916,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   disabled={selectedCount === 0}
                   onPress={() => {
                     // Safety: only allow deleting your own selected messages (frontend-only)
-                    const mine = (normalizedMessages || []).filter(
-                      (m) => selectedIds.has(m.id) && m.self
-                    )
+                    const mine = (data?.items || []).filter((m) => selectedIds.has(m.id) && m.self)
                     if (mine.length > 0) {
                       setLocallyRecalledIds((prev) => {
                         const next = new Set(prev)
