@@ -25,6 +25,7 @@ export interface UserResponse {
   avatarUrl?: string
   createdAt: string
   friendStatus?: FriendStatus
+  totalUnreadMessages: number
 }
 
 export interface FriendRequestResponse {
@@ -40,6 +41,7 @@ export interface RoomResponse {
   roomType: RoomType
   latestMessage: MessageResponse
   createdAt: string
+  unreadMessages: number
 }
 
 export interface MessageResponse {

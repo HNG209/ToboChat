@@ -1,4 +1,4 @@
-import { Avatar, ListItem, Text, View, YStack } from '@my/ui'
+import { Avatar, ListItem, Text, View, YStack, Circle } from '@my/ui'
 import { MessageResponse } from 'app/types/Response'
 import { Pin } from '@tamagui/lucide-icons'
 
@@ -10,6 +10,7 @@ type Props = {
   pinned?: boolean
   onPress?: () => void
   selected?: boolean
+  unreadCount: number
 }
 
 function formatTime(isoString?: string) {
@@ -38,6 +39,7 @@ export const ChatInboxItem = ({
   pinned,
   onPress,
   selected,
+  unreadCount,
 }: Props) => {
   return (
     <ListItem
@@ -54,9 +56,29 @@ export const ChatInboxItem = ({
         background: selected ? '$blue10' : '$color2',
       }}
       title={
-        <Text fontWeight="700" fontSize={16} color={selected ? '$color1' : '$color'}>
-          {name}
-        </Text>
+        <View>
+          <Text fontWeight="700" fontSize={16} color={selected ? '$color1' : '$color'}>
+            {name}
+          </Text> 
+          
+        {unreadCount > 0 && (
+          <Circle
+            size={23}
+            backgroundColor="$red10"
+            position='absolute'
+            top={4}
+            right={3}
+            animation="lazy"
+            enterStyle={{ opacity: 0, scale: 0.5 }}
+          >
+            <Text color="white" fontSize={10} fontWeight="700">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Text>
+          </Circle>
+        )}
+
+        </View>
+        
       }
       subTitle={
         <Text
@@ -64,6 +86,7 @@ export const ChatInboxItem = ({
           color={selected ? '$color1' : '$color10'}
           numberOfLines={1}
           marginTop={2}
+          fontWeight={unreadCount > 0 && !selected ? '700' : '400'}
         >
           {(latestMessage?.self ? `Tôi: ${latestMessage?.content}` : latestMessage?.content) ||
             'Chưa có tin nhắn'}
@@ -91,6 +114,7 @@ export const ChatInboxItem = ({
         ) : (
           <View height={14} />
         )}
+
       </YStack>
     </ListItem>
   )
