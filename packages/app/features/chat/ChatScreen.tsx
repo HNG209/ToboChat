@@ -31,6 +31,7 @@ import {
   chatApi,
   useGetMessagesQuery,
   useLazyGetMessagesQuery,
+  useRevokeMessageMutation,
   useSendMessageMutation,
 } from 'app/services/chatApi'
 import { roomApi, useGetRoomMetadataQuery } from 'app/services/roomApi'
@@ -131,7 +132,8 @@ export function ChatScreen({ roomId, insets }: Props) {
     setActiveMediaIndex(index)
     setViewerVisible(true)
   }
-
+  // Revoke message
+  const [revokeMessage] = useRevokeMessageMutation()
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
   const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(() => new Set())
@@ -198,6 +200,9 @@ export function ChatScreen({ roomId, insets }: Props) {
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+      pollingInterval: 3000,
     }
   )
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
@@ -377,10 +382,36 @@ export function ChatScreen({ roomId, insets }: Props) {
         })
       )
     }
+    const handleMessageRevoked = (data: { messageId: string; roomId: string }) => {
+      if (data.roomId !== roomId) return
+
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          const msg = draft.items?.find((m) => m.id === data.messageId)
+          if (msg) {
+            ;(msg as any).messageStatus = 'REVOKED'
+            msg.content = 'Tin nhắn đã được thu hồi'
+          }
+        })
+      )
+
+      setLocallyDeletedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(data.messageId)
+        return next
+      })
+      setLocallyRecalledIds((prev) => {
+        const next = new Set(prev)
+        next.add(data.messageId)
+        return next
+      })
+    }
 
     socket.on('receive_message', handleReceiveMessage)
+    socket.on('message_revoked', handleMessageRevoked)
     return () => {
       socket.off('receive_message', handleReceiveMessage)
+      socket.off('message_revoked', handleMessageRevoked)
     }
   }, [roomId, isSocketReady, dispatch])
 
@@ -508,9 +539,20 @@ export function ChatScreen({ roomId, insets }: Props) {
 
                 const isSelected = selectionMode && selectedIds.has(msg.id)
 
-                const parsedReply = parseReplyEncodedContent(msg.content)
-                const isReplyMessage = !!parsedReply
-                const messageTextToRender = parsedReply?.messageText ?? msg.content
+                // const parsedReply = parseReplyEncodedContent(msg.content)
+                // const isReplyMessage = !!parsedReply
+                // const messageTextToRender = parsedReply?.messageText ?? msg.content
+                // BƯỚC 1: tạo displayContent
+                let displayContent = msg.content
+
+                // BƯỚC 2: check trạng thái
+                if (msg.messageStatus === 'REVOKED') {
+                  displayContent = 'Tin nhắn đã được thu hồi'
+                }
+
+                // BƯỚC 3: dùng displayContent thay vì msg.content
+                const parsedReply = parseReplyEncodedContent(displayContent)
+                const messageTextToRender = parsedReply?.messageText ?? displayContent
 
                 // Reference-image styling for replied messages only
                 const replyBubbleBg = theme === 'dark' ? '$blue3' : '$blue2'
@@ -589,17 +631,45 @@ export function ChatScreen({ roomId, insets }: Props) {
                   })
                 }
 
-                const recallMessage = (message: MessageResponse) => {
+                const recallMessage = async (message: MessageResponse) => {
+                  // Optimistic update để UI đổi ngay, không cần chờ API.
                   setLocallyDeletedIds((prev) => {
                     const next = new Set(prev)
                     next.delete(message.id)
                     return next
                   })
+
                   setLocallyRecalledIds((prev) => {
                     const next = new Set(prev)
                     next.add(message.id)
                     return next
                   })
+
+                  dispatch(
+                    chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+                      const msg = draft.items?.find((m) => m.id === message.id)
+                      if (msg) {
+                        ;(msg as any).messageStatus = 'REVOKED'
+                        msg.content = 'Tin nhắn đã được thu hồi'
+                      }
+                    })
+                  )
+
+                  try {
+                    await revokeMessage({
+                      roomId,
+                      messageId: message.id,
+                    }).unwrap()
+                  } catch (err) {
+                    console.error('Thu hồi thất bại:', err)
+
+                    // Rollback optimistic update nếu API lỗi.
+                    setLocallyRecalledIds((prev) => {
+                      const next = new Set(prev)
+                      next.delete(message.id)
+                      return next
+                    })
+                  }
                 }
 
                 return (

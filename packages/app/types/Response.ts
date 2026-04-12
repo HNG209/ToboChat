@@ -49,4 +49,6 @@ export interface MessageResponse {
   content: string
   self: boolean
   createdAt: string
+  messageStatus?: 'SENT' | 'REVOKED'
+  localStatus?: 'VISIBLE' | 'DELETED'
 }

@@ -46,6 +46,16 @@ export const chatApi = baseApi.injectEndpoints({
         return response
       },
     }),
+    // ham xoa tin nhan
+    revokeMessage: builder.mutation<void, { roomId: string; messageId: string }>({
+      query: ({ roomId, messageId }) => ({
+        url: `/chat/rooms/${roomId}/messages/revoke`,
+        method: 'POST',
+        data: {
+          messageId,
+        },
+      }),
+    }),
   }),
 })
 
@@ -54,4 +64,5 @@ export const {
   useLazyGetMessagesQuery,
   useSendMessageMutation,
   useLazyGetPresignedUrlQuery,
+  useRevokeMessageMutation,
 } = chatApi
