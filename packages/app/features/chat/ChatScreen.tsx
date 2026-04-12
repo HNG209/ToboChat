@@ -7,7 +7,19 @@ import {
   useWindowDimensions,
   Linking,
 } from 'react-native'
-import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle, Image, ZStack } from '@my/ui'
+import {
+  YStack,
+  XStack,
+  Text,
+  Input,
+  Button,
+  Avatar,
+  Theme,
+  Circle,
+  Image,
+  ZStack,
+  ForwardMessageDialog,
+} from '@my/ui'
 import {
   SendHorizontal,
   Heart,
@@ -31,10 +43,11 @@ import {
   chatApi,
   useGetMessagesQuery,
   useLazyGetMessagesQuery,
+  useForwardMessagesMutation,
   useRevokeMessageMutation,
   useSendMessageMutation,
 } from 'app/services/chatApi'
-import { roomApi, useGetRoomMetadataQuery } from 'app/services/roomApi'
+import { roomApi, useGetJoinedRoomsQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
 import { MessageResponse } from 'app/types/Response'
@@ -46,6 +59,7 @@ import { MessageActionMenu } from './MessageActionMenu'
 import { useChatAttachment } from './../../hooks/useChatAttechment'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
+
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
   return msg.user?.id || '__unknown__'
@@ -202,7 +216,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       refetchOnMountOrArgChange: true,
       refetchOnFocus: true,
       refetchOnReconnect: true,
-      pollingInterval: 3000,
     }
   )
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
@@ -213,7 +226,18 @@ export function ChatScreen({ roomId, insets }: Props) {
       refetchOnMountOrArgChange: true,
     }
   )
+  const { data: joinedRoomsData, isLoading: isJoinedRoomsLoading } = useGetJoinedRoomsQuery(
+    undefined,
+    {
+      skip: !hasSession,
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+    }
+  )
   const [sendMessage] = useSendMessageMutation()
+  const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
+  const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
 
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
@@ -232,6 +256,42 @@ export function ChatScreen({ roomId, insets }: Props) {
       }
     })
   }, [data?.items, locallyDeletedIds, locallyRecalledIds])
+  const availableForwardRooms = useMemo(() => {
+    return (joinedRoomsData?.items || [])
+      .filter((room) => room.id !== roomId)
+      .slice()
+      .sort((left, right) => left.roomName.localeCompare(right.roomName))
+  }, [joinedRoomsData?.items, roomId])
+  const selectedMessages = useMemo(
+    () => (normalizedMessages || []).filter((message) => selectedIds.has(message.id)),
+    [normalizedMessages, selectedIds]
+  )
+
+  useEffect(() => {
+    if (!forwardDialogOpen) {
+      setForwardSourceMessages([])
+    }
+  }, [forwardDialogOpen])
+
+  const openForwardDialog = (messagesToForward: MessageResponse[]) => {
+    const nextMessages = messagesToForward.filter(Boolean)
+    if (nextMessages.length === 0) return
+
+    setForwardSourceMessages(nextMessages)
+    setForwardDialogOpen(true)
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleForwardConfirm = async (targetRoomIds: string[]) => {
+    if (forwardSourceMessages.length === 0 || targetRoomIds.length === 0) return
+
+    await forwardMessages({
+      fromRoomId: roomId,
+      toRoomIds: targetRoomIds,
+      messageIds: forwardSourceMessages.map((message) => message.id),
+    }).unwrap()
+  }
   // 2. Load More Logic
   const handleLoadMore = async () => {
     const nextCursor = data?.nextCursor
@@ -735,9 +795,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                           return tagWithSpace
                         })
                       }}
-                      onForward={(message) => {
-                        setMessage(message.content)
-                      }}
+                      onForward={(message) => openForwardDialog([message])}
                       onEnterMultiSelect={enterMultiSelect}
                       onDeleteForMe={deleteForMe}
                       onRecall={isMe ? recallMessage : undefined}
@@ -1020,15 +1078,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Forward size={16} />}
                   disabled={selectedCount === 0}
                   onPress={() => {
-                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
-                    const text = selected
-                      .slice()
-                      .reverse()
-                      .map((m) => m.content)
-                      .join('\n')
-                    setMessage(text)
-                    setSelectionMode(false)
-                    setSelectedIds(new Set())
+                    openForwardDialog(selectedMessages)
                   }}
                 >
                   Chuyển tiếp
@@ -1078,6 +1128,17 @@ export function ChatScreen({ roomId, insets }: Props) {
               </XStack>
             </XStack>
           )}
+
+          <ForwardMessageDialog
+            open={forwardDialogOpen}
+            onOpenChange={setForwardDialogOpen}
+            messages={forwardSourceMessages}
+            rooms={availableForwardRooms}
+            isLoadingRooms={isJoinedRoomsLoading}
+            currentRoomId={roomId}
+            isSubmitting={isForwarding}
+            onConfirm={handleForwardConfirm}
+          />
 
           {/* --- FOOTER (INPUT) --- */}
           {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}

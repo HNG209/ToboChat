@@ -56,6 +56,17 @@ export const chatApi = baseApi.injectEndpoints({
         },
       }),
     }),
+    // forward tin nhan
+    forwardMessages: builder.mutation<
+      void,
+      { fromRoomId: string; toRoomIds: string[]; messageIds: string[] }
+    >({
+      query: (data) => ({
+        url: `/chat/rooms/forwardMessage`,
+        method: 'POST',
+        data,
+      }),
+    }),
   }),
 })
 
@@ -65,4 +76,5 @@ export const {
   useSendMessageMutation,
   useLazyGetPresignedUrlQuery,
   useRevokeMessageMutation,
+  useForwardMessagesMutation,
 } = chatApi
