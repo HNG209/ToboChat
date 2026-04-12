@@ -139,7 +139,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
-
+  const isClosingViewerRef = useRef(false)
   const listBottomSpacer = isWeb ? 0 : composerHeight
   const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
   // Android keyboard handling: don't rely on KeyboardAvoidingView only.
@@ -558,6 +558,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 const bubbleBorderWidth = isSelected ? 2 : 1
 
                 const toggleSelected = (messageId: string) => {
+                  if (!selectionMode || isClosingViewerRef.current) return
                   setSelectedIds((prev) => {
                     const next = new Set(prev)
                     if (next.has(messageId)) next.delete(messageId)
@@ -567,6 +568,8 @@ export function ChatScreen({ roomId, insets }: Props) {
                 }
 
                 const enterMultiSelect = (message: MessageResponse) => {
+                  if (viewerVisible) return
+
                   setReplyTo(null)
                   setSelectionMode(true)
                   setSelectedIds((prev) => {
@@ -672,7 +675,11 @@ export function ChatScreen({ roomId, insets }: Props) {
                       onDeleteForMe={deleteForMe}
                       onRecall={isMe ? recallMessage : undefined}
                     >
-                      <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
+                      <YStack
+                        maxWidth={300}
+                        alignItems={isMe ? 'flex-end' : 'flex-start'}
+                        position="relative" // <--- QUAN TRỌNG: Để lớp phủ ở bước 2 không bị trôi
+                      >
                         {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
                         {hasMedia && (
                           <YStack
@@ -856,6 +863,48 @@ export function ChatScreen({ roomId, insets }: Props) {
                             ))}
                           </YStack>
                         )}
+                        {/* Lớp phủ điều phối sự kiện - Nằm cuối cùng bên trong YStack cha */}
+                        <XStack
+                          position="absolute"
+                          top={0}
+                          left={0}
+                          right={0}
+                          bottom={0}
+                          zIndex={10}
+                          onPress={(e) => {
+                            // 1. Chặn đứng sự kiện lan truyền lên MessageActionMenu (Popover/ContextMenu)
+                            e.stopPropagation()
+
+                            // 2. Chặn nếu đang đóng Viewer
+                            if (isClosingViewerRef.current) return
+
+                            if (selectionMode) {
+                              toggleSelected(msg.id)
+                            } else {
+                              if (hasMedia) {
+                                openViewer(mediaAttachments, 0)
+                              } else if (hasFiles && !hasText) {
+                                const url = fileAttachments[0].fileUrl
+                                Platform.OS === 'web'
+                                  ? window.open(url, '_blank')
+                                  : Linking.openURL(url)
+                              }
+                            }
+                          }}
+                          onLongPress={(e) => {
+                            e.stopPropagation()
+                            if (isClosingViewerRef.current) return
+
+                            if (!selectionMode) {
+                              enterMultiSelect(msg)
+                            }
+                          }}
+                          {...(Platform.OS !== 'web' && { delayLongPress: 350 })}
+                          pressStyle={{
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            borderRadius: '$4',
+                          }}
+                        />
                       </YStack>
                     </MessageActionMenu>
 
@@ -916,14 +965,27 @@ export function ChatScreen({ roomId, insets }: Props) {
               borderColor="$borderColor"
               borderTopWidth={1}
               alignItems="center"
+              width="100%"
               justifyContent="space-between"
+              // --- THÊM RESPONSIVE TẠI ĐÂY ---
+              {...(Platform.OS !== 'web' && {
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 1000,
+                backgroundColor: theme === 'dark' ? '$color2' : 'white',
+                paddingBottom: (insets?.bottom ?? 0) + 8,
+                minHeight: composerHeight || 60,
+              })}
+              // ----------------------------
             >
               <XStack alignItems="center" space="$2" flex={1}>
                 <Text fontWeight="700">{selectedCount}</Text>
                 <Text color="$color10">Đã chọn</Text>
               </XStack>
 
-              <XStack space="$2" alignItems="center">
+              <XStack space="$1" alignItems="center">
                 <Button
                   size="$3"
                   borderRadius="$10"
@@ -940,7 +1002,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     await copyText(text)
                   }}
                 >
-                  Sao chép
+                  {Platform.OS === 'web' ? 'Sao chép' : ''}
                 </Button>
 
                 <Button
@@ -961,7 +1023,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     setSelectedIds(new Set())
                   }}
                 >
-                  Chuyển tiếp
+                  {Platform.OS === 'web' ? 'Chuyển tiếp' : ''}
                 </Button>
 
                 <Button
@@ -971,7 +1033,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Trash2 size={16} />}
                   disabled={selectedCount === 0}
                   onPress={() => {
-                    // Safety: only allow deleting your own selected messages (frontend-only)
                     const mine = (normalizedMessages || []).filter(
                       (m) => selectedIds.has(m.id) && m.self
                     )
@@ -991,7 +1052,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     setSelectedIds(new Set())
                   }}
                 >
-                  Xóa
+                  {Platform.OS === 'web' ? 'Xóa' : ''}
                 </Button>
 
                 <Button
@@ -1135,7 +1196,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               onChangeText={setMessage}
             />
 
-            {message.trim() || drafts.length > 0 ? ( // SỬA ĐIỀU KIỆN Ở ĐÂY
+            {message.trim() || drafts.length > 0 ? (
               <Button
                 size="$4"
                 circular
@@ -1156,7 +1217,10 @@ export function ChatScreen({ roomId, insets }: Props) {
           visible={viewerVisible}
           mediaList={currentMediaList}
           activeIndex={activeMediaIndex}
-          onClose={() => setViewerVisible(false)}
+          onClose={() => {
+            setViewerVisible(false)
+            setSelectionMode(false)
+          }}
           onNext={() => setActiveMediaIndex((prev) => prev + 1)}
           onPrev={() => setActiveMediaIndex((prev) => prev - 1)}
         />
