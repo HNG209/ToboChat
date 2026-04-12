@@ -188,7 +188,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const replyTag = replyTo ? `@${replyName}` : ''
 
   // 1. API Hooks
-  const { data, isLoading, isFetching, isError } = useGetMessagesQuery(
+  const { data, isLoading, isError, error } = useGetMessagesQuery(
     {
       roomId,
       cursor: replyCursorRef.current,
@@ -199,6 +199,9 @@ export function ChatScreen({ roomId, insets }: Props) {
       refetchOnMountOrArgChange: true,
     }
   )
+
+  const isRoomNotFound = isError && (error as any)?.data.code === 40031
+
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
   const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery(
     { roomId },
@@ -351,6 +354,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     // Cập nhật cache ngay lập tức với tin nhắn giả định (optimistic update)
     const patchResult = dispatch(
       chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        if (!draft) return
         if (!draft.items) draft.items = []
         // Unshift tin mới vào đầu mảng (FlatList inverted sẽ hiển thị nó ở dưới cùng)
         draft.items.unshift(optimisticMessage)
@@ -481,7 +485,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
               <ActivityIndicator size="large" color="#888" />
             </XStack>
-          ) : isError ? (
+          ) : isError && !isRoomNotFound ? (
             <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
               <Text color="red">Lỗi khi tải tin nhắn!</Text>
             </XStack>
@@ -545,6 +549,20 @@ export function ChatScreen({ roomId, insets }: Props) {
               onEndReachedThreshold={0.1}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <YStack
+                  flex={1}
+                  justifyContent="center"
+                  alignItems="center"
+                  py="$10"
+                  // Vì Flatlist inverted, component rỗng cũng bị lộn ngược, cần scaleY: -1 để chữ đứng thẳng lại
+                  transform={[{ scaleY: -1 }]}
+                >
+                  <Text color="$color10" fontSize="$4">
+                    Chưa có tin nhắn nào. Hãy gửi lời chào!
+                  </Text>
+                </YStack>
+              }
               // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
               ListFooterComponent={
                 isFetchingMore && loadMoreDirectionRef.current === 'before' ? (

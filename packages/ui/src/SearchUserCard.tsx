@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { Avatar, YStack, XStack, Text, Button } from 'tamagui'
 import { UserResponse } from 'app/types/Response'
-import { UserPlus, Check, X } from '@tamagui/lucide-icons'
+import { UserPlus, Check, X, Send, UserRoundCheck } from '@tamagui/lucide-icons'
 
 type Props = {
   user: UserResponse
   requestSent: boolean
   onPress?: () => void
+  onSendMessage?: () => void
   onAddFriend?: (userId: string) => Promise<void>
   onCancelRequest?: (userId: string) => Promise<void>
   onAcceptRequest?: (userId: string) => Promise<void>
@@ -18,6 +19,7 @@ export function SearchUserCard({
   onAddFriend,
   onCancelRequest,
   onAcceptRequest,
+  onSendMessage,
 }: Props) {
   const [friendStatus, setFriendStatus] = useState(user.friendStatus)
   const [loading, setLoading] = useState(false)
@@ -117,27 +119,41 @@ export function SearchUserCard({
             gap="$1.5"
             alignItems="center"
           >
-            <Check size={12} color="$blue10" />
+            {/* <Check size={12} color="$blue10" /> */}
             <Text color="$blue10" fontWeight="700" fontSize="$2" paddingVertical={3}>
-              BẠN BÈ
+              <UserRoundCheck size={16} />
             </Text>
           </XStack>
         )}
 
         {/* Trường hợp 3: Chưa kết nối */}
         {friendStatus === 'STRANGER' && (
-          <Button
-            size="$3"
-            theme="blue"
-            borderRadius="$4"
-            icon={<UserPlus size={16} />}
-            onPress={(e) => {
-              e.stopPropagation()
-              handleAddFriend(user.id)
-            }}
-            disabled={loading}
-            loading={loading}
-          />
+          <XStack paddingHorizontal="$3" paddingVertical="$1" borderRadius="$4">
+            <Button
+              size="$3"
+              // theme="gray"
+              // variant="outline"
+              borderRadius="$4"
+              marginRight="$2"
+              icon={<Send size={16} />}
+              onPress={(e) => {
+                e.stopPropagation()
+                onSendMessage?.(user.id)
+              }}
+            />
+            <Button
+              size="$3"
+              theme="blue"
+              borderRadius="$4"
+              icon={<UserPlus size={16} />}
+              onPress={(e) => {
+                e.stopPropagation()
+                handleAddFriend(user.id)
+              }}
+              disabled={loading}
+              loading={loading}
+            />
+          </XStack>
         )}
 
         {/* Trường hợp 4: Đang chờ kết bạn (đã gửi lời mời) */}
@@ -159,12 +175,7 @@ export function SearchUserCard({
 
         {/* Trường hợp 5: Đang chờ kết bạn (được người khác gửi lời mời) */}
         {friendStatus === 'PENDING' && (
-          <XStack
-            backgroundColor="$purple3"
-            paddingHorizontal="$3"
-            paddingVertical="$1"
-            borderRadius="$4"
-          >
+          <XStack paddingHorizontal="$3" paddingVertical="$1" borderRadius="$4">
             {/* Nút xác nhận hoặc từ chối */}
             <Button
               size="$3"

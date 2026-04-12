@@ -5,9 +5,11 @@ import { YStack } from '@my/ui'
 import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
 import { SearchUserCard } from '@my/ui'
 import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
+import { generateDirectRoomId } from 'app/utils/chatHelper'
 import { useSelector } from 'react-redux'
 import type { RootState } from 'app/store'
 import { Platform, useWindowDimensions } from 'react-native'
+import { useRouter } from 'solito/navigation'
 import {
   useSendFriendRequestMutation,
   useCancelFriendRequestMutation,
@@ -19,6 +21,7 @@ export default function SearchHeader() {
   const userId = useSelector((s: RootState) => s.auth.user?.id)
   const { height: windowHeight } = useWindowDimensions()
   const [headerHeight, setHeaderHeight] = useState(0)
+  const router = useRouter()
 
   const [searchFocus, setSearchFocus] = useState(false)
   const [keyword, setKeyword] = useState('')
@@ -149,6 +152,9 @@ export default function SearchHeader() {
                   key={user.id}
                   user={user}
                   requestSent={sentRequests.has(user.id)}
+                  onSendMessage={() => {
+                    router.push(`/chat/${generateDirectRoomId(userId, user.id)}`)
+                  }}
                   onAddFriend={async (userId) => {
                     setSentRequests((prev) => new Set([...prev, userId]))
                     try {
