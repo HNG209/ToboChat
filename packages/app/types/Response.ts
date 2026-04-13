@@ -55,4 +55,12 @@ export interface MessageResponse {
   createdAt: string
   messageStatus?: 'SENT' | 'REVOKED'
   localStatus?: 'VISIBLE' | 'DELETED'
+  attachments?: Attachment[]
+}
+
+export interface Attachment {
+  fileUrl: string
+  fileName: string
+  contentType: string
+  fileSize: number
 }

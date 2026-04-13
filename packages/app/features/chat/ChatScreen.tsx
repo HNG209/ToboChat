@@ -50,14 +50,13 @@ import {
 import { roomApi, useGetJoinedRoomsQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
-import { MessageResponse } from 'app/types/Response'
+import { Attachment, MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
-import { dir } from 'i18next'
-import { useChatAttachment } from './../../hooks/useChatAttechment'
+import { useChatAttachment } from '../../hooks/useChatAttachment'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
 
@@ -305,14 +304,14 @@ export function ChatScreen({ roomId, insets }: Props) {
       }
     })
   }, [data?.items, locallyDeletedIds, locallyRecalledIds])
-  
+
   const availableForwardRooms = useMemo(() => {
     return (joinedRoomsData?.items || [])
       .filter((room) => room.id !== roomId)
       .slice()
       .sort((left, right) => left.roomName.localeCompare(right.roomName))
   }, [joinedRoomsData?.items, roomId])
-  
+
   const selectedMessages = useMemo(
     () => (normalizedMessages || []).filter((message) => selectedIds.has(message.id)),
     [normalizedMessages, selectedIds]
@@ -431,7 +430,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
 
     // 2. Chỉ lấy những attachments thực sự có fileUrl (URL từ S3)
-    const attachments = drafts
+    const attachments: Attachment[] = drafts
       .filter((d) => d.fileUrl && d.fileUrl.startsWith('http'))
       .map((d) => ({
         fileUrl: d.fileUrl,
@@ -455,10 +454,10 @@ export function ChatScreen({ roomId, insets }: Props) {
 
     const outgoingContent = reply
       ? buildReplyEncodedContent({
-          replyName: getDisplayNameForMessage(reply, selfUserName),
-          replyText: reply.content,
-          messageText: tempContent,
-        })
+        replyName: getDisplayNameForMessage(reply, selfUserName),
+        replyText: reply.content,
+        messageText: tempContent,
+      })
       : tempContent
 
     setMessage('')
@@ -504,6 +503,7 @@ export function ChatScreen({ roomId, insets }: Props) {
         content: outgoingContent,
         messageType: 'USER',
         replyTo: replyTo?.id,
+        attachments,
       }).unwrap()
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
@@ -547,7 +547,7 @@ export function ChatScreen({ roomId, insets }: Props) {
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           const msg = draft.items?.find((m) => m.id === data.messageId)
           if (msg) {
-            ;(msg as any).messageStatus = 'REVOKED'
+            ; (msg as any).messageStatus = 'REVOKED'
             msg.content = 'Tin nhắn đã được thu hồi'
           }
         })
@@ -858,7 +858,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
                       const msg = draft.items?.find((m) => m.id === message.id)
                       if (msg) {
-                        ;(msg as any).messageStatus = 'REVOKED'
+                        ; (msg as any).messageStatus = 'REVOKED'
                         msg.content = 'Tin nhắn đã được thu hồi'
                       }
                     })
@@ -989,193 +989,194 @@ export function ChatScreen({ roomId, insets }: Props) {
                               {msg.replyTo.content.length > 100
                                 ? msg.replyTo.content.slice(0, 100) + '...'
                                 : msg.replyTo.content}
-                             </Text>
+                            </Text>
                           </YStack>
-                          )}
-                      <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
-                        {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
-                        {hasMedia && (
-                          <YStack
-                            borderRadius="$4"
-                            overflow="hidden"
-                            bg={effectiveBubbleBg}
-                            borderWidth={bubbleBorderWidth}
-                            borderColor={bubbleBorderColor}
-                            maxWidth={280}
-                            position="relative"
-                          >
-                            <MediaGrid
-                              media={mediaAttachments}
-                              onPressMedia={(index) => openViewer(mediaAttachments, index)}
-                            />
+                        )}
+                        <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
+                          {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
+                          {hasMedia && (
+                            <YStack
+                              borderRadius="$4"
+                              overflow="hidden"
+                              bg={effectiveBubbleBg}
+                              borderWidth={bubbleBorderWidth}
+                              borderColor={bubbleBorderColor}
+                              maxWidth={280}
+                              position="relative"
+                            >
+                              <MediaGrid
+                                media={mediaAttachments}
+                                onPressMedia={(index) => openViewer(mediaAttachments, index)}
+                              />
 
-                            {/* Caption Text nằm trong cùng box với Media */}
-                            {hasText && (
-                              <YStack p="$2.5">
-                                <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
-                                  {messageTextToRender}
-                                </Text>
-                                {/* Nếu là cuối group hoặc solo thì hiện giờ ngay dưới text */}
-                                {showTimestamp && (
-                                  <Text
-                                    fontSize="$1"
-                                    textAlign="right"
-                                    mt="$1"
-                                    color={replyTimeColor}
-                                  >
+                              {/* Caption Text nằm trong cùng box với Media */}
+                              {hasText && (
+                                <YStack p="$2.5">
+                                  <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+                                    {messageTextToRender}
+                                  </Text>
+                                  {/* Nếu là cuối group hoặc solo thì hiện giờ ngay dưới text */}
+                                  {showTimestamp && (
+                                    <Text
+                                      fontSize="$1"
+                                      textAlign="right"
+                                      mt="$1"
+                                      color={replyTimeColor}
+                                    >
+                                      {timeString}
+                                    </Text>
+                                  )}
+                                </YStack>
+                              )}
+
+                              {/* Nếu CHỈ CÓ Media (không chữ) + showTimestamp: Hiện giờ đè lên ảnh */}
+                              {!hasText && showTimestamp && (
+                                <YStack
+                                  position="absolute"
+                                  bottom={6}
+                                  right={8}
+                                  bg="rgba(0,0,0,0.4)"
+                                  px="$1.5"
+                                  py="$0.5"
+                                  borderRadius="$2"
+                                >
+                                  <Text fontSize="$1" color="white">
                                     {timeString}
                                   </Text>
-                                )}
-                              </YStack>
-                            )}
+                                </YStack>
+                              )}
+                            </YStack>
+                          )}
 
-                            {/* Nếu CHỈ CÓ Media (không chữ) + showTimestamp: Hiện giờ đè lên ảnh */}
-                            {!hasText && showTimestamp && (
-                              <YStack
-                                position="absolute"
-                                bottom={6}
-                                right={8}
-                                bg="rgba(0,0,0,0.4)"
-                                px="$1.5"
-                                py="$0.5"
-                                borderRadius="$2"
-                              >
-                                <Text fontSize="$1" color="white">
+                          {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
+                          {hasText && !hasMedia && (
+                            <YStack
+                              p="$3"
+                              borderRadius="$4"
+                              maxWidth={300}
+                              bg={effectiveBubbleBg}
+                              borderWidth={bubbleBorderWidth}
+                              borderColor={bubbleBorderColor}
+                            >
+                              {/* Phần hiển thị tin nhắn đang trả lời (Reply) */}
+                              {parsedReply && (
+                                <YStack
+                                  bg={replyPreviewBg}
+                                  borderRadius="$3"
+                                  paddingHorizontal="$2"
+                                  paddingVertical="$2"
+                                  marginBottom="$2"
+                                  space="$1"
+                                >
+                                  <Text
+                                    fontSize="$3"
+                                    fontWeight="700"
+                                    numberOfLines={1}
+                                    color={replyNameColor}
+                                  >
+                                    {parsedReply.replyName}
+                                  </Text>
+                                  <Text
+                                    fontSize="$2"
+                                    color={replyPreviewTextColor}
+                                    opacity={0.85}
+                                    numberOfLines={1}
+                                  >
+                                    {parsedReply.replyText}
+                                  </Text>
+                                </YStack>
+                              )}
+
+                              {/* Nội dung tin nhắn chữ */}
+                              <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+                                {messageTextToRender}
+                              </Text>
+
+                              {/* Thời gian gửi tin nhắn */}
+                              {showTimestamp && (
+                                <Text
+                                  fontSize="$1"
+                                  textAlign={isMe ? 'right' : 'left'}
+                                  mt="$1"
+                                  color={replyTimeColor}
+                                >
                                   {timeString}
                                 </Text>
-                              </YStack>
-                            )}
-                          </YStack>
-                        )}
+                              )}
+                            </YStack>
+                          )}
 
-                        {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
-                        {hasText && !hasMedia && (
-                          <YStack
-                            p="$3"
-                            borderRadius="$4"
-                            maxWidth={300}
-                            bg={effectiveBubbleBg}
-                            borderWidth={bubbleBorderWidth}
-                            borderColor={bubbleBorderColor}
-                          >
-                            {/* Phần hiển thị tin nhắn đang trả lời (Reply) */}
-                            {parsedReply && (
-                              <YStack
-                                bg={replyPreviewBg}
-                                borderRadius="$3"
-                                paddingHorizontal="$2"
-                                paddingVertical="$2"
-                                marginBottom="$2"
-                                space="$1"
-                              >
-                                <Text
-                                  fontSize="$3"
-                                  fontWeight="700"
-                                  numberOfLines={1}
-                                  color={replyNameColor}
+                          {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
+                          {/* --- 3. KHỐI FILE TÀI LIỆU (Tách riêng) --- */}
+                          {hasFiles && (
+                            <YStack
+                              space="$1"
+                              maxWidth={280} // Tăng nhẹ maxWidth để hiển thị tên file rõ hơn
+                              // QUAN TRỌNG: alignItems giúp bong bóng file co lại theo nội dung
+                              alignItems={isMe ? 'flex-end' : 'flex-start'}
+                            >
+                              {fileAttachments.map((at, idx) => (
+                                <YStack
+                                  key={idx}
+                                  // Đảm bảo từng item cũng tuân thủ lề trái/phải
+                                  alignItems={isMe ? 'flex-end' : 'flex-start'}
+                                  width="100%"
                                 >
-                                  {parsedReply.replyName}
-                                </Text>
-                                <Text
-                                  fontSize="$2"
-                                  color={replyPreviewTextColor}
-                                  opacity={0.85}
-                                  numberOfLines={1}
-                                >
-                                  {parsedReply.replyText}
-                                </Text>
-                              </YStack>
-                            )}
-
-                            {/* Nội dung tin nhắn chữ */}
-                            <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
-                              {messageTextToRender}
-                            </Text>
-
-                            {/* Thời gian gửi tin nhắn */}
-                            {showTimestamp && (
-                              <Text
-                                fontSize="$1"
-                                textAlign={isMe ? 'right' : 'left'}
-                                mt="$1"
-                                color={replyTimeColor}
-                              >
-                                {timeString}
-                              </Text>
-                            )}
-                          </YStack>
-                        )}
-
-                        {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
-                        {/* --- 3. KHỐI FILE TÀI LIỆU (Tách riêng) --- */}
-                        {hasFiles && (
-                          <YStack
-                            space="$1"
-                            maxWidth={280} // Tăng nhẹ maxWidth để hiển thị tên file rõ hơn
-                            // QUAN TRỌNG: alignItems giúp bong bóng file co lại theo nội dung
-                            alignItems={isMe ? 'flex-end' : 'flex-start'}
-                          >
-                            {fileAttachments.map((at, idx) => (
-                              <YStack
-                                key={idx}
-                                // Đảm bảo từng item cũng tuân thủ lề trái/phải
-                                alignItems={isMe ? 'flex-end' : 'flex-start'}
-                                width="100%"
-                              >
-                                <XStack
-                                  p="$2.5" // Tăng nhẹ padding cho dễ bấm trên mobile
-                                  bg="$color3"
-                                  borderRadius="$3"
-                                  alignItems="center"
-                                  space="$3"
-                                  // Tự động co lại theo nội dung nếu có thể, hoặc chiếm hết maxWidth của cha
-                                  alignSelf={isMe ? 'flex-end' : 'flex-start'}
-                                  onPress={() => {
-                                    if (Platform.OS === 'web') {
-                                      window.open(at.fileUrl, '_blank')
-                                    } else {
-                                      Linking.openURL(at.fileUrl).catch((err) =>
-                                        console.error('Không thể mở file', err)
-                                      )
-                                    }
-                                  }}
-                                >
-                                  {/* Icon file */}
-                                  <File size={22} color="$color11" />
-
-                                  <YStack flexShrink={1} flexGrow={0}>
-                                    <Text
-                                      numberOfLines={1}
-                                      fontSize="$3"
-                                      fontWeight="500"
-                                      ellipse // Tamagui tương đương với tailwind truncate
-                                    >
-                                      {at.fileName}
-                                    </Text>
-                                    <Text fontSize="$1" color="$color10">
-                                      {(at.fileSize / 1024).toFixed(1)} KB
-                                    </Text>
-                                  </YStack>
-
-                                  <Download size={18} color="$color10" />
-                                </XStack>
-
-                                {/* Timestamp */}
-                                {showTimestamp && idx === fileAttachments.length - 1 && (
-                                  <Text
-                                    fontSize="$1"
-                                    mt="$1"
-                                    color={replyTimeColor}
-                                    // Đảm bảo text giờ nằm đúng góc của file
+                                  <XStack
+                                    p="$2.5" // Tăng nhẹ padding cho dễ bấm trên mobile
+                                    bg="$color3"
+                                    borderRadius="$3"
+                                    alignItems="center"
+                                    space="$3"
+                                    // Tự động co lại theo nội dung nếu có thể, hoặc chiếm hết maxWidth của cha
                                     alignSelf={isMe ? 'flex-end' : 'flex-start'}
+                                    onPress={() => {
+                                      if (Platform.OS === 'web') {
+                                        window.open(at.fileUrl, '_blank')
+                                      } else {
+                                        Linking.openURL(at.fileUrl).catch((err) =>
+                                          console.error('Không thể mở file', err)
+                                        )
+                                      }
+                                    }}
                                   >
-                                    {timeString}
-                                  </Text>
-                                )}
-                              </YStack>
-                            ))}
-                          </YStack>
-                        )}
+                                    {/* Icon file */}
+                                    <File size={22} color="$color11" />
+
+                                    <YStack flexShrink={1} flexGrow={0}>
+                                      <Text
+                                        numberOfLines={1}
+                                        fontSize="$3"
+                                        fontWeight="500"
+                                        ellipse // Tamagui tương đương với tailwind truncate
+                                      >
+                                        {at.fileName}
+                                      </Text>
+                                      <Text fontSize="$1" color="$color10">
+                                        {(at.fileSize / 1024).toFixed(1)} KB
+                                      </Text>
+                                    </YStack>
+
+                                    <Download size={18} color="$color10" />
+                                  </XStack>
+
+                                  {/* Timestamp */}
+                                  {showTimestamp && idx === fileAttachments.length - 1 && (
+                                    <Text
+                                      fontSize="$1"
+                                      mt="$1"
+                                      color={replyTimeColor}
+                                      // Đảm bảo text giờ nằm đúng góc của file
+                                      alignSelf={isMe ? 'flex-end' : 'flex-start'}
+                                    >
+                                      {timeString}
+                                    </Text>
+                                  )}
+                                </YStack>
+                              ))}
+                            </YStack>
+                          )}
+                        </YStack>
                       </YStack>
                     </MessageActionMenu>
 
@@ -1465,7 +1466,9 @@ export function ChatScreen({ roomId, insets }: Props) {
               onChangeText={setMessage}
             />
 
-            {message.trim() || drafts.length > 0 ? ( // SỬA ĐIỀU KIỆN Ở ĐÂY
+            {message.trim() 
+            // || drafts.length > 0 
+             ? ( // SỬA ĐIỀU KIỆN Ở ĐÂY
               <Button
                 size="$4"
                 circular
