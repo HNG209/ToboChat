@@ -783,6 +783,8 @@ export function ChatScreen({ roomId, insets }: Props) {
                 // BƯỚC 1: tạo displayContent
                 // 1. Kiểm tra trạng thái thu hồi
                 const isRevoked = msg.messageStatus === 'REVOKED';
+                const isDeletedLocally = locallyDeletedIds.has(msg.id);
+                const isMessageDead = isRevoked || isDeletedLocally;
 
                 // 2. Xác định nội dung văn bản (dùng displayContent cho toàn bộ logic sau đó)
                 const displayContent = isRevoked ? 'Tin nhắn đã được thu hồi' : msg.content;
@@ -909,7 +911,32 @@ export function ChatScreen({ roomId, insets }: Props) {
                     })
                   }
                 }
+                const overlayProps = Platform.select({
+                  web: {
+                    onPress: (e: any) => {
+                      if (isMessageDead) return;
 
+                      if (selectionMode) {
+                        e.stopPropagation();
+                        toggleSelected(msg.id);
+                      }
+                    },
+                    pointerEvents: (selectionMode && !isMessageDead ? 'auto' : 'none') as any,
+                  },
+                  default: {
+                    onPress: (e: any) => {
+                      if (isMessageDead) return;
+
+                      e.stopPropagation();
+                      if (selectionMode) {
+                        toggleSelected(msg.id);
+                      } else {
+                        if (hasMedia) openViewer(mediaAttachments, 0);
+                      }
+                    },
+                    pointerEvents: (isMessageDead ? 'none' : (selectionMode ? 'auto' : 'box-none')) as any,
+                  },
+                });
                 return (
                   <XStack
                     justifyContent={isMe ? 'flex-end' : 'flex-start'}
@@ -977,6 +1004,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                       onEnterMultiSelect={enterMultiSelect}
                       onDeleteForMe={deleteForMe}
                       onRecall={isMe ? recallMessage : undefined}
+                      disabled={isMessageDead}
                     >
 
 
@@ -991,10 +1019,14 @@ export function ChatScreen({ roomId, insets }: Props) {
                             borderColor={bubbleBorderColor}
                             maxWidth={280}
                             position="relative"
+                            pointerEvents={selectionMode ? 'auto' : 'none'}
                           >
                             <MediaGrid
                               media={mediaAttachments}
-                              onPressMedia={(index) => openViewer(mediaAttachments, index)}
+                              onPressMedia={(index) => {
+                                if (selectionMode) toggleSelected(msg.id)
+                                else openViewer(mediaAttachments, index)
+                              }}
                             />
 
                             {/* Caption Text nằm trong cùng box với Media */}
@@ -1112,6 +1144,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                             maxWidth={280} // Tăng nhẹ maxWidth để hiển thị tên file rõ hơn
                             // QUAN TRỌNG: alignItems giúp bong bóng file co lại theo nội dung
                             alignItems={isMe ? 'flex-end' : 'flex-start'}
+                            pointerEvents={selectionMode ? 'auto' : 'none'}
                           >
                             {fileAttachments.map((at, idx) => (
                               <YStack
@@ -1176,7 +1209,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                             ))}
                           </YStack>
                         )}
-                        {/* Lớp phủ điều phối sự kiện - Nằm cuối cùng bên trong YStack cha */}
+
                         <XStack
                           position="absolute"
                           top={0}
@@ -1184,37 +1217,18 @@ export function ChatScreen({ roomId, insets }: Props) {
                           right={0}
                           bottom={0}
                           zIndex={10}
-                          onPress={(e) => {
-                            // 1. Chặn đứng sự kiện lan truyền lên MessageActionMenu (Popover/ContextMenu)
-                            e.stopPropagation()
+                          // Spread props đã tách biệt
+                          {...overlayProps}
 
-                            // 2. Chặn nếu đang đóng Viewer
-                            if (isClosingViewerRef.current) return
+                          // Vẫn để onLongPress cho mode selection nếu Đạt muốn
+                          onLongPress={selectionMode ? (e) => {
+                            e.stopPropagation();
+                            toggleSelected(msg.id);
+                          } : undefined}
 
-                            if (selectionMode) {
-                              toggleSelected(msg.id)
-                            } else {
-                              if (hasMedia) {
-                                openViewer(mediaAttachments, 0)
-                              } else if (hasFiles && !hasText) {
-                                const url = fileAttachments[0].fileUrl
-                                Platform.OS === 'web'
-                                  ? window.open(url, '_blank')
-                                  : Linking.openURL(url)
-                              }
-                            }
-                          }}
-                          onLongPress={(e) => {
-                            e.stopPropagation()
-                            if (isClosingViewerRef.current) return
-
-                            if (!selectionMode) {
-                              enterMultiSelect(msg)
-                            }
-                          }}
-                          {...(Platform.OS !== 'web' && { delayLongPress: 350 })}
+                          delayLongPress={350}
                           pressStyle={{
-                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            backgroundColor: selectionMode ? 'rgba(0,0,0,0.05)' : 'transparent',
                             borderRadius: '$4',
                           }}
                         />
