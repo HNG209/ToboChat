@@ -455,7 +455,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               <XStack alignItems="center" space="$2">
                 <Avatar circular size="$4" marginRight="$2">
                   <Avatar.Image
-                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
+                    src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
                   />
                   <Avatar.Fallback borderColor="gray" />
                 </Avatar>

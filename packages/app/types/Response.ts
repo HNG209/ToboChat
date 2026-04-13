@@ -38,6 +38,7 @@ export interface FriendRequestResponse {
 export interface RoomResponse {
   id: string
   roomName: string
+  avatarUrl?: string
   roomType: RoomType
   latestMessage: MessageResponse
   createdAt: string
