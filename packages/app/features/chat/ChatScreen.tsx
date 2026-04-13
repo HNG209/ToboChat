@@ -56,6 +56,7 @@ import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
+import { dir } from 'i18next'
 import { useChatAttachment } from './../../hooks/useChatAttechment'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
@@ -136,6 +137,16 @@ export function ChatScreen({ roomId, insets }: Props) {
   const selfUserName = useSelector(
     (s: RootState) => (s as any).auth?.user?.name as string | undefined
   )
+  const nextCursorRef = useRef<string | undefined>(undefined)
+  const prevCursorRef = useRef<string | undefined>(undefined)
+  const flatListRef = useRef<any>(null)
+  const replyCursorRef = useRef<string | undefined>(undefined)
+  const hasJumpedToReplyRef = useRef(false) // chặn nhiều lần scroll khi cursor thay đổi liên tục
+  const isJumpingToReplyRef = useRef(false) // đánh dấu đang trong quá trình scroll tới tin nhắn reply, để tạm thời disable tính năng load more tránh xung đột
+  const isUserAtBottomRef = useRef(true)
+  const justNudgedRef = useRef(false)
+  const loadMoreDirectionRef = useRef<'before' | 'after' | null>(null)
+
   // Thêm state vào ChatScreen
   const [viewerVisible, setViewerVisible] = useState(false)
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
@@ -155,6 +166,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
+  const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
 
   const listBottomSpacer = isWeb ? 0 : composerHeight
   const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
@@ -209,8 +221,12 @@ export function ChatScreen({ roomId, insets }: Props) {
   const replyTag = replyTo ? `@${replyName}` : ''
 
   // 1. API Hooks
-  const { data, isLoading, isError } = useGetMessagesQuery(
-    { roomId },
+  const { data, isLoading, isFetching, isError } = useGetMessagesQuery(
+    {
+      roomId,
+      cursor: replyCursorRef.current,
+      direction,
+    },
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
@@ -239,6 +255,39 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
 
+  // Tự động cuộn tới tin nhắn reply sau khi fetch xong trang chứa nó
+  useEffect(() => {
+    if (!replyCursorRef.current) return // chỉ scroll khi có cursor reply, tránh scroll khi load more
+    if (!data?.items?.length) return // chỉ scroll khi đã có dữ liệu
+    if (hasJumpedToReplyRef.current) return // chỉ scroll 1 lần cho mỗi cursor reply, tránh scroll khi load more hoặc refetch do các nguyên nhân khác
+
+    const match = replyCursorRef.current?.match(/^MSG#(.+)$/)
+    const replyMessageId = match ? match[1] : null
+    if (!replyMessageId) return
+
+    const index = findMessageIndex(replyMessageId)
+    if (index !== -1) {
+      isJumpingToReplyRef.current = true
+      setTimeout(() => {
+        scrollToMessage(index)
+        setTimeout(() => {
+          isJumpingToReplyRef.current = false
+          hasJumpedToReplyRef.current = true // Đánh dấu đã scroll xong
+        }, 500)
+      }, 100)
+    }
+  }, [data?.items])
+
+  // Nudge slider lên một chút khi có tin nhắn mới và user đang ở cuối
+  useEffect(() => {
+    if (!flatListRef.current) return
+    if (!data?.items?.length) return
+    if (isUserAtBottomRef.current) {
+      justNudgedRef.current = true // Đánh dấu vừa nudge
+      flatListRef.current.scrollToOffset({ offset: 200, animated: false })
+    }
+  }, [data?.items?.length])
+
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
     if (locallyDeletedIds.size === 0 && locallyRecalledIds.size === 0) return items
@@ -256,12 +305,14 @@ export function ChatScreen({ roomId, insets }: Props) {
       }
     })
   }, [data?.items, locallyDeletedIds, locallyRecalledIds])
+  
   const availableForwardRooms = useMemo(() => {
     return (joinedRoomsData?.items || [])
       .filter((room) => room.id !== roomId)
       .slice()
       .sort((left, right) => left.roomName.localeCompare(right.roomName))
   }, [joinedRoomsData?.items, roomId])
+  
   const selectedMessages = useMemo(
     () => (normalizedMessages || []).filter((message) => selectedIds.has(message.id)),
     [normalizedMessages, selectedIds]
@@ -293,28 +344,76 @@ export function ChatScreen({ roomId, insets }: Props) {
     }).unwrap()
   }
   // 2. Load More Logic
-  const handleLoadMore = async () => {
-    const nextCursor = data?.nextCursor
-    if (isFetchingMore || !nextCursor) return
+  const handleLoadMore = async (direction: 'before' | 'after') => {
+    if (isFetchingMore || isJumpingToReplyRef.current) return
+    loadMoreDirectionRef.current = direction
+
+    if (direction === 'before' && !data?.nextCursor) {
+      console.log('Không còn tin nhắn cũ để tải')
+      nextCursorRef.current = undefined
+      return
+    }
+
+    if (direction === 'after' && !data?.prevCursor) {
+      console.log('Không còn tin nhắn mới để tải')
+      prevCursorRef.current = undefined
+      return
+    }
+
+    if (direction === 'before') nextCursorRef.current = data?.nextCursor
+    else prevCursorRef.current = data?.prevCursor
 
     try {
-      const response = await triggerGetMessages({ roomId, cursor: nextCursor, limit: 20 }).unwrap()
-
-      if (response.items && response.items.length > 0) {
-        // Cập nhật cache để thêm tin nhắn cũ vào cuối mảng
-        dispatch(
-          chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-            // Push tin cũ vào cuối mảng (FlatList inverted sẽ đẩy nó lên trên cùng)
-            draft.items.push(...response.items)
-            ;(draft as any).nextCursor = (response as any).nextCursor
-          })
-        )
-      }
+      await triggerGetMessages({
+        roomId,
+        cursor: direction === 'before' ? nextCursorRef.current : prevCursorRef.current,
+        limit: 20,
+        direction,
+      }).unwrap()
     } catch (error) {
       console.error('Lỗi khi tải thêm tin nhắn cũ:', error)
     }
   }
 
+  const findMessageIndex = (messageId: string) => {
+    return data?.items?.findIndex((m) => m.id === messageId) ?? -1
+  }
+
+  const scrollToMessage = (index: number) => {
+    if (index < 0 || !flatListRef.current) return
+
+    flatListRef.current.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0.5, // Cố gắng đưa tin nhắn vào giữa màn hình
+    })
+  }
+
+  const handlePressReply = async (replyMessageId: string) => {
+    if (!replyMessageId) return
+
+    // Nếu tin nhắn đã có trong cache, scroll tới đó ngay mà không cần gọi API
+    const index = findMessageIndex(replyMessageId)
+
+    if (index !== -1) {
+      scrollToMessage(index)
+      return
+    }
+
+    // Reset cache rtk
+    dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        draft.items = []
+        draft.nextCursor = undefined
+        draft.prevCursor = undefined
+      })
+    )
+
+    // Set cursor để kích hoạt lại query và fetch đúng trang chứa tin nhắn reply
+    replyCursorRef.current = `MSG#${replyMessageId}`
+    hasJumpedToReplyRef.current = false
+    setDirection('both')
+  }
   // 3. Send Message Logic
   const handleSendMessage = async () => {
     // 1. Kiểm tra trạng thái upload
@@ -372,6 +471,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
+      replyTo: reply || undefined,
       attachments: attachments,
     }
 
@@ -403,10 +503,8 @@ export function ChatScreen({ roomId, insets }: Props) {
         roomId,
         content: outgoingContent,
         messageType: 'USER',
-        attachments: attachments.length > 0 ? attachments : undefined,
+        replyTo: replyTo?.id,
       }).unwrap()
-
-      if (replyTo) setReplyTo(null)
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(tempContent)
@@ -543,7 +641,8 @@ export function ChatScreen({ roomId, insets }: Props) {
             </XStack>
           ) : (
             <StyledFlatList
-              data={normalizedMessages}
+              ref={flatListRef}
+              data={data?.items || []}
               inverted={true}
               keyExtractor={(item: MessageResponse) => item.id}
               contentContainerStyle={{
@@ -553,20 +652,70 @@ export function ChatScreen({ roomId, insets }: Props) {
                 // In inverted mode, paddingBottom becomes the *top* spacing.
                 paddingBottom: 20,
               }}
-              onEndReached={handleLoadMore}
+              onEndReached={() => {
+                console.log('onEndReached (load older messages)')
+                handleLoadMore('before')
+              }}
+              onStartReached={() => {
+                if (
+                  !isFetchingMore &&
+                  !isJumpingToReplyRef.current &&
+                  data?.prevCursor &&
+                  isUserAtBottomRef.current &&
+                  !justNudgedRef.current // Chặn fetch nếu vừa nudge
+                ) {
+                  console.log('onStartReached (load newer messages)')
+                  handleLoadMore('after')
+                }
+              }}
+              maintainVisibleContentPosition={{
+                // Giữ nguyên vị trí hiển thị khi load thêm tin nhắn
+                minIndexForVisible: 1,
+                autoscrollToTopThreshold: 10,
+              }}
+              onScroll={(e) => {
+                const { contentOffset } = e.nativeEvent
+                const atBottom = contentOffset.y < 20
+                if (atBottom && justNudgedRef.current) {
+                  // User đã scroll về cuối sau khi nudge, cho phép fetch lại
+                  justNudgedRef.current = false
+                }
+                isUserAtBottomRef.current = atBottom
+              }}
+              onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToOffset({
+                    offset: highestMeasuredFrameIndex * averageItemLength,
+                    animated: true,
+                  })
+                  setTimeout(() => {
+                    flatListRef.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 })
+                    isJumpingToReplyRef.current = false
+                  }, 300)
+                } else {
+                  isJumpingToReplyRef.current = false
+                }
+              }}
               onEndReachedThreshold={0.1}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
               // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
               ListFooterComponent={
-                isFetchingMore ? (
+                isFetchingMore && loadMoreDirectionRef.current === 'before' ? (
+                  <XStack justifyContent="center" alignItems="center" py="$4">
+                    <ActivityIndicator size="small" color="#888" />
+                  </XStack>
+                ) : null
+              }
+              ListHeaderComponent={
+                isFetchingMore && loadMoreDirectionRef.current === 'after' ? (
                   <XStack justifyContent="center" alignItems="center" py="$4">
                     <ActivityIndicator size="small" color="#888" />
                   </XStack>
                 ) : null
               }
               renderItem={({ item: msg, index }) => {
-                const items = normalizedMessages || []
+                const items = data?.items || []
                 const isMe = msg.self
                 const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
                 const myBubbleText = 'white'
@@ -800,6 +949,49 @@ export function ChatScreen({ roomId, insets }: Props) {
                       onDeleteForMe={deleteForMe}
                       onRecall={isMe ? recallMessage : undefined}
                     >
+                      <YStack
+                        p="$3"
+                        borderRadius="$4"
+                        maxWidth={'100%'}
+                        bg={effectiveBubbleBg}
+                        borderWidth={bubbleBorderWidth}
+                        borderColor={bubbleBorderColor}
+                        elevation={isSelected ? '$3' : '$1'}
+                        shadowColor="$shadowColor"
+                        shadowRadius={isSelected ? 6 : 2}
+                        shadowOffset={{ width: 0, height: isSelected ? 2 : 1 }}
+                      >
+                        {msg?.replyTo && (
+                          <YStack
+                            onPress={() => handlePressReply(msg.replyTo.id)}
+                            bg={replyPreviewBg}
+                            borderRadius="$3"
+                            paddingHorizontal="$2"
+                            paddingVertical="$2"
+                            marginBottom="$2"
+                            space="$1"
+                          >
+                            <Text
+                              fontSize="$3"
+                              fontWeight="700"
+                              numberOfLines={1}
+                              color={replyNameColor}
+                            >
+                              {`${msg.replyTo.user?.name || 'User'}`}
+                            </Text>
+
+                            <Text
+                              fontSize="$2"
+                              color={replyPreviewTextColor}
+                              opacity={0.85}
+                              numberOfLines={1}
+                            >
+                              {msg.replyTo.content.length > 100
+                                ? msg.replyTo.content.slice(0, 100) + '...'
+                                : msg.replyTo.content}
+                             </Text>
+                          </YStack>
+                          )}
                       <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
                         {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
                         {hasMedia && (
@@ -1059,7 +1251,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Copy size={16} />}
                   disabled={selectedCount === 0}
                   onPress={async () => {
-                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
+                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
                     const text = selected
                       .slice()
                       .reverse()
@@ -1078,6 +1270,15 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Forward size={16} />}
                   disabled={selectedCount === 0}
                   onPress={() => {
+                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
+                    const text = selected
+                      .slice()
+                      .reverse()
+                      .map((m) => m.content)
+                      .join('\n')
+                    setMessage(text)
+                    setSelectionMode(false)
+                    setSelectedIds(new Set())
                     openForwardDialog(selectedMessages)
                   }}
                 >
@@ -1092,9 +1293,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   disabled={selectedCount === 0}
                   onPress={() => {
                     // Safety: only allow deleting your own selected messages (frontend-only)
-                    const mine = (normalizedMessages || []).filter(
-                      (m) => selectedIds.has(m.id) && m.self
-                    )
+                    const mine = (data?.items || []).filter((m) => selectedIds.has(m.id) && m.self)
                     if (mine.length > 0) {
                       setLocallyRecalledIds((prev) => {
                         const next = new Set(prev)
