@@ -232,8 +232,8 @@ export function ChatScreen({ roomId, insets }: Props) {
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
+      // refetchOnFocus: true,
+      // refetchOnReconnect: true,
     }
   )
 
@@ -245,6 +245,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
     }
   )
   const { data: joinedRoomsData, isLoading: isJoinedRoomsLoading } = useGetJoinedRoomsQuery(
@@ -252,7 +253,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     {
       skip: !hasSession,
       refetchOnMountOrArgChange: true,
-      refetchOnFocus: true,
     }
   )
   const [sendMessage] = useSendMessageMutation()
@@ -447,37 +447,17 @@ export function ChatScreen({ roomId, insets }: Props) {
 
     if (!message.trim() && attachments.length === 0) return
 
-    // 3. Chuẩn bị nội dung gửi (Giữ nguyên logic của Đạt)
     const reply = replyTo
-    let tempContent = message
-
-    if (reply && replyTag) {
-      const trimmedStart = tempContent.trimStart()
-      if (trimmedStart.startsWith(replyTag)) {
-        tempContent = trimmedStart.slice(replyTag.length).trimStart()
-      }
-    }
-
-    const outgoingContent = reply
-      ? buildReplyEncodedContent({
-        replyName: getDisplayNameForMessage(reply, selfUserName),
-        replyText: reply.content,
-        messageText: tempContent,
-      })
-      : tempContent
-
-    // --- BƯỚC QUAN TRỌNG: TẠO ID CHUẨN TỪ FRONTEND ---
-    const finalMessageId = uuidv4();
 
     const optimisticMessage: MessageResponse = {
-      id: finalMessageId, // Dùng ID này làm ID chính thức luôn
-      content: outgoingContent,
+      id: uuidv4(), // ID tạm thời cho optimistic update, sẽ được backend trả về ID thật sau khi gửi thành công
+      content: message,
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
       replyTo: reply || undefined,
       attachments: attachments,
-      messageStatus: 'SENDING', // Trạng thái đang gửi
+      // messageStatus: 'SENDING', // Trạng thái đang gửi
     }
 
     // Reset input và drafts
@@ -508,39 +488,29 @@ export function ChatScreen({ roomId, insets }: Props) {
 
     try {
       // 1. Gửi tin nhắn
-      await sendMessage({
-        messageId: finalMessageId,
+      const result = await sendMessage({
         roomId,
-        content: outgoingContent,
+        content: message,
         messageType: 'USER',
         replyTo: replyTo?.id,
         attachments,
       }).unwrap()
 
-      // 2. CẬP NHẬT TRẠNG THÁI (Dùng đúng ID đã tạo)
+      // cập nhật lại cache với ID thật và trạng thái đã gửi
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-          // Tìm trong mảng items
-          const msg = draft.items?.find((m) => m.id === finalMessageId);
+          if (!draft || !draft.items) return
+          const msg = draft.items?.find((m) => m.id === optimisticMessage.id)
           if (msg) {
-            msg.messageStatus = 'NORMAL'; // Đánh dấu đã gửi xong
+            msg.id = result.id // Cập nhật ID thật từ server
+            msg.createdAt = result.createdAt // Cập nhật timestamp chính xác từ server
+            msg.content = result.content
           }
         })
-      );
-
-      // 3. Cập nhật trạng thái cho cả danh sách phòng (nếu cần)
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
-          const room = draft.items?.find(r => r.id === roomId);
-          if (room && room.latestMessage?.id === finalMessageId) {
-            room.latestMessage.messageStatus = 'NORMAL';
-          }
-        })
-      );
-
+      )
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
-      setMessage(tempContent)
+      setMessage(message) // Hoàn nguyên nội dung input để người dùng có thể thử gửi lại
       if (reply) setReplyTo(reply)
       roomPatchResult.undo()
       patchResult.undo()
@@ -575,13 +545,18 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
     const handleMessageRevoked = (data: { messageId: string; roomId: string }) => {
       if (data.roomId !== roomId) return
+      // console.log('Received message_revoked event for messageId:', data.messageId)
 
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          // log danh sách messageId trong cache để debug
+          // console.log('Current messages in cache:', draft.items?.map((m) => m.id))
           const msg = draft.items?.find((m) => m.id === data.messageId)
           if (msg) {
             ; (msg as any).messageStatus = 'REVOKED'
             msg.content = 'Tin nhắn đã được thu hồi'
+            msg.replyTo = undefined
+            msg.attachments = []
           }
         })
       )
@@ -794,10 +769,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                 const timeString = `${hours}:${minutes}`
 
                 const isSelected = selectionMode && selectedIds.has(msg.id)
-
-                // const parsedReply = parseReplyEncodedContent(msg.content)
-                // const isReplyMessage = !!parsedReply
-                // const messageTextToRender = parsedReply?.messageText ?? msg.content
                 // BƯỚC 1: tạo displayContent
                 // 1. Kiểm tra trạng thái thu hồi
                 const isRevoked = msg.messageStatus === 'REVOKED';
@@ -828,11 +799,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 const replyPreviewTextColor = '$color10'
                 const replyMainTextColor = '$color12'
                 const replyTimeColor = '$color10'
-
                 const bubbleTextColor = replyMainTextColor
-
-
-
                 const hasMedia = mediaAttachments.length > 0
                 const hasFiles = fileAttachments.length > 0
                 const hasText = !!messageTextToRender.trim()
@@ -908,6 +875,8 @@ export function ChatScreen({ roomId, insets }: Props) {
                       const msg = draft.items?.find((m) => m.id === message.id)
                       if (msg) {
                         ; (msg as any).messageStatus = 'REVOKED'
+                        msg.replyTo = undefined
+                        msg.attachments = []
                         msg.content = 'Tin nhắn đã được thu hồi'
                       }
                     })
@@ -1009,14 +978,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                         setSelectionMode(false)
                         setSelectedIds(new Set())
                         setReplyTo(message)
-
-                        const name = getDisplayNameForMessage(message, selfUserName)
-                        const tagWithSpace = `@${name} `
-                        setMessage((prev) => {
-                          const next = (prev || '').trimStart()
-                          if (next.startsWith(tagWithSpace.trimEnd())) return prev || ''
-                          return tagWithSpace
-                        })
                       }}
                       onForward={(message) => openForwardDialog([message])}
                       onEnterMultiSelect={enterMultiSelect}
@@ -1024,8 +985,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                       onRecall={isMe ? recallMessage : undefined}
                       disabled={isMessageDead}
                     >
-
-
                       <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
                         {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
                         {hasMedia && (
@@ -1102,7 +1061,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                             borderColor={bubbleBorderColor}
                           >
                             {/* Phần hiển thị tin nhắn đang trả lời (Reply) */}
-                            {parsedReply && (
+                            {msg?.replyTo && (
                               <YStack
                                 bg={replyPreviewBg}
                                 borderRadius="$3"
@@ -1110,6 +1069,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                                 paddingVertical="$2"
                                 marginBottom="$2"
                                 space="$1"
+                                onPress={() => handlePressReply(msg.replyTo.id)}
                               >
                                 <Text
                                   fontSize="$3"
@@ -1117,7 +1077,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                                   numberOfLines={1}
                                   color={replyNameColor}
                                 >
-                                  {parsedReply.replyName}
+                                  {msg.replyTo.user?.name || 'Unknown'}
                                 </Text>
                                 <Text
                                   fontSize="$2"
@@ -1125,7 +1085,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                                   opacity={0.85}
                                   numberOfLines={1}
                                 >
-                                  {parsedReply.replyText}
+                                  {msg.replyTo.content}
                                 </Text>
                               </YStack>
                             )}
@@ -1222,8 +1182,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                                   </Text>
                                 )}
                               </YStack>
-
-
                             ))}
                           </YStack>
                         )}
@@ -1251,7 +1209,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                           }}
                         />
                       </YStack>
-
                     </MessageActionMenu>
 
                     {

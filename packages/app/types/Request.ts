@@ -39,7 +39,6 @@ export interface RespondFriendRequestRequest {
 }
 
 export interface SendMessageRequest {
-  messageId: string
   roomId: string
   content: string
   messageType: string

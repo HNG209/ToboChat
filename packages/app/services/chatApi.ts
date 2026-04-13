@@ -4,12 +4,12 @@ import { SendMessageRequest } from 'app/types/Request'
 
 export const chatApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    sendMessage: builder.mutation<void, SendMessageRequest>({
+    sendMessage: builder.mutation<MessageResponse, SendMessageRequest>({
       query: (sendMessageRequest) => ({
         url: `/chat/rooms/${sendMessageRequest.roomId}/messages`,
         method: 'POST',
         data: {
-          messageId: sendMessageRequest.messageId,
+          // messageId: sendMessageRequest.messageId, // ID này sẽ do backend tạo và trả về, không cần gửi từ client
           content: sendMessageRequest.content,
           messageType: sendMessageRequest.messageType,
           replyTo: sendMessageRequest.replyTo,
