@@ -9,6 +9,7 @@ export const chatApi = baseApi.injectEndpoints({
         url: `/chat/rooms/${sendMessageRequest.roomId}/messages`,
         method: 'POST',
         data: {
+          messageId: sendMessageRequest.messageId,
           content: sendMessageRequest.content,
           messageType: sendMessageRequest.messageType,
           replyTo: sendMessageRequest.replyTo,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { v4 as uuidv4 } from 'uuid';
 import {
   Platform,
   KeyboardAvoidingView,
@@ -59,6 +60,7 @@ import { MessageActionMenu } from './MessageActionMenu'
 import { useChatAttachment } from '../../hooks/useChatAttachment'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
+import { uuid } from 'expo-modules-core'
 
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
@@ -416,7 +418,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   }
   // 3. Send Message Logic
   const handleSendMessage = async () => {
-    // 1. Kiểm tra trạng thái upload
+    // 1. Kiểm tra trạng thái upload (Giữ nguyên logic của Đạt)
     const isStillUploading = drafts.some((d) => d.isUploading)
     const hasError = drafts.some((d) => (d as any).error)
 
@@ -430,7 +432,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       return
     }
 
-    // 2. Chỉ lấy những attachments thực sự có fileUrl (URL từ S3)
+    // 2. Xử lý attachments (Giữ nguyên logic của Đạt)
     const attachments: Attachment[] = drafts
       .filter((d) => d.fileUrl && d.fileUrl.startsWith('http'))
       .map((d) => ({
@@ -440,9 +442,9 @@ export function ChatScreen({ roomId, insets }: Props) {
         fileSize: d.fileSize,
       }))
 
-    // Nếu người dùng cố tình xóa hết ảnh lỗi và không nhập chữ, thì không cho gửi
     if (!message.trim() && attachments.length === 0) return
 
+    // 3. Chuẩn bị nội dung gửi (Giữ nguyên logic của Đạt)
     const reply = replyTo
     let tempContent = message
 
@@ -461,30 +463,33 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
       : tempContent
 
-    setMessage('')
-    if (reply) setReplyTo(null)
+    // --- BƯỚC QUAN TRỌNG: TẠO ID CHUẨN TỪ FRONTEND ---
+    const finalMessageId = uuidv4();
 
-    const tempMessageId = `temp_${Date.now()}`
     const optimisticMessage: MessageResponse = {
-      id: tempMessageId,
+      id: finalMessageId, // Dùng ID này làm ID chính thức luôn
       content: outgoingContent,
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
       replyTo: reply || undefined,
       attachments: attachments,
+      messageStatus: 'SENDING', // Trạng thái đang gửi
     }
 
-    // Cập nhật cache ngay lập tức với tin nhắn giả định (optimistic update)
+    // Reset input và drafts
+    setMessage('')
+    if (reply) setReplyTo(null)
+    setDrafts([])
+
+    // 4. Optimistic Update (Cập nhật cache ngay lập tức)
     const patchResult = dispatch(
       chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
         if (!draft.items) draft.items = []
-        // Unshift tin mới vào đầu mảng (FlatList inverted sẽ hiển thị nó ở dưới cùng)
         draft.items.unshift(optimisticMessage)
       })
     )
 
-    // Cập nhật cache của phòng để hiển thị tin nhắn mới nhất và đẩy phòng lên đầu danh sách
     const roomPatchResult = dispatch(
       roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
         if (!draft || !draft.items) return
@@ -496,16 +501,39 @@ export function ChatScreen({ roomId, insets }: Props) {
         }
       })
     )
-    setDrafts([])
-    setMessage('')
+
     try {
+      // 1. Gửi tin nhắn
       await sendMessage({
+        messageId: finalMessageId,
         roomId,
         content: outgoingContent,
         messageType: 'USER',
         replyTo: replyTo?.id,
         attachments,
       }).unwrap()
+
+      // 2. CẬP NHẬT TRẠNG THÁI (Dùng đúng ID đã tạo)
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          // Tìm trong mảng items
+          const msg = draft.items?.find((m) => m.id === finalMessageId);
+          if (msg) {
+            msg.messageStatus = 'NORMAL'; // Đánh dấu đã gửi xong
+          }
+        })
+      );
+
+      // 3. Cập nhật trạng thái cho cả danh sách phòng (nếu cần)
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
+          const room = draft.items?.find(r => r.id === roomId);
+          if (room && room.latestMessage?.id === finalMessageId) {
+            room.latestMessage.messageStatus = 'NORMAL';
+          }
+        })
+      );
+
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(tempContent)

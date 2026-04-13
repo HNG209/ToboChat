@@ -55,6 +55,7 @@
     "turbo": "^1.13.4",
     "typescript": "~5.8.3",
     "ultra-runner": "^3.10.5",
+    "uuid": "^13.0.0",
     "vitest": "^2.1.1"
   },
   "packageManager": "yarn@4.5.0",
