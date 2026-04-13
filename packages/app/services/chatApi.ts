@@ -12,6 +12,7 @@ export const chatApi = baseApi.injectEndpoints({
           content: sendMessageRequest.content,
           messageType: sendMessageRequest.messageType,
           replyTo: sendMessageRequest.replyTo,
+          attachments: sendMessageRequest.attachments,
         },
       }),
     }),
@@ -78,7 +79,50 @@ export const chatApi = baseApi.injectEndpoints({
 
       providesTags: (result, error, arg) => [{ type: 'Messages', id: arg.roomId }],
     }),
+    getPresignedUrl: builder.query<any, { roomId: string; fileName: string; contentType: string }>({
+      query: (params) => ({
+        url: `/chat/upload/${params.roomId}`,
+        method: 'GET',
+        params: {
+          fileName: params.fileName,
+          contentType: params.contentType,
+        },
+      }),
+      // Bóc lớp vỏ 'result' ngay tại đây
+      transformResponse: (response: any) => {
+        console.log('Raw Response từ Backend:', response) // Log để bạn tự soi trong Console
+        return response
+      },
+    }),
+    // ham xoa tin nhan
+    revokeMessage: builder.mutation<void, { roomId: string; messageId: string }>({
+      query: ({ roomId, messageId }) => ({
+        url: `/chat/rooms/${roomId}/messages/revoke`,
+        method: 'POST',
+        data: {
+          messageId,
+        },
+      }),
+    }),
+    // forward tin nhan
+    forwardMessages: builder.mutation<
+      void,
+      { fromRoomId: string; toRoomIds: string[]; messageIds: string[] }
+    >({
+      query: (data) => ({
+        url: `/chat/rooms/forwardMessage`,
+        method: 'POST',
+        data,
+      }),
+    }),
   }),
 })
 
-export const { useGetMessagesQuery, useLazyGetMessagesQuery, useSendMessageMutation } = chatApi
+export const {
+  useGetMessagesQuery,
+  useLazyGetMessagesQuery,
+  useSendMessageMutation,
+  useLazyGetPresignedUrlQuery,
+  useRevokeMessageMutation,
+  useForwardMessagesMutation,
+} = chatApi

@@ -1,4 +1,4 @@
-import { PageResponse, RoomResponse } from 'app/types/Response'
+import { ApiResponse, PageResponse, RoomResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 
 export const roomApi = baseApi.injectEndpoints({
@@ -10,6 +10,7 @@ export const roomApi = baseApi.injectEndpoints({
         method: 'GET',
         params,
       }),
+      providesTags: ['Rooms']
     }),
 
     getRoomMetadata: builder.query<RoomResponse, { roomId: string }>({
@@ -18,7 +19,16 @@ export const roomApi = baseApi.injectEndpoints({
         method: 'GET',
       }),
     }),
+
+    markAsRead: builder.mutation<ApiResponse<void>, string> ({
+      query: (roomId) => ({
+        url: `/rooms/${roomId}/read`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Rooms']
+    })
   }),
+  overrideExisting: true,
 })
 
-export const { useGetJoinedRoomsQuery, useGetRoomMetadataQuery } = roomApi
+export const { useGetJoinedRoomsQuery, useGetRoomMetadataQuery, useMarkAsReadMutation } = roomApi
