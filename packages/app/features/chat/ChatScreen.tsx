@@ -47,6 +47,7 @@ import {
   useForwardMessagesMutation,
   useRevokeMessageMutation,
   useSendMessageMutation,
+  useDeleteMessageMutation,
 } from 'app/services/chatApi'
 import { roomApi, useGetJoinedRoomsQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
@@ -256,6 +257,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   )
   const [sendMessage] = useSendMessageMutation()
   const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
+  const [deleteMessage] = useDeleteMessageMutation()
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
 
@@ -391,6 +393,27 @@ export function ChatScreen({ roomId, insets }: Props) {
       animated: true,
       viewPosition: 0.5, // Cố gắng đưa tin nhắn vào giữa màn hình
     })
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    // TODO: xử lý lại cursor nếu tin nhắn bị xóa nằm ở đầu hoặc cuối trang, để tránh trường hợp xoá xong mà không load thêm được tin nhắn nào nữa
+    dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        const index = draft.items?.findIndex((m) => m.id === messageId)
+
+        if (index !== undefined && index !== -1) {
+          draft.items.splice(index, 1)
+        }
+      })
+    )
+
+    // TODO: xử lý trường hợp nếu xoá tin nhắn mới nhất của phòng thì cũng cần cập nhật lại latestMessage trong cache của getJoinedRooms
+
+    try {
+      await deleteMessage({ roomId, messageId }).unwrap()
+    } catch (error) {
+      console.error('Lỗi khi xoá tin nhắn:', error)
+    }
   }
 
   const handlePressReply = async (replyMessageId: string) => {
@@ -542,6 +565,19 @@ export function ChatScreen({ roomId, insets }: Props) {
         })
       )
     }
+
+    const handleMessageDeleted = async (message: MessageResponse) => {
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          const index = draft.items?.findIndex((m) => m.id === message.id)
+
+          if (index !== undefined && index !== -1) {
+            draft.items.splice(index, 1)
+          }
+        })
+      )
+    }
+
     const handleMessageRevoked = (data: { messageId: string; roomId: string }) => {
       if (data.roomId !== roomId) return
       // console.log('Received message_revoked event for messageId:', data.messageId)
@@ -572,9 +608,11 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
     }
 
+    socket.on('delete_message', handleMessageDeleted)
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     return () => {
+      socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
     }
@@ -801,7 +839,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 const bubbleTextColor = replyMainTextColor
                 const hasMedia = mediaAttachments.length > 0
                 const hasFiles = fileAttachments.length > 0
-                const hasText = !!messageTextToRender.trim()
+                const hasText = messageTextToRender && messageTextToRender.trim() !== ''
                 const otherBubbleBg = theme === 'dark' ? '$color2' : '$background'
 
                 const bubbleBg = isMe ? replyBubbleBg : otherBubbleBg
@@ -843,16 +881,25 @@ export function ChatScreen({ roomId, insets }: Props) {
                 }
 
                 const deleteForMe = (message: MessageResponse) => {
-                  setLocallyRecalledIds((prev) => {
-                    const next = new Set(prev)
-                    next.delete(message.id)
-                    return next
-                  })
-                  setLocallyDeletedIds((prev) => {
-                    const next = new Set(prev)
-                    next.add(message.id)
-                    return next
-                  })
+                  // Optimistic update để UI đổi ngay, không cần chờ API.
+                  // chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+                  //   console.log('Deleting message locally with id:', message.id)
+                  //   const msg = draft.items?.find((m) => m.id === message.id)
+                  //   if (msg) {
+                  //     msg.content = 'Tin nhắn đã bị xóa'
+                  //     msg.attachments = []
+                  //   }
+                  // })
+                  // setLocallyRecalledIds((prev) => {
+                  //   const next = new Set(prev)
+                  //   next.delete(message.id)
+                  //   return next
+                  // })
+                  // setLocallyDeletedIds((prev) => {
+                  //   const next = new Set(prev)
+                  //   next.add(message.id)
+                  //   return next
+                  // })
                 }
 
                 const recallMessage = async (message: MessageResponse) => {
@@ -980,7 +1027,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                       }}
                       onForward={(message) => openForwardDialog([message])}
                       onEnterMultiSelect={enterMultiSelect}
-                      onDeleteForMe={deleteForMe}
+                      onDeleteForMe={() => handleDeleteMessage(msg.id)}
                       onRecall={isMe ? recallMessage : undefined}
                       disabled={isMessageDead}
                     >

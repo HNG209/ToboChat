@@ -6,7 +6,7 @@ type Props = {
   name: string
   latestMessage: MessageResponse
   time?: string
-  avatar?: string
+  avatarUrl?: string
   pinned?: boolean
   onPress?: () => void
   selected?: boolean
@@ -35,12 +35,13 @@ export const ChatInboxItem = ({
   name,
   latestMessage,
   time,
-  avatar,
+  avatarUrl,
   pinned,
   onPress,
   selected,
   unreadCount,
 }: Props) => {
+  console.log('avatarUrl', avatarUrl)
   return (
     <ListItem
       pressTheme
@@ -95,7 +96,7 @@ export const ChatInboxItem = ({
       icon={
         <Avatar circular size="$5">
           <Avatar.Image
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`}
+            src={avatarUrl}
           />
         </Avatar>
       }

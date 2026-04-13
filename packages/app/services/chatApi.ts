@@ -95,6 +95,18 @@ export const chatApi = baseApi.injectEndpoints({
         return response
       },
     }),
+
+    // Xoá tin nhắn ở phía tôi
+    deleteMessage: builder.mutation<void, { roomId: string; messageId: string }>({
+      query: ({ roomId, messageId }) => ({
+        url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}`,
+        method: 'DELETE',
+        params: {
+          messageId,
+        },
+      }),
+    }),
+
     // ham xoa tin nhan
     revokeMessage: builder.mutation<void, { roomId: string; messageId: string }>({
       query: ({ roomId, messageId }) => ({
@@ -123,6 +135,7 @@ export const {
   useGetMessagesQuery,
   useLazyGetMessagesQuery,
   useSendMessageMutation,
+  useDeleteMessageMutation,
   useLazyGetPresignedUrlQuery,
   useRevokeMessageMutation,
   useForwardMessagesMutation,

@@ -115,9 +115,9 @@ export default function ChatInbox() {
           <ChatInboxItem
             key={room.id}
             name={room.roomName}
+            avatarUrl={room.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`}
             latestMessage={room.latestMessage}
             time={room?.latestMessage?.createdAt ?? undefined}
-            avatar={`https://i.pravatar.cc/150?u=${room.id}`}
             pinned={false}
             // onPress={() => router.push(`/chat/${room.id}`)}
             onPress={() => handleRoomPress(room.id)}
