@@ -46,7 +46,6 @@ export default function ChatInbox() {
     if (!isSocketReady) return
 
     const socket = getSocket()
-    console.log('ChatInbox mounted, socket:', socket)
     if (!socket) return
 
     const handleReceiveMessage = (payload: any) => {

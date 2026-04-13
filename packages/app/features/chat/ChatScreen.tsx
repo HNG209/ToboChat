@@ -245,7 +245,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
-      refetchOnFocus: true,
     }
   )
   const { data: joinedRoomsData, isLoading: isJoinedRoomsLoading } = useGetJoinedRoomsQuery(
