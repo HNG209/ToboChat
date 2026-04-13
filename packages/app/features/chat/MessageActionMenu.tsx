@@ -220,7 +220,7 @@ export function MessageActionMenu({
 
                   <XStack flexWrap="wrap">
                     <Tile
-                      title="Xóa phía bạn"
+                      title="Thu hồi phía mình"
                       icon={<Trash2 size={18} color="#ef4444" />}
                       onPress={() => onDeleteForMe(message)}
                     />
@@ -417,7 +417,7 @@ export function MessageActionMenu({
             <Popover.Close asChild>
               <ListItem
                 icon={<Trash2 size={18} color="#ef4444" />}
-                title="Xóa ở phía bạn"
+                title="Thu hồi phía mình"
                 onPress={() => onDeleteForMe(message)}
                 {...itemStyle}
               />

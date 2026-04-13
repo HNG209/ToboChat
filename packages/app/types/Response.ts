@@ -9,6 +9,7 @@ export interface ApiResponse<T = unknown> {
 export interface PageResponse<T> {
   items: T[]
   nextCursor?: string
+  prevCursor?: string
 }
 
 export interface FriendResponse {
@@ -25,6 +26,7 @@ export interface UserResponse {
   avatarUrl?: string
   createdAt: string
   friendStatus?: FriendStatus
+  totalUnreadMessages: number
 }
 
 export interface FriendRequestResponse {
@@ -40,13 +42,25 @@ export interface RoomResponse {
   roomType: RoomType
   latestMessage: MessageResponse
   createdAt: string
+  unreadMessages: number
 }
 
 export interface MessageResponse {
   id: string
   roomId: string
   user?: UserResponse
+  replyTo?: MessageResponse
   content: string
   self: boolean
   createdAt: string
+  messageStatus?: 'SENT' | 'REVOKED'
+  localStatus?: 'VISIBLE' | 'DELETED'
+  attachments?: Attachment[]
+}
+
+export interface Attachment {
+  fileUrl: string
+  fileName: string
+  contentType: string
+  fileSize: number
 }

@@ -83,6 +83,20 @@ export default function ChatInbox() {
     }
   }, [dispatch, isSocketReady])
 
+  const handleRoomPress = (roomId: string) => {
+    dispatch(
+      roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
+        const roomIndex = draft.items.findIndex((r) => r.id === roomId)
+
+        if (roomIndex !== -1) {
+          draft.items[roomIndex].unreadMessages = 0
+        }
+      })
+    )
+
+    router.push(`/chat/${roomId}`)
+  }
+
   if (!hasSession || isLoading) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
@@ -106,7 +120,9 @@ export default function ChatInbox() {
             time={room?.latestMessage?.createdAt ?? undefined}
             avatar={`https://i.pravatar.cc/150?u=${room.id}`}
             pinned={false}
-            onPress={() => router.push(`/chat/${room.id}`)}
+            // onPress={() => router.push(`/chat/${room.id}`)}
+            onPress={() => handleRoomPress(room.id)}
+            unreadCount={room.unreadMessages}
           />
         ))}
       </YStack>

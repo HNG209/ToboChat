@@ -7,7 +7,19 @@ import {
   useWindowDimensions,
   Linking,
 } from 'react-native'
-import { YStack, XStack, Text, Input, Button, Avatar, Theme, Circle, Image, ZStack } from '@my/ui'
+import {
+  YStack,
+  XStack,
+  Text,
+  Input,
+  Button,
+  Avatar,
+  Theme,
+  Circle,
+  Image,
+  ZStack,
+  ForwardMessageDialog,
+} from '@my/ui'
 import {
   SendHorizontal,
   Heart,
@@ -31,20 +43,23 @@ import {
   chatApi,
   useGetMessagesQuery,
   useLazyGetMessagesQuery,
+  useForwardMessagesMutation,
+  useRevokeMessageMutation,
   useSendMessageMutation,
 } from 'app/services/chatApi'
-import { roomApi, useGetRoomMetadataQuery } from 'app/services/roomApi'
+import { roomApi, useGetJoinedRoomsQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
-import { MessageResponse } from 'app/types/Response'
+import { Attachment, MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MessageActionMenu } from './MessageActionMenu'
-import { useChatAttachment } from './../../hooks/useChatAttechment'
+import { useChatAttachment } from '../../hooks/useChatAttachment'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
+
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
   return msg.user?.id || '__unknown__'
@@ -121,6 +136,16 @@ export function ChatScreen({ roomId, insets }: Props) {
   const selfUserName = useSelector(
     (s: RootState) => (s as any).auth?.user?.name as string | undefined
   )
+  const nextCursorRef = useRef<string | undefined>(undefined)
+  const prevCursorRef = useRef<string | undefined>(undefined)
+  const flatListRef = useRef<any>(null)
+  const replyCursorRef = useRef<string | undefined>(undefined)
+  const hasJumpedToReplyRef = useRef(false) // chặn nhiều lần scroll khi cursor thay đổi liên tục
+  const isJumpingToReplyRef = useRef(false) // đánh dấu đang trong quá trình scroll tới tin nhắn reply, để tạm thời disable tính năng load more tránh xung đột
+  const isUserAtBottomRef = useRef(true)
+  const justNudgedRef = useRef(false)
+  const loadMoreDirectionRef = useRef<'before' | 'after' | null>(null)
+
   // Thêm state vào ChatScreen
   const [viewerVisible, setViewerVisible] = useState(false)
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
@@ -131,7 +156,8 @@ export function ChatScreen({ roomId, insets }: Props) {
     setActiveMediaIndex(index)
     setViewerVisible(true)
   }
-
+  // Revoke message
+  const [revokeMessage] = useRevokeMessageMutation()
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
   const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(() => new Set())
@@ -140,6 +166,8 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
   const isClosingViewerRef = useRef(false)
+  const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
+
   const listBottomSpacer = isWeb ? 0 : composerHeight
   const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
   // Android keyboard handling: don't rely on KeyboardAvoidingView only.
@@ -193,11 +221,17 @@ export function ChatScreen({ roomId, insets }: Props) {
   const replyTag = replyTo ? `@${replyName}` : ''
 
   // 1. API Hooks
-  const { data, isLoading, isError } = useGetMessagesQuery(
-    { roomId },
+  const { data, isLoading, isFetching, isError } = useGetMessagesQuery(
+    {
+      roomId,
+      cursor: replyCursorRef.current,
+      direction,
+    },
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
     }
   )
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
@@ -208,7 +242,51 @@ export function ChatScreen({ roomId, insets }: Props) {
       refetchOnMountOrArgChange: true,
     }
   )
+  const { data: joinedRoomsData, isLoading: isJoinedRoomsLoading } = useGetJoinedRoomsQuery(
+    undefined,
+    {
+      skip: !hasSession,
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+    }
+  )
   const [sendMessage] = useSendMessageMutation()
+  const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
+  const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
+
+  // Tự động cuộn tới tin nhắn reply sau khi fetch xong trang chứa nó
+  useEffect(() => {
+    if (!replyCursorRef.current) return // chỉ scroll khi có cursor reply, tránh scroll khi load more
+    if (!data?.items?.length) return // chỉ scroll khi đã có dữ liệu
+    if (hasJumpedToReplyRef.current) return // chỉ scroll 1 lần cho mỗi cursor reply, tránh scroll khi load more hoặc refetch do các nguyên nhân khác
+
+    const match = replyCursorRef.current?.match(/^MSG#(.+)$/)
+    const replyMessageId = match ? match[1] : null
+    if (!replyMessageId) return
+
+    const index = findMessageIndex(replyMessageId)
+    if (index !== -1) {
+      isJumpingToReplyRef.current = true
+      setTimeout(() => {
+        scrollToMessage(index)
+        setTimeout(() => {
+          isJumpingToReplyRef.current = false
+          hasJumpedToReplyRef.current = true // Đánh dấu đã scroll xong
+        }, 500)
+      }, 100)
+    }
+  }, [data?.items])
+
+  // Nudge slider lên một chút khi có tin nhắn mới và user đang ở cuối
+  useEffect(() => {
+    if (!flatListRef.current) return
+    if (!data?.items?.length) return
+    if (isUserAtBottomRef.current) {
+      justNudgedRef.current = true // Đánh dấu vừa nudge
+      flatListRef.current.scrollToOffset({ offset: 200, animated: false })
+    }
+  }, [data?.items?.length])
 
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
@@ -227,29 +305,115 @@ export function ChatScreen({ roomId, insets }: Props) {
       }
     })
   }, [data?.items, locallyDeletedIds, locallyRecalledIds])
+
+  const availableForwardRooms = useMemo(() => {
+    return (joinedRoomsData?.items || [])
+      .filter((room) => room.id !== roomId)
+      .slice()
+      .sort((left, right) => left.roomName.localeCompare(right.roomName))
+  }, [joinedRoomsData?.items, roomId])
+
+  const selectedMessages = useMemo(
+    () => (normalizedMessages || []).filter((message) => selectedIds.has(message.id)),
+    [normalizedMessages, selectedIds]
+  )
+
+  useEffect(() => {
+    if (!forwardDialogOpen) {
+      setForwardSourceMessages([])
+    }
+  }, [forwardDialogOpen])
+
+  const openForwardDialog = (messagesToForward: MessageResponse[]) => {
+    const nextMessages = messagesToForward.filter(Boolean)
+    if (nextMessages.length === 0) return
+
+    setForwardSourceMessages(nextMessages)
+    setForwardDialogOpen(true)
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleForwardConfirm = async (targetRoomIds: string[]) => {
+    if (forwardSourceMessages.length === 0 || targetRoomIds.length === 0) return
+
+    await forwardMessages({
+      fromRoomId: roomId,
+      toRoomIds: targetRoomIds,
+      messageIds: forwardSourceMessages.map((message) => message.id),
+    }).unwrap()
+  }
   // 2. Load More Logic
-  const handleLoadMore = async () => {
-    const nextCursor = data?.nextCursor
-    if (isFetchingMore || !nextCursor) return
+  const handleLoadMore = async (direction: 'before' | 'after') => {
+    if (isFetchingMore || isJumpingToReplyRef.current) return
+    loadMoreDirectionRef.current = direction
+
+    if (direction === 'before' && !data?.nextCursor) {
+      console.log('Không còn tin nhắn cũ để tải')
+      nextCursorRef.current = undefined
+      return
+    }
+
+    if (direction === 'after' && !data?.prevCursor) {
+      console.log('Không còn tin nhắn mới để tải')
+      prevCursorRef.current = undefined
+      return
+    }
+
+    if (direction === 'before') nextCursorRef.current = data?.nextCursor
+    else prevCursorRef.current = data?.prevCursor
 
     try {
-      const response = await triggerGetMessages({ roomId, cursor: nextCursor, limit: 20 }).unwrap()
-
-      if (response.items && response.items.length > 0) {
-        // Cập nhật cache để thêm tin nhắn cũ vào cuối mảng
-        dispatch(
-          chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-            // Push tin cũ vào cuối mảng (FlatList inverted sẽ đẩy nó lên trên cùng)
-            draft.items.push(...response.items)
-            ;(draft as any).nextCursor = (response as any).nextCursor
-          })
-        )
-      }
+      await triggerGetMessages({
+        roomId,
+        cursor: direction === 'before' ? nextCursorRef.current : prevCursorRef.current,
+        limit: 20,
+        direction,
+      }).unwrap()
     } catch (error) {
       console.error('Lỗi khi tải thêm tin nhắn cũ:', error)
     }
   }
 
+  const findMessageIndex = (messageId: string) => {
+    return data?.items?.findIndex((m) => m.id === messageId) ?? -1
+  }
+
+  const scrollToMessage = (index: number) => {
+    if (index < 0 || !flatListRef.current) return
+
+    flatListRef.current.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0.5, // Cố gắng đưa tin nhắn vào giữa màn hình
+    })
+  }
+
+  const handlePressReply = async (replyMessageId: string) => {
+    if (!replyMessageId) return
+
+    // Nếu tin nhắn đã có trong cache, scroll tới đó ngay mà không cần gọi API
+    const index = findMessageIndex(replyMessageId)
+
+    if (index !== -1) {
+      scrollToMessage(index)
+      return
+    }
+
+    // Reset cache rtk
+    dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        draft.items = []
+        draft.nextCursor = undefined
+        draft.prevCursor = undefined
+      })
+    )
+
+    // Set cursor để kích hoạt lại query và fetch đúng trang chứa tin nhắn reply
+    replyCursorRef.current = `MSG#${replyMessageId}`
+    hasJumpedToReplyRef.current = false
+    setDirection('both')
+  }
   // 3. Send Message Logic
   const handleSendMessage = async () => {
     // 1. Kiểm tra trạng thái upload
@@ -267,7 +431,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
 
     // 2. Chỉ lấy những attachments thực sự có fileUrl (URL từ S3)
-    const attachments = drafts
+    const attachments: Attachment[] = drafts
       .filter((d) => d.fileUrl && d.fileUrl.startsWith('http'))
       .map((d) => ({
         fileUrl: d.fileUrl,
@@ -291,10 +455,10 @@ export function ChatScreen({ roomId, insets }: Props) {
 
     const outgoingContent = reply
       ? buildReplyEncodedContent({
-          replyName: getDisplayNameForMessage(reply, selfUserName),
-          replyText: reply.content,
-          messageText: tempContent,
-        })
+        replyName: getDisplayNameForMessage(reply, selfUserName),
+        replyText: reply.content,
+        messageText: tempContent,
+      })
       : tempContent
 
     setMessage('')
@@ -307,6 +471,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
+      replyTo: reply || undefined,
       attachments: attachments,
     }
 
@@ -338,10 +503,9 @@ export function ChatScreen({ roomId, insets }: Props) {
         roomId,
         content: outgoingContent,
         messageType: 'USER',
-        attachments: attachments.length > 0 ? attachments : undefined,
+        replyTo: replyTo?.id,
+        attachments,
       }).unwrap()
-
-      if (replyTo) setReplyTo(null)
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(tempContent)
@@ -377,10 +541,36 @@ export function ChatScreen({ roomId, insets }: Props) {
         })
       )
     }
+    const handleMessageRevoked = (data: { messageId: string; roomId: string }) => {
+      if (data.roomId !== roomId) return
+
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          const msg = draft.items?.find((m) => m.id === data.messageId)
+          if (msg) {
+            ; (msg as any).messageStatus = 'REVOKED'
+            msg.content = 'Tin nhắn đã được thu hồi'
+          }
+        })
+      )
+
+      setLocallyDeletedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(data.messageId)
+        return next
+      })
+      setLocallyRecalledIds((prev) => {
+        const next = new Set(prev)
+        next.add(data.messageId)
+        return next
+      })
+    }
 
     socket.on('receive_message', handleReceiveMessage)
+    socket.on('message_revoked', handleMessageRevoked)
     return () => {
       socket.off('receive_message', handleReceiveMessage)
+      socket.off('message_revoked', handleMessageRevoked)
     }
   }, [roomId, isSocketReady, dispatch])
 
@@ -452,7 +642,8 @@ export function ChatScreen({ roomId, insets }: Props) {
             </XStack>
           ) : (
             <StyledFlatList
-              data={normalizedMessages}
+              ref={flatListRef}
+              data={data?.items || []}
               inverted={true}
               keyExtractor={(item: MessageResponse) => item.id}
               contentContainerStyle={{
@@ -462,20 +653,70 @@ export function ChatScreen({ roomId, insets }: Props) {
                 // In inverted mode, paddingBottom becomes the *top* spacing.
                 paddingBottom: 20,
               }}
-              onEndReached={handleLoadMore}
+              onEndReached={() => {
+                console.log('onEndReached (load older messages)')
+                handleLoadMore('before')
+              }}
+              onStartReached={() => {
+                if (
+                  !isFetchingMore &&
+                  !isJumpingToReplyRef.current &&
+                  data?.prevCursor &&
+                  isUserAtBottomRef.current &&
+                  !justNudgedRef.current // Chặn fetch nếu vừa nudge
+                ) {
+                  console.log('onStartReached (load newer messages)')
+                  handleLoadMore('after')
+                }
+              }}
+              maintainVisibleContentPosition={{
+                // Giữ nguyên vị trí hiển thị khi load thêm tin nhắn
+                minIndexForVisible: 1,
+                autoscrollToTopThreshold: 10,
+              }}
+              onScroll={(e) => {
+                const { contentOffset } = e.nativeEvent
+                const atBottom = contentOffset.y < 20
+                if (atBottom && justNudgedRef.current) {
+                  // User đã scroll về cuối sau khi nudge, cho phép fetch lại
+                  justNudgedRef.current = false
+                }
+                isUserAtBottomRef.current = atBottom
+              }}
+              onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToOffset({
+                    offset: highestMeasuredFrameIndex * averageItemLength,
+                    animated: true,
+                  })
+                  setTimeout(() => {
+                    flatListRef.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 })
+                    isJumpingToReplyRef.current = false
+                  }, 300)
+                } else {
+                  isJumpingToReplyRef.current = false
+                }
+              }}
               onEndReachedThreshold={0.1}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
               // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
               ListFooterComponent={
-                isFetchingMore ? (
+                isFetchingMore && loadMoreDirectionRef.current === 'before' ? (
+                  <XStack justifyContent="center" alignItems="center" py="$4">
+                    <ActivityIndicator size="small" color="#888" />
+                  </XStack>
+                ) : null
+              }
+              ListHeaderComponent={
+                isFetchingMore && loadMoreDirectionRef.current === 'after' ? (
                   <XStack justifyContent="center" alignItems="center" py="$4">
                     <ActivityIndicator size="small" color="#888" />
                   </XStack>
                 ) : null
               }
               renderItem={({ item: msg, index }) => {
-                const items = normalizedMessages || []
+                const items = data?.items || []
                 const isMe = msg.self
                 const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
                 const myBubbleText = 'white'
@@ -508,9 +749,20 @@ export function ChatScreen({ roomId, insets }: Props) {
 
                 const isSelected = selectionMode && selectedIds.has(msg.id)
 
-                const parsedReply = parseReplyEncodedContent(msg.content)
-                const isReplyMessage = !!parsedReply
-                const messageTextToRender = parsedReply?.messageText ?? msg.content
+                // const parsedReply = parseReplyEncodedContent(msg.content)
+                // const isReplyMessage = !!parsedReply
+                // const messageTextToRender = parsedReply?.messageText ?? msg.content
+                // BƯỚC 1: tạo displayContent
+                let displayContent = msg.content
+
+                // BƯỚC 2: check trạng thái
+                if (msg.messageStatus === 'REVOKED') {
+                  displayContent = 'Tin nhắn đã được thu hồi'
+                }
+
+                // BƯỚC 3: dùng displayContent thay vì msg.content
+                const parsedReply = parseReplyEncodedContent(displayContent)
+                const messageTextToRender = parsedReply?.messageText ?? displayContent
 
                 // Reference-image styling for replied messages only
                 const replyBubbleBg = theme === 'dark' ? '$blue3' : '$blue2'
@@ -592,17 +844,45 @@ export function ChatScreen({ roomId, insets }: Props) {
                   })
                 }
 
-                const recallMessage = (message: MessageResponse) => {
+                const recallMessage = async (message: MessageResponse) => {
+                  // Optimistic update để UI đổi ngay, không cần chờ API.
                   setLocallyDeletedIds((prev) => {
                     const next = new Set(prev)
                     next.delete(message.id)
                     return next
                   })
+
                   setLocallyRecalledIds((prev) => {
                     const next = new Set(prev)
                     next.add(message.id)
                     return next
                   })
+
+                  dispatch(
+                    chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+                      const msg = draft.items?.find((m) => m.id === message.id)
+                      if (msg) {
+                        ; (msg as any).messageStatus = 'REVOKED'
+                        msg.content = 'Tin nhắn đã được thu hồi'
+                      }
+                    })
+                  )
+
+                  try {
+                    await revokeMessage({
+                      roomId,
+                      messageId: message.id,
+                    }).unwrap()
+                  } catch (err) {
+                    console.error('Thu hồi thất bại:', err)
+
+                    // Rollback optimistic update nếu API lỗi.
+                    setLocallyRecalledIds((prev) => {
+                      const next = new Set(prev)
+                      next.delete(message.id)
+                      return next
+                    })
+                  }
                 }
 
                 return (
@@ -668,9 +948,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                           return tagWithSpace
                         })
                       }}
-                      onForward={(message) => {
-                        setMessage(message.content)
-                      }}
+                      onForward={(message) => openForwardDialog([message])}
                       onEnterMultiSelect={enterMultiSelect}
                       onDeleteForMe={deleteForMe}
                       onRecall={isMe ? recallMessage : undefined}
@@ -682,162 +960,226 @@ export function ChatScreen({ roomId, insets }: Props) {
                       >
                         {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
                         {hasMedia && (
+                        p="$3"
+                        borderRadius="$4"
+                        maxWidth={'100%'}
+                        bg={effectiveBubbleBg}
+                        borderWidth={bubbleBorderWidth}
+                        borderColor={bubbleBorderColor}
+                        elevation={isSelected ? '$3' : '$1'}
+                        shadowColor="$shadowColor"
+                        shadowRadius={isSelected ? 6 : 2}
+                        shadowOffset={{ width: 0, height: isSelected ? 2 : 1 }}
+                      >
+                        {msg?.replyTo && (
                           <YStack
-                            borderRadius="$4"
-                            overflow="hidden"
-                            bg={effectiveBubbleBg}
-                            borderWidth={bubbleBorderWidth}
-                            borderColor={bubbleBorderColor}
-                            maxWidth={280}
-                            position="relative"
+                            onPress={() => handlePressReply(msg.replyTo.id)}
+                            bg={replyPreviewBg}
+                            borderRadius="$3"
+                            paddingHorizontal="$2"
+                            paddingVertical="$2"
+                            marginBottom="$2"
+                            space="$1"
                           >
-                            <MediaGrid
-                              media={mediaAttachments}
-                              onPressMedia={(index) => openViewer(mediaAttachments, index)}
-                            />
-
-                            {/* Caption Text nằm trong cùng box với Media */}
-                            {hasText && (
-                              <YStack p="$2.5">
-                                <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
-                                  {messageTextToRender}
-                                </Text>
-                                {/* Nếu là cuối group hoặc solo thì hiện giờ ngay dưới text */}
-                                {showTimestamp && (
-                                  <Text
-                                    fontSize="$1"
-                                    textAlign="right"
-                                    mt="$1"
-                                    color={replyTimeColor}
-                                  >
-                                    {timeString}
-                                  </Text>
-                                )}
-                              </YStack>
-                            )}
-
-                            {/* Nếu CHỈ CÓ Media (không chữ) + showTimestamp: Hiện giờ đè lên ảnh */}
-                            {!hasText && showTimestamp && (
-                              <YStack
-                                position="absolute"
-                                bottom={6}
-                                right={8}
-                                bg="rgba(0,0,0,0.4)"
-                                px="$1.5"
-                                py="$0.5"
-                                borderRadius="$2"
-                              >
-                                <Text fontSize="$1" color="white">
-                                  {timeString}
-                                </Text>
-                              </YStack>
-                            )}
-                          </YStack>
-                        )}
-
-                        {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
-                        {hasText && !hasMedia && (
-                          <YStack
-                            p="$3"
-                            borderRadius="$4"
-                            maxWidth={300}
-                            bg={effectiveBubbleBg}
-                            borderWidth={bubbleBorderWidth}
-                            borderColor={bubbleBorderColor}
-                          >
-                            {/* Phần hiển thị tin nhắn đang trả lời (Reply) */}
-                            {parsedReply && (
-                              <YStack
-                                bg={replyPreviewBg}
-                                borderRadius="$3"
-                                paddingHorizontal="$2"
-                                paddingVertical="$2"
-                                marginBottom="$2"
-                                space="$1"
-                              >
-                                <Text
-                                  fontSize="$3"
-                                  fontWeight="700"
-                                  numberOfLines={1}
-                                  color={replyNameColor}
-                                >
-                                  {parsedReply.replyName}
-                                </Text>
-                                <Text
-                                  fontSize="$2"
-                                  color={replyPreviewTextColor}
-                                  opacity={0.85}
-                                  numberOfLines={1}
-                                >
-                                  {parsedReply.replyText}
-                                </Text>
-                              </YStack>
-                            )}
-
-                            {/* Nội dung tin nhắn chữ */}
-                            <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
-                              {messageTextToRender}
+                            <Text
+                              fontSize="$3"
+                              fontWeight="700"
+                              numberOfLines={1}
+                              color={replyNameColor}
+                            >
+                              {`${msg.replyTo.user?.name || 'User'}`}
                             </Text>
 
-                            {/* Thời gian gửi tin nhắn */}
-                            {showTimestamp && (
-                              <Text
-                                fontSize="$1"
-                                textAlign={isMe ? 'right' : 'left'}
-                                mt="$1"
-                                color={replyTimeColor}
-                              >
-                                {timeString}
-                              </Text>
-                            )}
+                            <Text
+                              fontSize="$2"
+                              color={replyPreviewTextColor}
+                              opacity={0.85}
+                              numberOfLines={1}
+                            >
+                              {msg.replyTo.content.length > 100
+                                ? msg.replyTo.content.slice(0, 100) + '...'
+                                : msg.replyTo.content}
+                            </Text>
                           </YStack>
                         )}
+                        <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
+                          {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
+                          {hasMedia && (
+                            <YStack
+                              borderRadius="$4"
+                              overflow="hidden"
+                              bg={effectiveBubbleBg}
+                              borderWidth={bubbleBorderWidth}
+                              borderColor={bubbleBorderColor}
+                              maxWidth={280}
+                              position="relative"
+                            >
+                              <MediaGrid
+                                media={mediaAttachments}
+                                onPressMedia={(index) => openViewer(mediaAttachments, index)}
+                              />
 
-                        {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
-                        {/* --- 3. KHỐI FILE TÀI LIỆU (Tách riêng) --- */}
-                        {hasFiles && (
-                          <YStack
-                            space="$1"
-                            maxWidth={280} // Tăng nhẹ maxWidth để hiển thị tên file rõ hơn
-                            // QUAN TRỌNG: alignItems giúp bong bóng file co lại theo nội dung
-                            alignItems={isMe ? 'flex-end' : 'flex-start'}
-                          >
-                            {fileAttachments.map((at, idx) => (
-                              <YStack
-                                key={idx}
-                                // Đảm bảo từng item cũng tuân thủ lề trái/phải
-                                alignItems={isMe ? 'flex-end' : 'flex-start'}
-                                width="100%"
-                              >
-                                <XStack
-                                  p="$2.5" // Tăng nhẹ padding cho dễ bấm trên mobile
-                                  bg="$color3"
-                                  borderRadius="$3"
-                                  alignItems="center"
-                                  space="$3"
-                                  // Tự động co lại theo nội dung nếu có thể, hoặc chiếm hết maxWidth của cha
-                                  alignSelf={isMe ? 'flex-end' : 'flex-start'}
-                                  onPress={() => {
-                                    if (Platform.OS === 'web') {
-                                      window.open(at.fileUrl, '_blank')
-                                    } else {
-                                      Linking.openURL(at.fileUrl).catch((err) =>
-                                        console.error('Không thể mở file', err)
-                                      )
-                                    }
-                                  }}
-                                >
-                                  {/* Icon file */}
-                                  <File size={22} color="$color11" />
-
-                                  <YStack flexShrink={1} flexGrow={0}>
+                              {/* Caption Text nằm trong cùng box với Media */}
+                              {hasText && (
+                                <YStack p="$2.5">
+                                  <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+                                    {messageTextToRender}
+                                  </Text>
+                                  {/* Nếu là cuối group hoặc solo thì hiện giờ ngay dưới text */}
+                                  {showTimestamp && (
                                     <Text
-                                      numberOfLines={1}
-                                      fontSize="$3"
-                                      fontWeight="500"
-                                      ellipse // Tamagui tương đương với tailwind truncate
+                                      fontSize="$1"
+                                      textAlign="right"
+                                      mt="$1"
+                                      color={replyTimeColor}
                                     >
-                                      {at.fileName}
+                                      {timeString}
+                                    </Text>
+                                  )}
+                                </YStack>
+                              )}
+
+                              {/* Nếu CHỈ CÓ Media (không chữ) + showTimestamp: Hiện giờ đè lên ảnh */}
+                              {!hasText && showTimestamp && (
+                                <YStack
+                                  position="absolute"
+                                  bottom={6}
+                                  right={8}
+                                  bg="rgba(0,0,0,0.4)"
+                                  px="$1.5"
+                                  py="$0.5"
+                                  borderRadius="$2"
+                                >
+                                  <Text fontSize="$1" color="white">
+                                    {timeString}
+                                  </Text>
+                                </YStack>
+                              )}
+                            </YStack>
+                          )}
+
+                          {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
+                          {hasText && !hasMedia && (
+                            <YStack
+                              p="$3"
+                              borderRadius="$4"
+                              maxWidth={300}
+                              bg={effectiveBubbleBg}
+                              borderWidth={bubbleBorderWidth}
+                              borderColor={bubbleBorderColor}
+                            >
+                              {/* Phần hiển thị tin nhắn đang trả lời (Reply) */}
+                              {parsedReply && (
+                                <YStack
+                                  bg={replyPreviewBg}
+                                  borderRadius="$3"
+                                  paddingHorizontal="$2"
+                                  paddingVertical="$2"
+                                  marginBottom="$2"
+                                  space="$1"
+                                >
+                                  <Text
+                                    fontSize="$3"
+                                    fontWeight="700"
+                                    numberOfLines={1}
+                                    color={replyNameColor}
+                                  >
+                                    {parsedReply.replyName}
+                                  </Text>
+                                  <Text
+                                    fontSize="$2"
+                                    color={replyPreviewTextColor}
+                                    opacity={0.85}
+                                    numberOfLines={1}
+                                  >
+                                    {parsedReply.replyText}
+                                  </Text>
+                                </YStack>
+                              )}
+
+                              {/* Nội dung tin nhắn chữ */}
+                              <Text fontSize="$4" color={bubbleTextColor} lineHeight={20}>
+                                {messageTextToRender}
+                              </Text>
+
+                              {/* Thời gian gửi tin nhắn */}
+                              {showTimestamp && (
+                                <Text
+                                  fontSize="$1"
+                                  textAlign={isMe ? 'right' : 'left'}
+                                  mt="$1"
+                                  color={replyTimeColor}
+                                >
+                                  {timeString}
+                                </Text>
+                              )}
+                            </YStack>
+                          )}
+
+                          {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
+                          {/* --- 3. KHỐI FILE TÀI LIỆU (Tách riêng) --- */}
+                          {hasFiles && (
+                            <YStack
+                              space="$1"
+                              maxWidth={280} // Tăng nhẹ maxWidth để hiển thị tên file rõ hơn
+                              // QUAN TRỌNG: alignItems giúp bong bóng file co lại theo nội dung
+                              alignItems={isMe ? 'flex-end' : 'flex-start'}
+                            >
+                              {fileAttachments.map((at, idx) => (
+                                <YStack
+                                  key={idx}
+                                  // Đảm bảo từng item cũng tuân thủ lề trái/phải
+                                  alignItems={isMe ? 'flex-end' : 'flex-start'}
+                                  width="100%"
+                                >
+                                  <XStack
+                                    p="$2.5" // Tăng nhẹ padding cho dễ bấm trên mobile
+                                    bg="$color3"
+                                    borderRadius="$3"
+                                    alignItems="center"
+                                    space="$3"
+                                    // Tự động co lại theo nội dung nếu có thể, hoặc chiếm hết maxWidth của cha
+                                    alignSelf={isMe ? 'flex-end' : 'flex-start'}
+                                    onPress={() => {
+                                      if (Platform.OS === 'web') {
+                                        window.open(at.fileUrl, '_blank')
+                                      } else {
+                                        Linking.openURL(at.fileUrl).catch((err) =>
+                                          console.error('Không thể mở file', err)
+                                        )
+                                      }
+                                    }}
+                                  >
+                                    {/* Icon file */}
+                                    <File size={22} color="$color11" />
+
+                                    <YStack flexShrink={1} flexGrow={0}>
+                                      <Text
+                                        numberOfLines={1}
+                                        fontSize="$3"
+                                        fontWeight="500"
+                                        ellipse // Tamagui tương đương với tailwind truncate
+                                      >
+                                        {at.fileName}
+                                      </Text>
+                                      <Text fontSize="$1" color="$color10">
+                                        {(at.fileSize / 1024).toFixed(1)} KB
+                                      </Text>
+                                    </YStack>
+
+                                    <Download size={18} color="$color10" />
+                                  </XStack>
+
+                                  {/* Timestamp */}
+                                  {showTimestamp && idx === fileAttachments.length - 1 && (
+                                    <Text
+                                      fontSize="$1"
+                                      mt="$1"
+                                      color={replyTimeColor}
+                                      // Đảm bảo text giờ nằm đúng góc của file
+                                      alignSelf={isMe ? 'flex-end' : 'flex-start'}
+                                    >
+                                      {timeString}
                                     </Text>
                                     <Text fontSize="$1" color="$color10">
                                       {(at.fileSize / 1024).toFixed(1)} KB
@@ -993,7 +1335,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Copy size={16} />}
                   disabled={selectedCount === 0}
                   onPress={async () => {
-                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
+                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
                     const text = selected
                       .slice()
                       .reverse()
@@ -1012,7 +1354,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   icon={<Forward size={16} />}
                   disabled={selectedCount === 0}
                   onPress={() => {
-                    const selected = (normalizedMessages || []).filter((m) => selectedIds.has(m.id))
+                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
                     const text = selected
                       .slice()
                       .reverse()
@@ -1021,6 +1363,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     setMessage(text)
                     setSelectionMode(false)
                     setSelectedIds(new Set())
+                    openForwardDialog(selectedMessages)
                   }}
                 >
                   {Platform.OS === 'web' ? 'Chuyển tiếp' : ''}
@@ -1069,6 +1412,17 @@ export function ChatScreen({ roomId, insets }: Props) {
               </XStack>
             </XStack>
           )}
+
+          <ForwardMessageDialog
+            open={forwardDialogOpen}
+            onOpenChange={setForwardDialogOpen}
+            messages={forwardSourceMessages}
+            rooms={availableForwardRooms}
+            isLoadingRooms={isJoinedRoomsLoading}
+            currentRoomId={roomId}
+            isSubmitting={isForwarding}
+            onConfirm={handleForwardConfirm}
+          />
 
           {/* --- FOOTER (INPUT) --- */}
           {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}
