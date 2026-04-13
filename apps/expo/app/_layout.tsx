@@ -11,6 +11,7 @@ import { amplifyConfig } from 'app/config/amplify-config'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useAppTheme } from 'app/provider/ThemeContext'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 Amplify.configure(amplifyConfig)
 
@@ -47,9 +48,11 @@ export default function App() {
   }
 
   return (
-    <Provider>
-      <RootLayoutNav />
-    </Provider>
+    <SafeAreaProvider>
+      <Provider>
+        <RootLayoutNav />
+      </Provider>
+    </SafeAreaProvider>
   )
 }
 

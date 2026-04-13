@@ -9,10 +9,13 @@ import {
   useGetMyFriendRequestsQuery,
   useRespondFriendRequestMutation,
 } from 'app/services/contactApi'
+import { Platform } from 'react-native'
 
 export default function RequestPage() {
   const router = useRouter()
   const [requestFilter, setRequestFilter] = useState<FriendRequestType>(FriendRequestType.PENDING)
+
+  const isWeb = Platform.OS === 'web'
 
   const [cancelFriendRequest] = useCancelFriendRequestMutation()
   const [respondFriendRequest] = useRespondFriendRequestMutation()
@@ -36,7 +39,13 @@ export default function RequestPage() {
   }
 
   return (
-    <XStack flex={1} height="100vh" padding="$4" gap="$4" alignItems="stretch">
+    <XStack
+      flex={1}
+      padding="$4"
+      gap="$4"
+      alignItems="stretch"
+      {...(isWeb ? { height: '100vh' } : {})}
+    >
       <YStack flex={1} gap="$4">
         {/* HEADER */}
         <ContactHeader
@@ -44,26 +53,50 @@ export default function RequestPage() {
           subtitle={`${requestsData?.items?.length ?? 0} lời mời`}
           onBackPath="/contacts"
           actionElement={
-            // BỘ LỌC (Filter)
-            <Select
-              value={requestFilter}
-              onValueChange={(val) => setRequestFilter(val as FriendRequestType)}
-              disablePreventBodyScroll
-            >
-              <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>
-                <Select.Value placeholder="Chọn loại lời mời" />
-              </Select.Trigger>
-              <Select.Content zIndex={200000}>
-                <Select.Viewport>
-                  <Select.Item index={0} value={FriendRequestType.PENDING}>
-                    <Select.ItemText>Lời mời đã nhận</Select.ItemText>
-                  </Select.Item>
-                  <Select.Item index={1} value={FriendRequestType.SENT}>
-                    <Select.ItemText>Lời mời đã gửi</Select.ItemText>
-                  </Select.Item>
-                </Select.Viewport>
-              </Select.Content>
-            </Select>
+            isWeb ? (
+              // Web: giữ Select như cũ
+              <Select
+                value={requestFilter}
+                onValueChange={(val) => setRequestFilter(val as FriendRequestType)}
+                disablePreventBodyScroll
+              >
+                <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>
+                  <Select.Value placeholder="Chọn loại lời mời" />
+                </Select.Trigger>
+                <Select.Content zIndex={200000}>
+                  <Select.Viewport>
+                    <Select.Item index={0} value={FriendRequestType.PENDING}>
+                      <Select.ItemText>Lời mời đã nhận</Select.ItemText>
+                    </Select.Item>
+                    <Select.Item index={1} value={FriendRequestType.SENT}>
+                      <Select.ItemText>Lời mời đã gửi</Select.ItemText>
+                    </Select.Item>
+                  </Select.Viewport>
+                </Select.Content>
+              </Select>
+            ) : (
+              // Native: toggle gọn để tránh vỡ layout
+              <XStack space="$2">
+                <Button
+                  size="$2"
+                  borderRadius="$4"
+                  themeInverse={requestFilter === FriendRequestType.PENDING}
+                  variant={requestFilter === FriendRequestType.PENDING ? undefined : 'outlined'}
+                  onPress={() => setRequestFilter(FriendRequestType.PENDING)}
+                >
+                  Đã nhận
+                </Button>
+                <Button
+                  size="$2"
+                  borderRadius="$4"
+                  themeInverse={requestFilter === FriendRequestType.SENT}
+                  variant={requestFilter === FriendRequestType.SENT ? undefined : 'outlined'}
+                  onPress={() => setRequestFilter(FriendRequestType.SENT)}
+                >
+                  Đã gửi
+                </Button>
+              </XStack>
+            )
           }
         />
 
@@ -91,7 +124,7 @@ export default function RequestPage() {
             ))}
 
             {!requestsLoading && (requestsData?.items?.length ?? 0) === 0 && (
-              <Text color="$gray10" textAlign="center" marginTop="$10">
+              <Text color="$color10" textAlign="center" marginTop="$10">
                 {requestFilter === FriendRequestType.SENT
                   ? 'Chưa gửi lời mời nào'
                   : 'Chưa có lời mời kết bạn nào đang chờ'}

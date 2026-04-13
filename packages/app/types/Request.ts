@@ -1,3 +1,5 @@
+import { Attachment } from './Chat'
+
 // ===== Request =====
 export interface GetMyFriendsRequest {
   cursor?: string
@@ -40,4 +42,5 @@ export interface SendMessageRequest {
   roomId: string
   content: string
   messageType: string
+  attachments: Attachment[]
 }

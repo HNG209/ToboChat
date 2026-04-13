@@ -6,6 +6,7 @@ import { ContactHeader, UserCard } from '@my/ui'
 import { useRouter } from 'solito/navigation'
 import { useGetMyFriendListQuery } from 'app/services/contactApi'
 import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
+import { Platform } from 'react-native'
 
 export default function Friend() {
   const [keyword, setKeyword] = useState('')
@@ -25,8 +26,16 @@ export default function Friend() {
     return () => clearTimeout(timeout)
   }, [keyword, findUser])
 
+  const isWeb = Platform.OS === 'web'
+
   return (
-    <XStack flex={1} height="100vh" padding="$4" gap="$4" alignItems="stretch">
+    <XStack
+      flex={1}
+      padding="$4"
+      gap="$4"
+      alignItems="stretch"
+      {...(isWeb ? { height: '100vh' } : {})}
+    >
       <YStack flex={1} gap="$4">
         {/* HEADER */}
         <ContactHeader
@@ -62,7 +71,7 @@ export default function Friend() {
                   <UserCard key={user.id} user={user} />
                 ))}
                 {!friendsLoading && (friendsData?.items?.length ?? 0) === 0 && (
-                  <Text color="$gray10" textAlign="center" marginTop="$10">
+                  <Text color="$color10" textAlign="center" marginTop="$10">
                     Chưa có bạn bè nào
                   </Text>
                 )}

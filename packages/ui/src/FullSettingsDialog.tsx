@@ -82,7 +82,7 @@ export const FullSettingsDialog = ({
                 display: activeTab ? 'none' : 'flex',
               }}
             >
-              <Text fontSize={18} fontWeight="bold" mb="$4">
+              <Text fontSize={17} fontWeight="bold" mb="$4">
                 Cài đặt
               </Text>
 
@@ -150,7 +150,7 @@ export const FullSettingsDialog = ({
 
               {activeTab === 'general' && (
                 <>
-                  <Text fontSize={18} fontWeight="bold">
+                  <Text fontSize={17} fontWeight="bold">
                     Cài đặt chung
                   </Text>
 

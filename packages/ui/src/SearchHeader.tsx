@@ -7,6 +7,7 @@ import { SearchUserCard } from '@my/ui'
 import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
 import { useSelector } from 'react-redux'
 import type { RootState } from 'app/store'
+import { Platform, useWindowDimensions } from 'react-native'
 import {
   useSendFriendRequestMutation,
   useCancelFriendRequestMutation,
@@ -16,6 +17,8 @@ import {
 export default function SearchHeader() {
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
   const userId = useSelector((s: RootState) => s.auth.user?.id)
+  const { height: windowHeight } = useWindowDimensions()
+  const [headerHeight, setHeaderHeight] = useState(0)
 
   const [searchFocus, setSearchFocus] = useState(false)
   const [keyword, setKeyword] = useState('')
@@ -55,6 +58,10 @@ export default function SearchHeader() {
       paddingTop="$4"
       backgroundColor="$background"
       position="relative"
+      onLayout={(e) => {
+        const next = Math.round(e.nativeEvent.layout.height)
+        setHeaderHeight((prev) => (prev === next ? prev : next))
+      }}
     >
       <XStack alignItems="center" space="$2" flexWrap="wrap">
         <XStack
@@ -104,7 +111,7 @@ export default function SearchHeader() {
       {(searchFocus || hasKeyword) && (
         <YStack
           position="absolute"
-          top="100%"
+          top={Platform.OS === 'web' ? '100%' : headerHeight || 56}
           left={0}
           right={0}
           backgroundColor="$background"
@@ -113,7 +120,9 @@ export default function SearchHeader() {
           padding="$4"
           elevation="$4"
           overflow="hidden"
-          height="100vh"
+          height={
+            Platform.OS === 'web' ? '100vh' : Math.max(0, Math.floor(windowHeight - headerHeight))
+          }
         >
           <Text fontWeight="600" marginBottom="$3" fontSize="$4">
             Tìm bạn qua email:
@@ -121,7 +130,7 @@ export default function SearchHeader() {
 
           {!hasKeyword && searchFocus && (
             <YStack flex={1} alignItems="center" justifyContent="center" gap="$3">
-              <Text color="$gray10" textAlign="center" fontSize="$4">
+              <Text color="$color10" textAlign="center" fontSize="$4">
                 Nhập email hoặc tên để bắt đầu tìm kiếm
               </Text>
             </YStack>
@@ -193,12 +202,12 @@ export default function SearchHeader() {
                 alt="Không tìm thấy kết quả"
               />
               <YStack alignItems="center" space="$2">
-                <Text fontSize="$7" fontWeight="700" color="$gray12">
+                <Text fontSize="$7" fontWeight="700" color="$color">
                   Không tìm thấy kết quả
                 </Text>
                 <Text
                   fontSize="$4"
-                  color="$gray10"
+                  color="$color10"
                   textAlign="center"
                   maxWidth={320}
                   lineHeight="$5"

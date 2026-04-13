@@ -75,8 +75,8 @@ export const EditProfileDialog = ({
             borderBottomWidth={1}
             borderColor="$borderColor"
           >
-            <Dialog.Title asChild>
-              <Text fontSize={15} fontWeight="700" color="$color">
+            <Dialog.Title asChild unstyled>
+              <Text fontSize="$5" fontWeight="700" color="$color">
                 Chỉnh sửa thông tin cá nhân
               </Text>
             </Dialog.Title>
@@ -96,10 +96,7 @@ export const EditProfileDialog = ({
             {/* DOB */}
             <YStack space="$2">
               <Label>Ngày sinh</Label>
-              <DatePickerField value={tempDob} onChange={setTempDob} placeholder="YYYY-MM-DD" />
-              <Text fontSize="$2" color="$color10">
-                Trống nếu bạn chưa muốn cập nhật
-              </Text>
+              <DatePickerField value={tempDob} onChange={setTempDob} placeholder="DD/MM/YYYY" />
             </YStack>
 
             {/* Button */}

@@ -51,9 +51,18 @@ export default function UserDetailScreen() {
   // id	          API gọi
   // undefined	  /users/me
   // "abc123"	    /users/abc123
-  const { data: userProfile, refetch } = useGetProfileQuery()
+  const { data: userProfile, refetch } = useGetProfileQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  })
   const [avatarCacheKey, setAvatarCacheKey] = useState(0)
   const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    setOptimisticAvatarUrl(undefined)
+    setAvatarCacheKey(0)
+  }, [userProfile?.id])
 
   const withCacheBuster = (url?: string) => {
     if (!url || !avatarCacheKey) return url

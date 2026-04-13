@@ -5,7 +5,7 @@ import { baseApi } from 'app/services/baseApi'
 
 export const store = configureStore({
   reducer: {
-    [baseApi.reducerPath]: baseApi.reducer,
+    api: baseApi.reducer,
     // Quản lý Auth
     auth: authReducer,
   },
