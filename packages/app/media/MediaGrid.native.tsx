@@ -2,6 +2,7 @@ import React from 'react'
 import { Image } from 'react-native'
 import { YStack, XStack, Text, ZStack } from 'tamagui'
 import { Play } from '@tamagui/lucide-icons'
+import { Video, ResizeMode } from 'expo-av'
 
 export const MediaGrid = ({
   media,
@@ -17,17 +18,12 @@ export const MediaGrid = ({
   const remainingCount = media.length - displayLimit
 
   const renderVideoItem = (url: string, isGrid: boolean) => (
-    <video
-      src={url}
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        borderRadius: isGrid ? 0 : 8,
-        opacity: isGrid ? 0.8 : 1,
-      }}
-      muted
-      playsInline
+    <Video
+      source={{ uri: url }}
+      resizeMode={ResizeMode.COVER}
+      shouldPlay={false}
+      isMuted={true}
+      style={{ width: '100%', height: '100%', opacity: isGrid ? 0.8 : 1 }}
     />
   )
 
@@ -40,7 +36,6 @@ export const MediaGrid = ({
         height={200}
         backgroundColor="$color5"
         onPress={() => onPressMedia(0)}
-        style={{ cursor: 'pointer' }}
         borderRadius={8}
         overflow="hidden"
       >
@@ -56,6 +51,7 @@ export const MediaGrid = ({
             <Image
               source={{ uri: item.fileUrl }}
               style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
             />
           )}
         </ZStack>
@@ -78,8 +74,6 @@ export const MediaGrid = ({
             borderColor="$background"
             position="relative"
             onPress={() => onPressMedia(idx)}
-            style={{ cursor: 'pointer' }}
-            hoverStyle={{ opacity: 0.9 }}
           >
             <ZStack fullscreen>
               {isVideo ? (
