@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { use, useEffect, useMemo, useRef, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid';
 import {
   Platform,
@@ -20,6 +20,7 @@ import {
   Image,
   ZStack,
   ForwardMessageDialog,
+  RoomStatus,
 } from '@my/ui'
 import {
   SendHorizontal,
@@ -153,6 +154,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [viewerVisible, setViewerVisible] = useState(false)
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [currentMediaList, setCurrentMediaList] = useState<any[]>([])
+  const [status, setStatus] = useState<RoomStatus>('ACTIVE')
 
   const openViewer = (mediaList: any[], index: number) => {
     setCurrentMediaList(mediaList)
@@ -249,7 +251,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   )
   const { data: joinedRoomsData, isLoading: isJoinedRoomsLoading } = useGetJoinedRoomsQuery(
-    undefined,
+    { status },
     {
       skip: !hasSession,
       refetchOnMountOrArgChange: true,
@@ -497,7 +499,8 @@ export function ChatScreen({ roomId, insets }: Props) {
     )
 
     const roomPatchResult = dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
+      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        console.log('Updating getJoinedRooms cache with optimistic message:', optimisticMessage)
         if (!draft || !draft.items) return
         const roomIndex = draft.items.findIndex((room) => room.id === roomId)
         if (roomIndex !== -1) {
@@ -879,29 +882,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                     return next
                   })
                 }
-
-                const deleteForMe = (message: MessageResponse) => {
-                  // Optimistic update để UI đổi ngay, không cần chờ API.
-                  // chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-                  //   console.log('Deleting message locally with id:', message.id)
-                  //   const msg = draft.items?.find((m) => m.id === message.id)
-                  //   if (msg) {
-                  //     msg.content = 'Tin nhắn đã bị xóa'
-                  //     msg.attachments = []
-                  //   }
-                  // })
-                  // setLocallyRecalledIds((prev) => {
-                  //   const next = new Set(prev)
-                  //   next.delete(message.id)
-                  //   return next
-                  // })
-                  // setLocallyDeletedIds((prev) => {
-                  //   const next = new Set(prev)
-                  //   next.add(message.id)
-                  //   return next
-                  // })
-                }
-
                 const recallMessage = async (message: MessageResponse) => {
                   // Optimistic update để UI đổi ngay, không cần chờ API.
                   setLocallyDeletedIds((prev) => {

@@ -1,14 +1,17 @@
 import { ApiResponse, PageResponse, RoomResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
+import { RoomStatus } from '@my/ui'
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getJoinedRooms: builder.query<PageResponse<RoomResponse>, void>({
+    getJoinedRooms: builder.query<PageResponse<RoomResponse>, {status: RoomStatus}>({
       // Lấy danh sách phòng của người dùng hiện tại
       query: (params) => ({
-        url: '/rooms',
+        url: `/rooms?status=${params.status}`,
         method: 'GET',
-        params,
+        params: {
+          status: params.status,
+        },
       }),
       providesTags: ['Rooms']
     }),

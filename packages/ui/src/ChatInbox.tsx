@@ -1,48 +1,85 @@
 import { useRouter } from 'solito/navigation'
-import { ScrollView, Spinner, Text, YStack } from '@my/ui'
-import { useGetJoinedRoomsQuery } from 'app/services/roomApi'
+import { ScrollView, Spinner, Text, YStack, XStack } from '@my/ui'
+import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
-import { roomApi } from 'app/services/roomApi'
+import { userApi } from 'app/services/userApi'
 import { MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
-import { userApi } from 'app/services/userApi'
+import { Pressable } from 'react-native'
 
-const formatTime = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('vi-VN')
+export type RoomStatus = 'ACTIVE' | 'PENDING'
+
+function TabButton({
+  active,
+  label,
+  onPress,
+}: {
+  active: boolean
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable onPress={onPress} style={{ flex: 1 }}>
+      <XStack
+        height={25}
+        justifyContent="center"
+        alignItems="center"
+        borderRadius="$5"
+        backgroundColor={active ? '$blue10' : 'transparent'}
+      >
+        <Text color={active ? 'white' : '$color10'} fontWeight="600">
+          {label}
+        </Text>
+      </XStack>
+    </Pressable>
+  )
 }
 
 export default function ChatInbox() {
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
-  const [isSocketReady, setIsSocketReady] = useState(false)
+
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
-  const { data, isLoading, isError } = useGetJoinedRoomsQuery(undefined, {
-    skip: !hasSession,
-    refetchOnMountOrArgChange: true,
-  })
+  const [isSocketReady, setIsSocketReady] = useState(false)
+  const [status, setStatus] = useState<RoomStatus>('ACTIVE')
+
+  // =========================
+  // API: fetch rooms by status
+  // =========================
+  const { data, isLoading, isError } = useGetJoinedRoomsQuery(
+    { status },
+    {
+      skip: !hasSession,
+      refetchOnMountOrArgChange: true,
+    }
+  )
+
+  // =========================
+  // SOCKET INIT
+  // =========================
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
 
     const checkSocket = () => {
       const socket = getSocket()
       if (socket) {
-        setIsSocketReady(true) // Báo cho React biết để chạy Effect bên dưới
+        setIsSocketReady(true)
       } else {
-        // Nếu chưa có, đợi 200ms rồi kiểm tra lại
         timeoutId = setTimeout(checkSocket, 200)
       }
     }
 
     checkSocket()
-
     return () => clearTimeout(timeoutId)
   }, [])
 
+  // =========================
+  // SOCKET MESSAGE HANDLER
+  // =========================
   useEffect(() => {
     if (!isSocketReady) return
 
@@ -50,35 +87,26 @@ export default function ChatInbox() {
     if (!socket) return
 
     const handleReceiveMessage = (payload: any) => {
-      // Tuỳ vào cách bạn cấu hình BE, payload có thể là { roomId, message } hoặc trực tiếp là MessageResponse
       const newMsg: MessageResponse = payload.message || payload
       const targetRoomId = newMsg.roomId || payload.roomId
 
-      // TODO: kiểm tra nếu đường dẫn hiện tại đang ở trong phòng chat đó thì không cần cập nhật unread count
-
       dispatch(
-        // Đối số thứ 2 là cache key (arg). Nếu useGetJoinedRoomsQuery không có arg, ta để undefined
-        roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
-          if (!draft || !draft.items) return
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          if (!draft?.items) return
 
-          // 1. Tìm vị trí của phòng chat nhận được tin nhắn
-          const roomIndex = draft.items.findIndex((room) => room.id === targetRoomId)
+          const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
 
           if (roomIndex !== -1) {
-            // 2. Cập nhật tin nhắn mới nhất
             draft.items[roomIndex].latestMessage = newMsg
-            draft.items[roomIndex].unreadMessages = (draft.items[roomIndex].unreadMessages || 0) + 1
+            draft.items[roomIndex].unreadMessages =
+              (draft.items[roomIndex].unreadMessages || 0) + 1
 
-            // 3. UX Tricky: Cắt phòng chat này ra và nhét lên vị trí đầu tiên (index 0)
             const [updatedRoom] = draft.items.splice(roomIndex, 1)
             draft.items.unshift(updatedRoom)
           }
-          // (Tuỳ chọn) Nếu roomIndex === -1 tức là người dùng vừa được mời vào 1 phòng mới toanh,
-          // bạn có thể gọi invalidateTags để báo RTK Query fetch lại danh sách phòng.
         })
       )
 
-      // cập nhật cache của getProfile cho totalUnreadMessages
       dispatch(
         userApi.util.updateQueryData('getProfile', undefined, (draft) => {
           if (!draft) return
@@ -92,13 +120,15 @@ export default function ChatInbox() {
     return () => {
       socket.off('receive_message', handleReceiveMessage)
     }
-  }, [dispatch, isSocketReady])
+  }, [dispatch, isSocketReady, status])
 
+  // =========================
+  // OPEN ROOM
+  // =========================
   const handleRoomPress = (roomId: string, unreadCount: number) => {
     dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
+      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
         const roomIndex = draft.items.findIndex((r) => r.id === roomId)
-
         if (roomIndex !== -1) {
           draft.items[roomIndex].unreadMessages = 0
         }
@@ -108,14 +138,19 @@ export default function ChatInbox() {
     dispatch(
       userApi.util.updateQueryData('getProfile', undefined, (draft) => {
         if (!draft) return
-        draft.totalUnreadMessages = Math.max((draft.totalUnreadMessages || 0) - unreadCount, 0)
+        draft.totalUnreadMessages = Math.max(
+          (draft.totalUnreadMessages || 0) - unreadCount,
+          0
+        )
       })
     )
-
 
     router.push(`/chat/${roomId}`)
   }
 
+  // =========================
+  // LOADING / ERROR
+  // =========================
   if (!hasSession || isLoading) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
@@ -125,26 +160,59 @@ export default function ChatInbox() {
   }
 
   if (isError) {
-    return <Text>Error loading rooms</Text>
+    return (
+      <YStack flex={1} justifyContent="center" alignItems="center">
+        <Text>Error loading rooms</Text>
+      </YStack>
+    )
   }
 
+  // =========================
+  // UI
+  // =========================
   return (
-    <ScrollView backgroundColor="$color2">
-      <YStack>
-        {data?.items?.map((room) => (
-          <ChatInboxItem
-            key={room.id}
-            name={room.roomName}
-            avatarUrl={room.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`}
-            latestMessage={room.latestMessage}
-            time={room?.latestMessage?.createdAt ?? undefined}
-            pinned={false}
-            // onPress={() => router.push(`/chat/${room.id}`)}
-            onPress={() => handleRoomPress(room.id, room.unreadMessages || 0)}
-            unreadCount={room.unreadMessages}
+    <YStack flex={1} backgroundColor="$color2">
+
+      {/* ===== SEGMENTED TABS ===== */}
+      <YStack padding="$3" backgroundColor="$color2">
+        <XStack backgroundColor="$background" borderRadius="$5" padding={4} gap={4}>
+          <TabButton
+            active={status === 'ACTIVE'}
+            label="Tất cả"
+            onPress={() => setStatus('ACTIVE')}
           />
-        ))}
+          <TabButton
+            active={status === 'PENDING'}
+            label="Đang chờ"
+            onPress={() => setStatus('PENDING')}
+          />
+        </XStack>
       </YStack>
-    </ScrollView>
+
+      {/* ===== LIST ===== */}
+      <ScrollView>
+        <YStack>
+          {data?.items?.map((room) => (
+            <ChatInboxItem
+              key={room.id}
+              name={room.roomName}
+              avatarUrl={
+                room.avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  room.roomName
+                )}&background=random`
+              }
+              latestMessage={room.latestMessage}
+              time={room?.latestMessage?.createdAt ?? undefined}
+              pinned={false}
+              onPress={() =>
+                handleRoomPress(room.id, room.unreadMessages || 0)
+              }
+              unreadCount={room.unreadMessages}
+            />
+          ))}
+        </YStack>
+      </ScrollView>
+    </YStack>
   )
 }
