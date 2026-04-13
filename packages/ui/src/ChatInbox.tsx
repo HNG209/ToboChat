@@ -8,6 +8,7 @@ import { MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
+import { userApi } from 'app/services/userApi'
 
 const formatTime = (dateString: string) => {
   const date = new Date(dateString)
@@ -53,6 +54,8 @@ export default function ChatInbox() {
       const newMsg: MessageResponse = payload.message || payload
       const targetRoomId = newMsg.roomId || payload.roomId
 
+      // TODO: kiểm tra nếu đường dẫn hiện tại đang ở trong phòng chat đó thì không cần cập nhật unread count
+
       dispatch(
         // Đối số thứ 2 là cache key (arg). Nếu useGetJoinedRoomsQuery không có arg, ta để undefined
         roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
@@ -64,6 +67,7 @@ export default function ChatInbox() {
           if (roomIndex !== -1) {
             // 2. Cập nhật tin nhắn mới nhất
             draft.items[roomIndex].latestMessage = newMsg
+            draft.items[roomIndex].unreadMessages = (draft.items[roomIndex].unreadMessages || 0) + 1
 
             // 3. UX Tricky: Cắt phòng chat này ra và nhét lên vị trí đầu tiên (index 0)
             const [updatedRoom] = draft.items.splice(roomIndex, 1)
@@ -71,6 +75,14 @@ export default function ChatInbox() {
           }
           // (Tuỳ chọn) Nếu roomIndex === -1 tức là người dùng vừa được mời vào 1 phòng mới toanh,
           // bạn có thể gọi invalidateTags để báo RTK Query fetch lại danh sách phòng.
+        })
+      )
+
+      // cập nhật cache của getProfile cho totalUnreadMessages
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.totalUnreadMessages = (draft.totalUnreadMessages || 0) + 1
         })
       )
     }
@@ -82,7 +94,7 @@ export default function ChatInbox() {
     }
   }, [dispatch, isSocketReady])
 
-  const handleRoomPress = (roomId: string) => {
+  const handleRoomPress = (roomId: string, unreadCount: number) => {
     dispatch(
       roomApi.util.updateQueryData('getJoinedRooms', undefined, (draft) => {
         const roomIndex = draft.items.findIndex((r) => r.id === roomId)
@@ -92,6 +104,14 @@ export default function ChatInbox() {
         }
       })
     )
+
+    dispatch(
+      userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+        if (!draft) return
+        draft.totalUnreadMessages = Math.max((draft.totalUnreadMessages || 0) - unreadCount, 0)
+      })
+    )
+
 
     router.push(`/chat/${roomId}`)
   }
@@ -120,7 +140,7 @@ export default function ChatInbox() {
             time={room?.latestMessage?.createdAt ?? undefined}
             pinned={false}
             // onPress={() => router.push(`/chat/${room.id}`)}
-            onPress={() => handleRoomPress(room.id)}
+            onPress={() => handleRoomPress(room.id, room.unreadMessages || 0)}
             unreadCount={room.unreadMessages}
           />
         ))}
