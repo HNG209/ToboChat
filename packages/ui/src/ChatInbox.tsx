@@ -9,6 +9,7 @@ import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
+import { formatPreviewMessage } from 'app/utils/chatHelper'
 
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
@@ -115,10 +116,32 @@ export default function ChatInbox() {
       )
     }
 
-    socket.on('receive_message', handleReceiveMessage)
+    const handleMessageRevoked = (payload: any) => {
+      const revokedMsgId = payload.messageId
+      const targetRoomId = payload.roomId
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          if (!draft?.items) return
+          const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
+          if (roomIndex !== -1) {
+            const msg = draft.items[roomIndex].latestMessage
+            if (msg && msg.id === revokedMsgId) {
+              msg.messageStatus = 'REVOKED'
+            }
 
+            // format lại nội dung nếu tin nhắn bị thu hồi
+            msg.content = formatPreviewMessage(msg)
+            msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
+          }
+        })
+      )
+    }
+
+    socket.on('receive_message', handleReceiveMessage)
+    socket.on('message_revoked', handleMessageRevoked)
     return () => {
       socket.off('receive_message', handleReceiveMessage)
+      socket.off('message_revoked', handleMessageRevoked)
     }
   }, [dispatch, isSocketReady, status])
 

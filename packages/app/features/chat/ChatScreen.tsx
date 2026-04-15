@@ -63,6 +63,7 @@ import { useChatAttachment } from '../../hooks/useChatAttachment'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
 import { uuid } from 'expo-modules-core'
+import { formatPreviewMessage } from 'app/utils/chatHelper';
 
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
@@ -418,6 +419,66 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   }
 
+  const handleRevokeMessage = async (message: MessageResponse) => {
+    // Optimistic update để UI đổi ngay, không cần chờ API.
+    setLocallyDeletedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(message.id)
+      return next
+    })
+
+    setLocallyRecalledIds((prev) => {
+      const next = new Set(prev)
+      next.add(message.id)
+      return next
+    })
+
+    dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        const msg = draft.items?.find((m) => m.id === message.id)
+        if (msg) {
+          ; (msg as any).messageStatus = 'REVOKED'
+          msg.replyTo = undefined
+          msg.attachments = []
+          msg.content = 'Tin nhắn đã được thu hồi'
+        }
+      })
+    )
+
+    dispatch(
+      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        if (!draft?.items) return
+        const roomIndex = draft.items.findIndex((r) => r.id === roomId)
+        if (roomIndex !== -1) {
+          const msg = draft.items[roomIndex].latestMessage
+          if (msg && msg.id === message.id) {
+            msg.messageStatus = 'REVOKED'
+          }
+
+          // format lại nội dung nếu tin nhắn bị thu hồi
+          msg.content = formatPreviewMessage(msg)
+          msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
+        }
+      })
+    )
+
+    try {
+      await revokeMessage({
+        roomId,
+        messageId: message.id,
+      }).unwrap()
+    } catch (err) {
+      console.error('Thu hồi thất bại:', err)
+
+      // Rollback optimistic update nếu API lỗi.
+      setLocallyRecalledIds((prev) => {
+        const next = new Set(prev)
+        next.delete(message.id)
+        return next
+      })
+    }
+  }
+
   const handlePressReply = async (replyMessageId: string) => {
     if (!replyMessageId) return
 
@@ -587,8 +648,6 @@ export function ChatScreen({ roomId, insets }: Props) {
 
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-          // log danh sách messageId trong cache để debug
-          // console.log('Current messages in cache:', draft.items?.map((m) => m.id))
           const msg = draft.items?.find((m) => m.id === data.messageId)
           if (msg) {
             ; (msg as any).messageStatus = 'REVOKED'
@@ -882,48 +941,48 @@ export function ChatScreen({ roomId, insets }: Props) {
                     return next
                   })
                 }
-                const recallMessage = async (message: MessageResponse) => {
-                  // Optimistic update để UI đổi ngay, không cần chờ API.
-                  setLocallyDeletedIds((prev) => {
-                    const next = new Set(prev)
-                    next.delete(message.id)
-                    return next
-                  })
+                // const recallMessage = async (message: MessageResponse) => {
+                //   // Optimistic update để UI đổi ngay, không cần chờ API.
+                //   setLocallyDeletedIds((prev) => {
+                //     const next = new Set(prev)
+                //     next.delete(message.id)
+                //     return next
+                //   })
 
-                  setLocallyRecalledIds((prev) => {
-                    const next = new Set(prev)
-                    next.add(message.id)
-                    return next
-                  })
+                //   setLocallyRecalledIds((prev) => {
+                //     const next = new Set(prev)
+                //     next.add(message.id)
+                //     return next
+                //   })
 
-                  dispatch(
-                    chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-                      const msg = draft.items?.find((m) => m.id === message.id)
-                      if (msg) {
-                        ; (msg as any).messageStatus = 'REVOKED'
-                        msg.replyTo = undefined
-                        msg.attachments = []
-                        msg.content = 'Tin nhắn đã được thu hồi'
-                      }
-                    })
-                  )
+                //   dispatch(
+                //     chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+                //       const msg = draft.items?.find((m) => m.id === message.id)
+                //       if (msg) {
+                //         ; (msg as any).messageStatus = 'REVOKED'
+                //         msg.replyTo = undefined
+                //         msg.attachments = []
+                //         msg.content = 'Tin nhắn đã được thu hồi'
+                //       }
+                //     })
+                //   )
 
-                  try {
-                    await revokeMessage({
-                      roomId,
-                      messageId: message.id,
-                    }).unwrap()
-                  } catch (err) {
-                    console.error('Thu hồi thất bại:', err)
+                //   try {
+                //     await revokeMessage({
+                //       roomId,
+                //       messageId: message.id,
+                //     }).unwrap()
+                //   } catch (err) {
+                //     console.error('Thu hồi thất bại:', err)
 
-                    // Rollback optimistic update nếu API lỗi.
-                    setLocallyRecalledIds((prev) => {
-                      const next = new Set(prev)
-                      next.delete(message.id)
-                      return next
-                    })
-                  }
-                }
+                //     // Rollback optimistic update nếu API lỗi.
+                //     setLocallyRecalledIds((prev) => {
+                //       const next = new Set(prev)
+                //       next.delete(message.id)
+                //       return next
+                //     })
+                //   }
+                // }
                 const overlayProps = Platform.select({
                   web: {
                     onPress: (e: any) => {
@@ -1008,7 +1067,11 @@ export function ChatScreen({ roomId, insets }: Props) {
                       onForward={(message) => openForwardDialog([message])}
                       onEnterMultiSelect={enterMultiSelect}
                       onDeleteForMe={() => handleDeleteMessage(msg.id)}
-                      onRecall={isMe ? recallMessage : undefined}
+                      onRecall={() => {
+                        if (isMe) {
+                          handleRevokeMessage(msg)
+                        }
+                      }}
                       disabled={isMessageDead}
                     >
                       <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
