@@ -27,8 +27,6 @@ import {
   Heart,
   Phone,
   Video,
-  Info,
-  ChevronLeft,
   Image as ImageIcon,
   MoreHorizontal,
   Check,
@@ -62,8 +60,10 @@ import { MessageActionMenu } from './MessageActionMenu'
 import { useChatAttachment } from '../../hooks/useChatAttachment'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
-import { uuid } from 'expo-modules-core'
 import { formatPreviewMessage } from 'app/utils/chatHelper';
+import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader';
+import { ChatScreenFooter } from '@my/ui/src/ChatScreenFooter';
+import { MessageItem } from '@my/ui/src/MessageItem';
 
 function getSenderKey(msg: MessageResponse, selfUserId?: string) {
   if (msg.self) return selfUserId || '__self__'
@@ -722,47 +722,12 @@ export function ChatScreen({ roomId, insets }: Props) {
           paddingBottom={Platform.OS === 'android' ? effectiveAndroidKeyboardHeight : 0}
         >
           {/* --- HEADER --- */}
-          <XStack
-            alignItems="center"
-            justifyContent="space-between"
-            p="$3"
-            pt={insets?.top}
-            borderColor="$borderColor"
-            borderWidth={1}
-            borderBottomWidth={1}
-            borderLeftWidth={0}
-            borderRightWidth={0}
-            bg="$color1"
-            elevation="$2"
-          >
-            <XStack alignItems="center" space="$3">
-              <Button size="$3" circular chromeless icon={ChevronLeft} {...linkProps} />
-              <XStack alignItems="center" space="$2">
-                <Avatar circular size="$4" marginRight="$2">
-                  <Avatar.Image
-                    src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
-                  />
-                  <Avatar.Fallback borderColor="gray" />
-                </Avatar>
-                <YStack>
-                  <Text fontWeight="bold" fontSize="$5">
-                    {isRoomLoading ? 'Đang tải...' : roomData?.roomName || 'Tên phòng'}
-                  </Text>
-                  <XStack alignItems="center" space="$1.5">
-                    <Circle size={8} bg="$green10" />
-                    <Text fontSize="$2" color="$color10">
-                      Đang hoạt động
-                    </Text>
-                  </XStack>
-                </YStack>
-              </XStack>
-            </XStack>
-            <XStack space="$1">
-              <Button size="$3" circular chromeless icon={Phone} />
-              <Button size="$3" circular chromeless icon={Video} />
-              <Button size="$3" circular chromeless icon={Info} />
-            </XStack>
-          </XStack>
+          <ChatScreenHeader
+            roomData={roomData}
+            isRoomLoading={isRoomLoading}
+            insets={insets}
+            linkProps={linkProps}
+          />
 
           {/* --- BODY (FLATLIST) --- */}
           {/* Lần tải đầu tiên của cả phòng */}
@@ -969,48 +934,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                     return next
                   })
                 }
-                // const recallMessage = async (message: MessageResponse) => {
-                //   // Optimistic update để UI đổi ngay, không cần chờ API.
-                //   setLocallyDeletedIds((prev) => {
-                //     const next = new Set(prev)
-                //     next.delete(message.id)
-                //     return next
-                //   })
-
-                //   setLocallyRecalledIds((prev) => {
-                //     const next = new Set(prev)
-                //     next.add(message.id)
-                //     return next
-                //   })
-
-                //   dispatch(
-                //     chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-                //       const msg = draft.items?.find((m) => m.id === message.id)
-                //       if (msg) {
-                //         ; (msg as any).messageStatus = 'REVOKED'
-                //         msg.replyTo = undefined
-                //         msg.attachments = []
-                //         msg.content = 'Tin nhắn đã được thu hồi'
-                //       }
-                //     })
-                //   )
-
-                //   try {
-                //     await revokeMessage({
-                //       roomId,
-                //       messageId: message.id,
-                //     }).unwrap()
-                //   } catch (err) {
-                //     console.error('Thu hồi thất bại:', err)
-
-                //     // Rollback optimistic update nếu API lỗi.
-                //     setLocallyRecalledIds((prev) => {
-                //       const next = new Set(prev)
-                //       next.delete(message.id)
-                //       return next
-                //     })
-                //   }
-                // }
                 const overlayProps = Platform.select({
                   web: {
                     onPress: (e: any) => {
@@ -1319,7 +1242,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                             toggleSelected(msg.id);
                           } : undefined}
 
-                          delayLongPress={350}
+                          // delayLongPress={350}
                           pressStyle={{
                             backgroundColor: selectionMode ? 'rgba(0,0,0,0.05)' : 'transparent',
                             borderRadius: '$4',
@@ -1505,7 +1428,6 @@ export function ChatScreen({ roomId, insets }: Props) {
 
           {/* --- FOOTER (INPUT) --- */}
           {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}
-          {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ --- */}
           {drafts.length > 0 && (
             <XStack px="$3" py="$2" space="$2" bg="$background">
               <StyledFlatList
@@ -1591,60 +1513,18 @@ export function ChatScreen({ roomId, insets }: Props) {
               />
             </XStack>
           )}
-          <XStack
-            px="$2"
-            py={Platform.OS === 'web' ? '$2' : '$1.5'}
-            paddingBottom={Platform.OS === 'web' ? undefined : (insets?.bottom ?? 0) + 8}
-            onLayout={(e) => {
-              if (isWeb) return
-              const nextHeight = Math.round(e.nativeEvent.layout.height)
-              if (nextHeight > 0 && nextHeight !== composerHeight) {
-                setComposerHeight(nextHeight)
-              }
-            }}
-            alignItems="center"
-            bg="$background"
-            borderColor="$borderColor"
-            borderWidth={1}
-            space="$2"
-          >
-            <Button size="$3" circular chromeless icon={MoreHorizontal} />
-            <Button
-              size="$3"
-              circular
-              chromeless
-              icon={ImageIcon}
-              onPress={handlePickFile} // Gọi hàm từ Hook của bạn
-            />
-
-            <Input
-              flex={1}
-              size={Platform.OS === 'web' ? '$4' : '$3'}
-              height={Platform.OS === 'web' ? undefined : 40}
-              borderRadius="$10"
-              bg="$color3"
-              borderWidth={0}
-              placeholder="Nhập tin nhắn..."
-              value={message}
-              onChangeText={setMessage}
-            />
-
-            {message.trim() || drafts.length > 0 ? (
-              <Button
-                size="$4"
-                circular
-                bg={theme === 'dark' ? '$blue11' : '$blue10'}
-                color="white"
-                icon={<SendHorizontal size={20} />}
-                onPress={handleSendMessage}
-                // Chặn người dùng bấm gửi khi ảnh chưa upload xong lên S3
-                disabled={drafts.some((d) => d.isUploading)}
-                opacity={drafts.some((d) => d.isUploading) ? 0.5 : 1}
-              />
-            ) : (
-              <Button size="$3" circular chromeless icon={<Heart size={20} />} />
-            )}
-          </XStack>
+          <ChatScreenFooter
+            message={message}
+            setMessage={setMessage}
+            drafts={drafts}
+            handleSendMessage={handleSendMessage}
+            handlePickFile={handlePickFile}
+            theme={theme}
+            isWeb={isWeb}
+            insets={insets}
+            composerHeight={composerHeight}
+            setComposerHeight={setComposerHeight}
+          />
         </YStack>
         <MediaViewer
           visible={viewerVisible}
