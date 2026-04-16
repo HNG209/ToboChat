@@ -77,7 +77,17 @@ export function MessageActionMenu({
     backgroundColor: 'white',
     borderWidth: 0,
     borderRadius: '$3',
-    pressStyle: { backgroundColor: '$backgroundHover' },
+    hoverStyle: {
+      backgroundColor: '$blue2', // Màu nền xanh nhạt khi hover
+      borderColor: '$blue8',      // Border xanh đậm hơn  
+      elevation: 2,               // Đổ bóng nhẹ
+    },
+    // Hiệu ứng khi nhấn (Mobile & Web)
+    pressStyle: {
+      backgroundColor: '$blue3',
+      scale: 0.96,               // Thu nhỏ nhẹ tạo cảm giác bấm nút
+      borderColor: '$blue10'
+    },
   } as const
 
   const tileWrapStyle = {

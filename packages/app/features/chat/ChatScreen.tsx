@@ -56,28 +56,16 @@ import { AppDispatch, RootState, store } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
-import { MessageActionMenu } from './MessageActionMenu'
 import { useChatAttachment } from '../../hooks/useChatAttachment'
-import { MediaGrid } from 'app/media/MediaGrid'
 import { MediaViewer } from 'app/media/MediaViewer'
 import { formatPreviewMessage } from 'app/utils/chatHelper';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader';
 import { ChatScreenFooter } from '@my/ui/src/ChatScreenFooter';
 import { MessageItem } from '@my/ui/src/MessageItem';
 
-function getSenderKey(msg: MessageResponse, selfUserId?: string) {
-  if (msg.self) return selfUserId || '__self__'
-  return msg.user?.id || '__unknown__'
-}
 
-function canGroup(
-  a: MessageResponse | undefined,
-  b: MessageResponse | undefined,
-  selfUserId?: string
-) {
-  if (!a || !b) return false
-  return getSenderKey(a, selfUserId) === getSenderKey(b, selfUserId)
-}
+
+
 
 function getDisplayNameForMessage(msg: MessageResponse, selfUserName?: string) {
   if (msg.self) return selfUserName || 'Bạn'
@@ -95,27 +83,9 @@ function buildReplyEncodedContent(opts: {
   return `[reply]\nname:${replyName}\ntext:${replyText}\n[/reply]\n${messageText}`
 }
 
-function parseReplyEncodedContent(content: string) {
-  if (!content?.startsWith('[reply]\n')) return null
-  const end = content.indexOf('\n[/reply]\n')
-  if (end === -1) return null
-  const header = content.slice('[reply]\n'.length, end)
-  const messageText = content.slice(end + '\n[/reply]\n'.length)
 
-  const nameLine = header.split('\n').find((l) => l.toLowerCase().startsWith('name:'))
-  const textLine = header.split('\n').find((l) => l.toLowerCase().startsWith('text:'))
 
-  const replyName = nameLine ? nameLine.slice('name:'.length).trim() : ''
-  const replyText = textLine ? textLine.slice('text:'.length).trim() : ''
 
-  return {
-    replyName,
-    replyText,
-    messageText: messageText.trimStart(),
-  }
-}
-
-const MESSAGE_AVATAR_SIZE = '$3' as const
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -326,7 +296,28 @@ export function ChatScreen({ roomId, insets }: Props) {
     () => (normalizedMessages || []).filter((message) => selectedIds.has(message.id)),
     [normalizedMessages, selectedIds]
   )
+  const handleEnterMultiSelect = (msg: MessageResponse) => {
+    setSelectionMode(true);
+    // Sử dụng callback (prev) để đảm bảo state mới nhất
+    setSelectedIds(new Set([msg.id]));
+  };
 
+  const toggleSelected = (messageId: string) => {
+    // Nếu đang đóng Viewer ảnh thì bỏ qua để tránh xung đột
+    if (isClosingViewerRef.current) return;
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+        // Nếu xóa hết thì tự tắt mode chọn nhiều
+        if (next.size === 0) setSelectionMode(false);
+      } else {
+        next.add(messageId);
+      }
+      return new Set(next);
+    });
+  };
   useEffect(() => {
     if (!forwardDialogOpen) {
       setForwardSourceMessages([])
@@ -828,478 +819,35 @@ export function ChatScreen({ roomId, insets }: Props) {
                   </XStack>
                 ) : null
               }
-              renderItem={({ item: msg, index }) => {
-                const items = data?.items || []
-                const isMe = msg.self
-                const myBubbleBg = theme === 'dark' ? '$blue11' : '$blue10'
-                const myBubbleText = 'white'
 
-                // items is newest -> oldest because we unshift new messages and push older messages.
-                // With inverted FlatList, index 0 is rendered at the bottom (newest).
-                // Grouping is based on consecutive messages from the same sender (adjacent in this array).
-                const newerMsg = items[index - 1]
-                const olderMsg = items[index + 1]
-                const groupsWithNewer = canGroup(msg, newerMsg, selfUserId)
-                const groupsWithOlder = canGroup(msg, olderMsg, selfUserId)
+              renderItem={({ item: msg, index }) => (
+                <MessageItem
+                  msg={msg}
+                  index={index}
+                  items={data?.items || []}
+                  theme={theme}
+                  selfUserId={selfUserId}
+                  selectionMode={selectionMode}
+                  selected={selectedIds.has(msg.id)} // Truyền boolean true/false
+                  locallyDeleted={locallyDeletedIds}
+                  locallyRecalled={locallyRecalledIds}
 
-                const isSolo = !groupsWithNewer && !groupsWithOlder
-                const isGroupStart = !groupsWithOlder && groupsWithNewer
-                const isGroupMiddle = groupsWithOlder && groupsWithNewer
-                const isGroupEnd = groupsWithOlder && !groupsWithNewer
-
-                // UI rules:
-                // - Start: show avatar
-                // - Middle: hide avatar + timestamp
-                // - End: show timestamp
-                // - Solo: show avatar + timestamp
-                const showAvatar = !isMe && (isSolo || isGroupStart)
-                const showTimestamp = isSolo || isGroupEnd
-
-                const date = new Date(msg.createdAt)
-                const hours = date.getHours().toString().padStart(2, '0')
-                const minutes = date.getMinutes().toString().padStart(2, '0')
-                const timeString = `${hours}:${minutes}`
-
-                const isSelected = selectionMode && selectedIds.has(msg.id)
-                // BƯỚC 1: tạo displayContent
-                // 1. Kiểm tra trạng thái thu hồi
-                const isRevoked = msg.messageStatus === 'REVOKED';
-                const isDeletedLocally = locallyDeletedIds.has(msg.id);
-                const isMessageDead = isRevoked || isDeletedLocally;
-
-                // 2. Xác định nội dung văn bản (dùng displayContent cho toàn bộ logic sau đó)
-                const displayContent = isRevoked ? 'Tin nhắn đã được thu hồi' : msg.content;
-                const parsedReply = isRevoked ? null : parseReplyEncodedContent(displayContent);
-                const messageTextToRender = parsedReply?.messageText ?? displayContent;
-
-                // 3. Tách danh sách media và file (Nếu bị thu hồi thì gán mảng rỗng ngay)
-                const mediaAttachments = isRevoked
-                  ? []
-                  : (msg.attachments?.filter(at => at.contentType?.startsWith('image/') || at.contentType?.startsWith('video/')) || []);
-
-                const fileAttachments = isRevoked
-                  ? []
-                  : (msg.attachments?.filter(at => !at.contentType?.startsWith('image/') && !at.contentType?.startsWith('video/')) || []);
-                // BƯỚC 3: dùng displayContent thay vì msg.content
-
-
-                // Reference-image styling for replied messages only
-                const replyBubbleBg = theme === 'dark' ? '$blue3' : '$blue2'
-                const replyBubbleBorderColor = '$blue5'
-                const replyPreviewBg = theme === 'dark' ? '$blue6' : '$blue5'
-                const replyNameColor = '$blue11'
-                const replyPreviewTextColor = '$color10'
-                const replyMainTextColor = '$color12'
-                const replyTimeColor = '$color10'
-                const bubbleTextColor = replyMainTextColor
-                const hasMedia = mediaAttachments.length > 0
-                const hasFiles = fileAttachments.length > 0
-                const hasText = messageTextToRender && messageTextToRender.trim() !== ''
-                const otherBubbleBg = theme === 'dark' ? '$color2' : '$background'
-
-                const bubbleBg = isMe ? replyBubbleBg : otherBubbleBg
-                const selectedBg = isMe
-                  ? theme === 'dark'
-                    ? '$blue6'
-                    : '$blue5'
-                  : theme === 'dark'
-                    ? '$color3'
-                    : '$backgroundHover'
-                const effectiveBubbleBg = isSelected ? selectedBg : bubbleBg
-                const bubbleBorderColor = isSelected
-                  ? '$blue10'
-                  : isMe
-                    ? replyBubbleBorderColor
-                    : '$borderColor'
-                const bubbleBorderWidth = isSelected ? 2 : 1
-
-                const toggleSelected = (messageId: string) => {
-                  if (!selectionMode || isClosingViewerRef.current) return
-                  setSelectedIds((prev) => {
-                    const next = new Set(prev)
-                    if (next.has(messageId)) next.delete(messageId)
-                    else next.add(messageId)
-                    return next
-                  })
-                }
-
-                const enterMultiSelect = (message: MessageResponse) => {
-                  if (viewerVisible) return
-
-                  setReplyTo(null)
-                  setSelectionMode(true)
-                  setSelectedIds((prev) => {
-                    const next = new Set(prev)
-                    next.add(message.id)
-                    return next
-                  })
-                }
-                const overlayProps = Platform.select({
-                  web: {
-                    onPress: (e: any) => {
-                      if (isMessageDead) return;
-
-                      if (selectionMode) {
-                        e.stopPropagation();
-                        toggleSelected(msg.id);
-                      }
-                    },
-                    pointerEvents: (selectionMode && !isMessageDead ? 'auto' : 'none') as any,
-                  },
-                  default: {
-                    onPress: (e: any) => {
-                      if (isMessageDead) return;
-
-                      e.stopPropagation();
-                      if (selectionMode) {
-                        toggleSelected(msg.id);
-                      } else {
-                        if (hasMedia) openViewer(mediaAttachments, 0);
-                      }
-                    },
-                    pointerEvents: (isMessageDead ? 'none' : (selectionMode ? 'auto' : 'box-none')) as any,
-                  },
-                });
-                return (
-                  <XStack
-                    justifyContent={isMe ? 'flex-end' : 'flex-start'}
-                    alignItems={isMe ? 'flex-end' : 'flex-start'}
-                    space="$2"
-                    mb="$2"
-                  >
-                    {!isMe && selectionMode && (
-                      <YStack width={22} alignItems="center" justifyContent="center">
-                        {isSelected ? (
-                          <Circle size={18} bg="$blue10">
-                            <Check size={12} color="white" />
-                          </Circle>
-                        ) : (
-                          <YStack width={18} height={18} />
-                        )}
-                      </YStack>
-                    )}
-                    {!isMe && (
-                      <YStack width={MESSAGE_AVATAR_SIZE} alignItems="center">
-                        {showAvatar ? (
-                          <Avatar circular size={MESSAGE_AVATAR_SIZE}>
-                            <Avatar.Image
-                              src={
-                                msg?.user?.avatarUrl ||
-                                `https://ui-avatars.com/api/?name=${msg?.user?.name || 'User'}&background=random`
-                              }
-                            />
-                            <Avatar.Fallback borderColor="gray" />
-                          </Avatar>
-                        ) : (
-                          <YStack height={MESSAGE_AVATAR_SIZE} width={MESSAGE_AVATAR_SIZE} />
-                        )}
-                      </YStack>
-                    )}
-                    <MessageActionMenu
-                      message={msg}
-                      isMe={isMe}
-                      selectionMode={selectionMode}
-                      isSelected={isSelected}
-                      onToggleSelected={toggleSelected}
-                      onCopy={async (message) => {
-                        if (
-                          locallyDeletedIds.has(message.id) ||
-                          locallyRecalledIds.has(message.id)
-                        ) {
-                          return
-                        }
-                        await copyText(message.content)
-                      }}
-                      onReply={(message) => {
-                        setSelectionMode(false)
-                        setSelectedIds(new Set())
-                        setReplyTo(message)
-                      }}
-                      onForward={(message) => openForwardDialog([message])}
-                      onEnterMultiSelect={enterMultiSelect}
-                      onDeleteForMe={() => handleDeleteMessage(msg.id)}
-                      onRecall={() => {
-                        if (isMe) {
-                          handleRevokeMessage(msg)
-                        }
-                      }}
-                      disabled={isMessageDead}
-                    >
-                      <YStack space="$2" alignItems={isMe ? 'flex-end' : 'flex-start'}>
-                        {/* --- TRƯỜNG HỢP 2.1: ẢNH & VIDEO --- */}
-                        {hasMedia && (
-                          <YStack
-                            borderRadius="$4"
-                            overflow="hidden"
-                            bg={effectiveBubbleBg}
-                            borderWidth={bubbleBorderWidth}
-                            borderColor={bubbleBorderColor}
-                            maxWidth={280}
-                            position="relative"
-                            pointerEvents={selectionMode ? 'auto' : 'none'}
-                          >
-                            <MediaGrid
-                              media={mediaAttachments}
-                              onPressMedia={(index) => {
-                                if (selectionMode) toggleSelected(msg.id)
-                                else openViewer(mediaAttachments, index)
-                              }}
-                            />
-
-                            {/* Caption Text nằm trong cùng box với Media */}
-                            {hasText && (
-                              <YStack p="$2.5">
-                                <Text
-                                  fontSize="$4"
-                                  color={isRevoked ? '$color9' : '$color12'} // Nếu REVOKED thì hiện màu xám ($color9)
-                                  fontStyle={isRevoked ? 'italic' : 'normal'} // Nếu REVOKED thì in nghiêng
-                                  lineHeight={20}
-                                >
-                                  {messageTextToRender}
-                                </Text>
-                                {/* Nếu là cuối group hoặc solo thì hiện giờ ngay dưới text */}
-                                {showTimestamp && (
-                                  <Text
-                                    fontSize="$1"
-                                    textAlign="right"
-                                    mt="$1"
-                                    color={replyTimeColor}
-                                  >
-                                    {timeString}
-                                  </Text>
-                                )}
-                              </YStack>
-                            )}
-
-                            {/* Nếu CHỈ CÓ Media (không chữ) + showTimestamp: Hiện giờ đè lên ảnh */}
-                            {!hasText && showTimestamp && (
-                              <YStack
-                                position="absolute"
-                                bottom={6}
-                                right={8}
-                                bg="rgba(0,0,0,0.4)"
-                                px="$1.5"
-                                py="$0.5"
-                                borderRadius="$2"
-                              >
-                                <Text fontSize="$1" color="white">
-                                  {timeString}
-                                </Text>
-                              </YStack>
-                            )}
-                          </YStack>
-                        )}
-
-                        {/* --- TRƯỜNG HỢP 1: CHỈ CÓ TEXT (Không kèm media) --- */}
-                        {hasText && !hasMedia && (
-                          <YStack
-                            p="$3"
-                            borderRadius="$4"
-                            maxWidth={300}
-                            bg={effectiveBubbleBg}
-                            borderWidth={bubbleBorderWidth}
-                            borderColor={bubbleBorderColor}
-                          >
-                            {/* Phần hiển thị tin nhắn đang trả lời (Reply) */}
-                            {msg?.replyTo && (
-                              <YStack
-                                bg={replyPreviewBg}
-                                borderRadius="$3"
-                                paddingHorizontal="$2"
-                                paddingVertical="$2"
-                                marginBottom="$2"
-                                space="$1"
-                                onPress={() => handlePressReply(msg.replyTo.id)}
-                              >
-                                <Text
-                                  fontSize="$3"
-                                  fontWeight="700"
-                                  numberOfLines={1}
-                                  color={replyNameColor}
-                                >
-                                  {msg.replyTo.user?.name || 'Unknown'}
-                                </Text>
-                                <Text
-                                  fontSize="$2"
-                                  color={replyPreviewTextColor}
-                                  opacity={0.85}
-                                  numberOfLines={1}
-                                >
-                                  {msg.replyTo.content}
-                                </Text>
-                              </YStack>
-                            )}
-
-                            {/* Nội dung tin nhắn chữ */}
-                            <Text
-                              fontSize="$4"
-                              color={isRevoked ? '$color9' : '$color12'} // Nếu REVOKED thì hiện màu xám ($color9)
-                              fontStyle={isRevoked ? 'italic' : 'normal'} // Nếu REVOKED thì in nghiêng
-                              lineHeight={20}
-                            >
-                              {messageTextToRender}
-                            </Text>
-
-                            {/* Thời gian gửi tin nhắn */}
-                            {showTimestamp && (
-                              <Text
-                                fontSize="$1"
-                                textAlign={isMe ? 'right' : 'left'}
-                                mt="$1"
-                                color={replyTimeColor}
-                              >
-                                {timeString}
-                              </Text>
-                            )}
-                          </YStack>
-                        )}
-
-                        {/* --- TRƯỜNG HỢP 2.2: FILE TÀI LIỆU (Luôn tách riêng) --- */}
-                        {/* --- 3. KHỐI FILE TÀI LIỆU (Tách riêng) --- */}
-                        {hasFiles && (
-                          <YStack
-                            space="$1"
-                            maxWidth={280} // Tăng nhẹ maxWidth để hiển thị tên file rõ hơn
-                            // QUAN TRỌNG: alignItems giúp bong bóng file co lại theo nội dung
-                            alignItems={isMe ? 'flex-end' : 'flex-start'}
-                            pointerEvents={selectionMode ? 'auto' : 'none'}
-                          >
-                            {fileAttachments.map((at, idx) => (
-                              <YStack
-                                key={idx}
-                                // Đảm bảo từng item cũng tuân thủ lề trái/phải
-                                alignItems={isMe ? 'flex-end' : 'flex-start'}
-                                width="100%"
-                              >
-                                <XStack
-                                  p="$2.5" // Tăng nhẹ padding cho dễ bấm trên mobile
-                                  bg="$color3"
-                                  borderRadius="$3"
-                                  alignItems="center"
-                                  space="$3"
-                                  // Tự động co lại theo nội dung nếu có thể, hoặc chiếm hết maxWidth của cha
-                                  alignSelf={isMe ? 'flex-end' : 'flex-start'}
-                                  onPress={() => {
-                                    if (Platform.OS === 'web') {
-                                      window.open(at.fileUrl, '_blank')
-                                    } else {
-                                      Linking.openURL(at.fileUrl).catch((err) =>
-                                        console.error('Không thể mở file', err)
-                                      )
-                                    }
-                                  }}
-                                >
-                                  {/* Icon file */}
-                                  <File size={22} color="$color11" />
-
-                                  <YStack flexShrink={1} flexGrow={0}>
-                                    <Text
-                                      numberOfLines={1}
-                                      fontSize="$3"
-                                      fontWeight="500"
-                                      ellipse // Tamagui tương đương với tailwind truncate
-                                    >
-                                      {at.fileName}
-                                    </Text>
-                                    <Text fontSize="$1" color="$color10">
-                                      {(at.fileSize / 1024).toFixed(1)} KB
-                                    </Text>
-                                  </YStack>
-
-                                  <Download size={18} color="$color10" />
-                                </XStack>
-
-                                {/* Timestamp */}
-                                {showTimestamp && idx === fileAttachments.length - 1 && (
-                                  <Text
-                                    fontSize="$1"
-                                    mt="$1"
-                                    color={replyTimeColor}
-                                    // Đảm bảo text giờ nằm đúng góc của file
-                                    alignSelf={isMe ? 'flex-end' : 'flex-start'}
-                                  >
-                                    {timeString}
-                                  </Text>
-                                )}
-                              </YStack>
-                            ))}
-                          </YStack>
-                        )}
-
-                        <XStack
-                          position="absolute"
-                          top={0}
-                          left={0}
-                          right={0}
-                          bottom={0}
-                          zIndex={10}
-                          // Spread props đã tách biệt
-                          {...overlayProps}
-
-                          // Vẫn để onLongPress cho mode selection nếu Đạt muốn
-                          onLongPress={selectionMode ? (e) => {
-                            e.stopPropagation();
-                            toggleSelected(msg.id);
-                          } : undefined}
-
-                          // delayLongPress={350}
-                          pressStyle={{
-                            backgroundColor: selectionMode ? 'rgba(0,0,0,0.05)' : 'transparent',
-                            borderRadius: '$4',
-                          }}
-                        />
-                      </YStack>
-                    </MessageActionMenu>
-
-                    {
-                      isMe && selectionMode && (
-                        <YStack width={22} alignItems="center" justifyContent="center">
-                          {isSelected ? (
-                            <Circle size={18} bg="$blue10">
-                              <Check size={12} color="white" />
-                            </Circle>
-                          ) : (
-                            <YStack width={18} height={18} />
-                          )}
-                        </YStack>
-                      )
-                    }
-                  </XStack>
-                )
-              }}
+                  // Mapping các actions
+                  onToggleSelect={toggleSelected} // Chỉ truyền tên hàm
+                  onEnterMultiSelect={handleEnterMultiSelect}
+                  onReply={setReplyTo}
+                  onForward={openForwardDialog}
+                  onDelete={handleDeleteMessage}
+                  onRecall={handleRevokeMessage}
+                  onCopy={(m) => copyText(m.content)}
+                  onOpenMedia={openViewer}
+                  onPressReplyRef={handlePressReply}
+                  openViewer={openViewer}
+                />
+              )}
             />
           )}
-          {/* --- COMPOSER BARS (WEB ONLY) --- */}
-          {isWeb && replyTo && (
-            <XStack
-              px="$3"
-              py="$2"
-              bg="$background"
-              borderColor="$borderColor"
-              borderTopWidth={1}
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <YStack flex={1} marginRight="$2">
-                <Text fontWeight="700" numberOfLines={1}>
-                  {replyName}
-                </Text>
-                <Text numberOfLines={1} color="$color10">
-                  {replyTo.content}
-                </Text>
-              </YStack>
-              <Button
-                size="$2"
-                circular
-                chromeless
-                icon={X}
-                onPress={() => {
-                  setReplyTo(null)
-                  setMessage('')
-                }}
-              />
-            </XStack>
-          )}
+
 
           {selectionMode && (
             <XStack
@@ -1427,6 +975,66 @@ export function ChatScreen({ roomId, insets }: Props) {
           />
 
           {/* --- FOOTER (INPUT) --- */}
+          {/* --- PHẦN NHÃN TRẢ LỜI TRÊN INPUT --- */}
+          {!selectionMode && replyTo && (() => {
+            const replyAttachments = replyTo.attachments || [];
+            const firstAt = replyAttachments[0];
+            const isImage = firstAt?.contentType?.startsWith('image/');
+            const isVideo = firstAt?.contentType?.startsWith('video/');
+            const isFile = firstAt && !isImage && !isVideo;
+
+            let displayLabel = replyTo.content || '';
+            if (isImage) displayLabel = '[Hình ảnh]';
+            if (isVideo) displayLabel = '[Video]';
+            if (isFile) displayLabel = `[File] ${firstAt.fileName}`;
+
+            return (
+              <XStack
+                px="$3"
+                py="$2"
+                bg="$background"
+                borderTopWidth={1}
+                borderColor="$borderColor"
+                alignItems="center"
+                space="$2"
+                animation="quick"
+                enterStyle={{ opacity: 0, y: 10 }}
+              >
+                {/* Vạch kẻ xanh bên trái */}
+                <YStack width={3} height="80%" bg="$blue10" borderRadius="$1" />
+
+                {/* Thumbnail nhỏ nếu là Media */}
+                {(isImage || isVideo) && (
+                  <Image
+                    source={{ uri: firstAt.fileUrl }}
+                    width={36}
+                    height={36}
+                    borderRadius="$2"
+                    bg="$color5"
+                  />
+                )}
+
+                {/* Nội dung text */}
+                <YStack flex={1} justifyContent="center">
+                  <Text fontWeight="700" fontSize="$3" color="$blue10" numberOfLines={1}>
+                    Đang trả lời: {replyTo.user?.name || 'Người dùng'}
+                  </Text>
+                  <Text fontSize="$2" color="$color10" numberOfLines={1}>
+                    {displayLabel}
+                  </Text>
+                </YStack>
+
+                {/* Nút Hủy (X) để tắt chế độ trả lời */}
+                <Button
+                  size="$2"
+                  circular
+                  chromeless
+                  icon={X}
+                  onPress={() => setReplyTo(null)}
+                />
+              </XStack>
+            );
+          })()}
           {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}
           {drafts.length > 0 && (
             <XStack px="$3" py="$2" space="$2" bg="$background">
