@@ -1,12 +1,12 @@
-import { MessageResponse } from "app/types/Response"
+import { MessageResponse } from 'app/types/Response'
 
 export const generateDirectRoomId = (myId: string, otherUserId: string) => {
   const ids = [myId, otherUserId].sort()
   return `${ids[0]}_${ids[1]}`
 }
 
-export const formatPreviewMessage = (message: MessageResponse) => {
-  if (!message) return ''
+export const formatPreviewMessage = (message: MessageResponse | null) => {
+  if (!message) return 'Chưa có tin nhắn'
 
   let content = ''
 

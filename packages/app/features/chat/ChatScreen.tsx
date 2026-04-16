@@ -54,7 +54,7 @@ import { roomApi, useGetJoinedRoomsQuery, useGetRoomMetadataQuery } from 'app/se
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
 import { Attachment, MessageResponse } from 'app/types/Response'
-import { AppDispatch, RootState } from 'app/store'
+import { AppDispatch, RootState, store } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
@@ -399,23 +399,53 @@ export function ChatScreen({ roomId, insets }: Props) {
   }
 
   const handleDeleteMessage = async (messageId: string) => {
-    // TODO: xử lý lại cursor nếu tin nhắn bị xóa nằm ở đầu hoặc cuối trang, để tránh trường hợp xoá xong mà không load thêm được tin nhắn nào nữa
+    let nextMessage: MessageResponse | null = null
+
+    // lấy snapshot trước
+    const currentMessages = chatApi.endpoints.getMessages.select({ roomId })(store.getState())
+
+    const items = currentMessages?.data?.items || []
+    const index = items.findIndex((m) => m.id === messageId)
+
+    if (index !== -1) {
+      nextMessage =
+        items[index + 1] ||
+        items[index - 1] ||
+        null
+    }
+
+    // update message list
     dispatch(
       chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-        const index = draft.items?.findIndex((m) => m.id === messageId)
-
-        if (index !== undefined && index !== -1) {
-          draft.items.splice(index, 1)
+        if (!draft.items) return
+        const idx = draft.items.findIndex((m) => m.id === messageId)
+        if (idx !== -1) {
+          draft.items.splice(idx, 1)
         }
       })
     )
 
-    // TODO: xử lý trường hợp nếu xoá tin nhắn mới nhất của phòng thì cũng cần cập nhật lại latestMessage trong cache của getJoinedRooms
+    // update room list
+    dispatch(
+      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        if (!draft?.items) return
+
+        const room = draft.items.find((r) => r.id === roomId)
+        if (!room) return
+
+        if (room.latestMessage?.id === messageId) {
+          room.latestMessage.content = formatPreviewMessage(nextMessage)
+        }
+      })
+    )
 
     try {
       await deleteMessage({ roomId, messageId }).unwrap()
     } catch (error) {
       console.error('Lỗi khi xoá tin nhắn:', error)
+
+      dispatch(chatApi.util.invalidateTags(['Messages']))
+      dispatch(roomApi.util.invalidateTags(['Rooms']))
     }
   }
 
@@ -559,19 +589,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
     )
 
-    const roomPatchResult = dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        console.log('Updating getJoinedRooms cache with optimistic message:', optimisticMessage)
-        if (!draft || !draft.items) return
-        const roomIndex = draft.items.findIndex((room) => room.id === roomId)
-        if (roomIndex !== -1) {
-          draft.items[roomIndex].latestMessage = optimisticMessage
-          const [updatedRoom] = draft.items.splice(roomIndex, 1)
-          draft.items.unshift(updatedRoom)
-        }
-      })
-    )
-
     try {
       // 1. Gửi tin nhắn
       const result = await sendMessage({
@@ -581,6 +598,18 @@ export function ChatScreen({ roomId, insets }: Props) {
         replyTo: replyTo?.id,
         attachments,
       }).unwrap()
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          if (!draft || !draft.items) return
+          const roomIndex = draft.items.findIndex((room) => room.id === roomId)
+          if (roomIndex !== -1) {
+            draft.items[roomIndex].latestMessage = result
+            const [updatedRoom] = draft.items.splice(roomIndex, 1)
+            draft.items.unshift(updatedRoom)
+          }
+        })
+      )
 
       // cập nhật lại cache với ID thật và trạng thái đã gửi
       dispatch(
@@ -598,7 +627,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       console.error('Lỗi khi gửi tin nhắn:', error)
       setMessage(message) // Hoàn nguyên nội dung input để người dùng có thể thử gửi lại
       if (reply) setReplyTo(reply)
-      roomPatchResult.undo()
       patchResult.undo()
     }
   }
