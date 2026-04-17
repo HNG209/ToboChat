@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Platform, Pressable } from 'react-native'
-import { Button, Dialog, ListItem, Popover, Separator, Text, YStack, XStack } from '@my/ui'
+import {
+  Button,
+  Dialog,
+  ListItem,
+  Popover,
+  Separator,
+  Text,
+  YStack,
+  XStack
+} from 'tamagui'
 import {
   ArrowLeft,
   CheckSquare,
@@ -11,6 +19,7 @@ import {
   Trash2,
 } from '@tamagui/lucide-icons'
 import type { MessageResponse } from 'app/types/Response'
+import { Platform, Pressable, StyleSheet } from 'react-native'
 
 type Props = {
   message: MessageResponse
@@ -22,7 +31,8 @@ type Props = {
   onReply: (message: MessageResponse) => void
   onForward: (message: MessageResponse) => void
   onEnterMultiSelect: (message: MessageResponse) => void
-  onDeleteForMe: (message: MessageResponse) => void
+  onDelete: (message: MessageResponse) => void
+  onDeleteForMe: (message: MessageRespone) => void
   onRecall?: (message: MessageResponse) => void
   disabled?: boolean
   children: React.ReactNode
@@ -40,6 +50,7 @@ export function MessageActionMenu({
   onReply,
   onForward,
   onEnterMultiSelect,
+  onDelete,
   onDeleteForMe,
   onRecall,
   disabled,
@@ -59,8 +70,13 @@ export function MessageActionMenu({
   useEffect(() => {
     if (triggerRef) {
       triggerRef.current = () => {
-        if (!disabled) setOpen(true)
-      }
+        if (!disabled) {
+          setOpen(true);
+        }
+      };
+    }
+    return () => {
+      if (triggerRef) triggerRef.current = null;
     }
   }, [disabled, triggerRef])
   useEffect(() => {
@@ -106,7 +122,7 @@ export function MessageActionMenu({
   } as const
 
   // --- GIAO DIỆN MOBILE ---
-  // --- GIAO DIỆN MOBILE ---
+
   if (!isWeb) {
     const Tile = ({ title, icon, onPress, disabledTile }: any) => (
       <YStack {...(tileWrapStyle as any)}>
@@ -179,7 +195,7 @@ export function MessageActionMenu({
                         </Button>
                       </YStack>
                     ) : (
-                      <Tile title="Xóa phía tôi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe(message)} />
+                      <Tile title="Xóa phía tôi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe?.(message)} />
                     )}
                   </XStack>
                 </YStack>
@@ -190,7 +206,7 @@ export function MessageActionMenu({
                     <Text fontWeight="700">Xóa tin nhắn</Text>
                   </XStack>
                   <XStack flexWrap="wrap">
-                    <Tile title="Xóa phía mình" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe(message)} />
+                    <Tile title="Xóa phía mình" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe?.(message)} />
                     {onRecall && (
                       <Tile title="Thu hồi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onRecall(message)} />
                     )}
@@ -201,12 +217,27 @@ export function MessageActionMenu({
           </Dialog.Portal>
         </Dialog>
 
-        {/* ✅ Pressable độc lập, KHÔNG phải Dialog.Trigger */}
         <YStack
           alignItems={isMe ? 'flex-end' : 'flex-start'}
-          onPress={selectionMode ? () => onToggleSelected(message.id) : undefined}
+          width="100%"
+          // CỰC KỲ QUAN TRỌNG: Ép cái khung này không được bắt sự kiện
+          pointerEvents="box-none"
         >
-          {children}
+          {/* Thêm một lớp bọc children và cũng cho nó box-none */}
+          <YStack width="100%" pointerEvents="box-none" alignItems={isMe ? 'flex-end' : 'flex-start'}>
+            {children}
+          </YStack>
+
+          {/* Lớp xử lý chọn nhiều (Selection Mode) */}
+          {selectionMode && (
+            <Pressable
+              onPress={() => onToggleSelected(message.id)}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                zIndex: 999,
+              }}
+            />
+          )}
         </YStack>
       </>
     )

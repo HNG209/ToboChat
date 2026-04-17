@@ -13783,7 +13783,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"expo-av@npm:~16.0.8":
+"expo-av@npm:^16.0.8, expo-av@npm:~16.0.8":
   version: 16.0.8
   resolution: "expo-av@npm:16.0.8"
   peerDependencies:
@@ -17301,6 +17301,7 @@ __metadata:
     aws-amplify: "npm:6.16.0"
     check-dependency-version-consistency: "npm:^4.1.0"
     expo: "npm:~54.0.31"
+    expo-av: "npm:^16.0.8"
     expo-constants: "npm:^18.0.13"
     expo-image-picker: "npm:~17.0.10"
     expo-modules-core: "npm:^3.0.29"

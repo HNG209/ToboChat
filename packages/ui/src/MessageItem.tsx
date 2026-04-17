@@ -25,6 +25,7 @@ interface Props {
   onReply: (msg: MessageResponse) => void
   onForward: (msg: MessageResponse) => void
   onDelete: (id: string) => void
+  onDeleteForMe: (id: string) => void
   onRecall: (msg: MessageResponse) => void
   onCopy: (msg: MessageResponse) => void
   onOpenMedia: (media: any[], index: number) => void
@@ -72,6 +73,7 @@ export function MessageItem({
   onReply,
   onForward,
   onDelete,
+  onDeleteForMe,
   onRecall,
   onCopy,
   onOpenMedia,
@@ -183,7 +185,8 @@ export function MessageItem({
         onToggleSelected={onToggleSelect}
         onReply={onReply}
         onForward={onForward}
-        onDelete={() => onDelete(msg.id)}
+        onDelete={onDelete}
+        onDeleteForMe={onDeleteForMe}
         onRecall={onRecall}
         onCopy={onCopy}
         disabled={isRevoked}
@@ -193,6 +196,7 @@ export function MessageItem({
         <YStack space="$2">
           {/* MEDIA */}
           {media.length > 0 && (
+
             <YStack
               maxWidth={280}
               borderRadius="$4"
@@ -208,10 +212,19 @@ export function MessageItem({
                 onPressMedia={(index) => onOpenMedia(media, index)}
                 onLongPress={() => menuTriggerRef.current?.()}
               />
+
               {messageText ? (
-                <YStack p="$2">
-                  <Text color={messageColor} fontStyle={messageFontStyle}>{messageText}</Text>
-                </YStack>
+
+                <Pressable
+                  onLongPress={() => menuTriggerRef.current?.()}
+                  delayLongPress={250}
+                >
+                  <YStack p="$2">
+                    <Text color={messageColor} fontStyle={messageFontStyle}>
+                      {messageText}
+                    </Text>
+                  </YStack>
+                </Pressable>
               ) : null}
             </YStack>
           )}
@@ -240,12 +253,17 @@ export function MessageItem({
                   onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(f.fileUrl)}
                   onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
                   delayLongPress={250}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    menuTriggerRef.current?.()
+                  }}
                 >
                   <XStack
                     p="$2"
                     bg="$color3"
                     borderRadius="$3"
                     opacity={selectionMode && isSelected ? 0.6 : 1}
+                    minWidth={250}
                   >
                     <File size={18} />
                     <YStack flex={1} ml="$2">

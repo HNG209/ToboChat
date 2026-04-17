@@ -789,7 +789,8 @@ export function ChatScreen({ roomId, insets }: Props) {
               }}
               onEndReachedThreshold={0.1}
               keyboardDismissMode="interactive"
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
+              removeClippedSubviews={false}
               ListEmptyComponent={
                 <YStack
                   flex={1}
@@ -836,8 +837,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                   onToggleSelect={toggleSelected} // Chỉ truyền tên hàm
                   onEnterMultiSelect={handleEnterMultiSelect}
                   onReply={setReplyTo}
-                  onForward={openForwardDialog}
-                  onDelete={handleDeleteMessage}
+                  onForward={(msg) => openForwardDialog([msg])}
+                  onDelete={(msg) => handleDeleteMessage(msg.id)}
+                  onDeleteForMe={(msg) => handleDeleteMessage(msg.id)}
                   onRecall={handleRevokeMessage}
                   onCopy={(m) => copyText(m.content)}
                   onOpenMedia={openViewer}

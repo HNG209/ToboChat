@@ -41,6 +41,7 @@
     "aws-amplify": "6.16.0",
     "check-dependency-version-consistency": "^4.1.0",
     "expo": "~54.0.31",
+    "expo-av": "^16.0.8",
     "expo-constants": "^18.0.13",
     "expo-image-picker": "~17.0.10",
     "expo-modules-core": "^3.0.29",
