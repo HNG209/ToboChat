@@ -120,7 +120,48 @@ export function MessageItem({
   const messageColor = isRevoked ? '$color9' : '$color12'
   const isSelected = selectionMode && selected
   const menuTriggerRef = useRef<(() => void) | null>(null)
-
+  const renderReplyPreview = () => {
+    if (!msg.replyTo || isRevoked) return null
+    const replyMsg = msg.replyTo
+    const firstAttachment = replyMsg.attachments?.[0]
+    const isReplyImage = firstAttachment?.contentType?.startsWith('image/')
+    const isReplyVideo = firstAttachment?.contentType?.startsWith('video/')
+    let subLabel = replyMsg.content || ''
+    if (isReplyImage) subLabel = '[Hình ảnh]'
+    if (isReplyVideo) subLabel = '[Video]'
+    if (firstAttachment && !isReplyImage && !isReplyVideo) subLabel = `[File] ${firstAttachment.fileName}`
+    return (
+      <XStack
+        mb="$2"
+        p="$2"
+        bg="$background"
+        borderRadius="$3"
+        borderLeftWidth={3}
+        borderLeftColor="$blue10"
+        space="$2"
+        alignItems="center"
+        onPress={(e) => {
+          e.stopPropagation()
+          if (selectionMode) onToggleSelect(msg.id)
+          else onPressReplyRef(replyMsg.id)
+        }}
+      >
+        {(isReplyImage || isReplyVideo) && (
+          <YStack width={35} height={35} borderRadius="$2" overflow="hidden" flexShrink={0}>
+            <Image source={{ uri: firstAttachment.fileUrl }} width="100%" height="100%" />
+          </YStack>
+        )}
+        <YStack flexShrink={1}>
+          <Text fontWeight="700" fontSize="$1" color="$blue10" numberOfLines={1}>
+            {replyMsg.user?.name || 'Người dùng'}
+          </Text>
+          <Text fontSize="$1" color="$color11" numberOfLines={1}>
+            {subLabel}
+          </Text>
+        </YStack>
+      </XStack>
+    )
+  }
   return (
     <XStack space="$2" mb="$2" justifyContent={isMe ? 'flex-end' : 'flex-start'}>
       {/* AVATAR */}
@@ -150,7 +191,6 @@ export function MessageItem({
         triggerRef={menuTriggerRef}
       >
         <YStack space="$2">
-
           {/* MEDIA */}
           {media.length > 0 && (
             <YStack
@@ -184,7 +224,7 @@ export function MessageItem({
               delayLongPress={250}
             >
               <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4">
-                {msg.replyTo && (() => { /* reply preview giữ nguyên */ })()}
+                {msg.replyTo && renderReplyPreview()}
                 <Text color={messageColor} fontStyle={messageFontStyle}>{messageText}</Text>
                 <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">{timeString}</Text>
               </YStack>
