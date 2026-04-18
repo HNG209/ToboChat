@@ -99,7 +99,6 @@ interface Props {
 export function ChatScreen({ roomId, insets }: Props) {
   const { height: windowHeight } = useWindowDimensions()
   const androidBaselineHeightRef = useRef(windowHeight)
-  const [message, setMessage] = useState('')
   const [composerHeight, setComposerHeight] = useState(0)
   const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0)
   const { theme } = useAppTheme()
@@ -526,11 +525,11 @@ export function ChatScreen({ roomId, insets }: Props) {
     setDirection('both')
   }
   // 3. Send Message Logic
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (content: string) => {
     // 1. Kiểm tra trạng thái upload (Giữ nguyên logic của Đạt)
     const isStillUploading = drafts.some((d) => d.isUploading)
     const hasError = drafts.some((d) => (d as any).error)
-
+    const message = content;
     if (isStillUploading) {
       alert('Vui lòng đợi tệp tin đang được tải lên...')
       return
@@ -567,7 +566,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
 
     // Reset input và drafts
-    setMessage('')
     if (reply) setReplyTo(null)
     setDrafts([])
 
@@ -616,7 +614,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       )
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
-      setMessage(message) // Hoàn nguyên nội dung input để người dùng có thể thử gửi lại
       if (reply) setReplyTo(reply)
       patchResult.undo()
     }
@@ -1124,8 +1121,6 @@ export function ChatScreen({ roomId, insets }: Props) {
             </XStack>
           )}
           <ChatScreenFooter
-            message={message}
-            setMessage={setMessage}
             drafts={drafts}
             handleSendMessage={handleSendMessage}
             handlePickFile={handlePickFile}
