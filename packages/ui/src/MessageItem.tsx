@@ -195,8 +195,7 @@ export function MessageItem({
       >
         <YStack space="$2">
           {/* MEDIA */}
-          {media.length > 0 && (
-
+          {media.length > 0 ? (
             <YStack
               maxWidth={280}
               borderRadius="$4"
@@ -212,9 +211,7 @@ export function MessageItem({
                 onPressMedia={(index) => onOpenMedia(media, index)}
                 onLongPress={() => menuTriggerRef.current?.()}
               />
-
               {messageText ? (
-
                 <Pressable
                   onLongPress={() => menuTriggerRef.current?.()}
                   delayLongPress={250}
@@ -227,10 +224,9 @@ export function MessageItem({
                 </Pressable>
               ) : null}
             </YStack>
-          )}
-
+          ) : null}
           {/* TEXT ONLY */}
-          {messageText && media.length === 0 && (
+          {messageText && media.length === 0 ? (
             <Pressable
               onPress={selectionMode ? () => onToggleSelect(msg.id) : undefined}
               onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
@@ -242,10 +238,9 @@ export function MessageItem({
                 <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">{timeString}</Text>
               </YStack>
             </Pressable>
-          )}
-
+          ) : null}
           {/* FILES */}
-          {files.length > 0 && (
+          {files.length > 0 ? (
             <YStack space="$1">
               {files.map((f, i) => (
                 <Pressable
@@ -276,8 +271,7 @@ export function MessageItem({
               ))}
               <Text fontSize="$1">{timeString}</Text>
             </YStack>
-          )}
-
+          ) : null}
         </YStack>
       </MessageActionMenu>
 
