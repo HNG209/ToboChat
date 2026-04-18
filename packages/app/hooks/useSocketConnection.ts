@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { initSocket, disconnectSocket } from 'app/utils/socket'
 import { Platform } from 'react-native'
-
+import { getBaseUrl } from './socket-baseurl/getBaseUrl'
 export function useSocketConnection(isLoggedIn: boolean) {
   useEffect(() => {
     let isMounted = true
@@ -16,8 +16,7 @@ export function useSocketConnection(isLoggedIn: boolean) {
           const token = session.tokens?.accessToken?.toString()
 
           if (token && isMounted) {
-            const baseUrl =
-              Platform.OS === 'web' ? 'http://localhost:8085' : 'http://192.168.1.xxx:8085'
+            const baseUrl = getBaseUrl()
 
             initSocket(token, baseUrl)
           }
