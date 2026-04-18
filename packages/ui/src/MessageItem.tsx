@@ -91,6 +91,7 @@ export function MessageItem({
 
   const isSolo = !groupsWithNewer && !groupsWithOlder
   const isGroupStart = !groupsWithOlder && groupsWithNewer
+  const isGroupEnd = !groupsWithNewer || isSolo;
 
   const showAvatar = !isMe && (isSolo || isGroupStart)
 
@@ -235,7 +236,11 @@ export function MessageItem({
               <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4">
                 {msg.replyTo && renderReplyPreview()}
                 <Text color={messageColor} fontStyle={messageFontStyle}>{messageText}</Text>
-                <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">{timeString}</Text>
+                {isGroupEnd && !isRevoked && (
+                  <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
+                    {timeString}
+                  </Text>
+                )}
               </YStack>
             </Pressable>
           ) : null}
@@ -269,7 +274,11 @@ export function MessageItem({
                   </XStack>
                 </Pressable>
               ))}
-              <Text fontSize="$1">{timeString}</Text>
+              {isGroupEnd && !isRevoked && (
+                <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
+                  {timeString}
+                </Text>
+              )}
             </YStack>
           ) : null}
         </YStack>
