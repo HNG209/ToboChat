@@ -38,6 +38,7 @@ import {
   Download,
   File,
   FileText,
+  Lock,
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
 import {
@@ -49,7 +50,7 @@ import {
   useSendMessageMutation,
   useDeleteMessageMutation,
 } from 'app/services/chatApi'
-import { roomApi, useGetJoinedRoomsQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
+import { roomApi, useGetJoinedRoomsQuery, useGetMyInfoQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
 import { Attachment, MessageResponse } from 'app/types/Response'
@@ -148,8 +149,6 @@ export function ChatScreen({ roomId, insets }: Props) {
   // Show infor screen
   const [showInfo, setShowInfo] = useState(false)
   const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT'>('INFO');
-  // Check admin of a group
-  const isAdmin = true;
   const handleCloseInfo = () => {
     setShowInfo(false);
     setTimeout(() => setInfoView('INFO'), 300); // Đợi đóng xong rồi mới reset để tránh bị giật giao diện
@@ -220,6 +219,9 @@ export function ChatScreen({ roomId, insets }: Props) {
       // refetchOnReconnect: true,
     }
   )
+
+  const { data: myInfo } = useGetMyInfoQuery({ roomId });
+  const isAdmin: boolean | undefined = myInfo?.role == 'ADMIN'
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
 
@@ -1133,16 +1135,35 @@ export function ChatScreen({ roomId, insets }: Props) {
                 />
               </XStack>
             )}
-            <ChatScreenFooter
-              drafts={drafts}
-              handleSendMessage={handleSendMessage}
-              handlePickFile={handlePickFile}
-              theme={theme}
-              isWeb={isWeb}
-              insets={insets}
-              composerHeight={composerHeight}
-              setComposerHeight={setComposerHeight}
-            />
+            {
+              (!isAdmin && !roomData?.allowSendMessage) ?
+                <XStack
+                  alignItems="center"
+                  justifyContent="center"
+                  backgroundColor="$backgroundHover" // Màu nền xám nhạt
+                  py="$3"
+                  px="$4"
+                  space="$2"
+                  borderRadius="$4"
+                  borderWidth={1}
+                  borderColor="$borderColor"
+                >
+                  <Lock size={16} color="$color11" />
+                  <Text fontSize="$3" color="$color11" fontWeight="500">
+                    Quản trị viên đã tắt cho phép gửi tin nhắn
+                  </Text>
+                </XStack> :
+                <ChatScreenFooter
+                  drafts={drafts}
+                  handleSendMessage={handleSendMessage}
+                  handlePickFile={handlePickFile}
+                  theme={theme}
+                  isWeb={isWeb}
+                  insets={insets}
+                  composerHeight={composerHeight}
+                  setComposerHeight={setComposerHeight}
+                />
+            }
           </YStack>
 
 
@@ -1165,7 +1186,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             ) : (
               <GroupManagementContent
                 roomData={roomData}
-                isAdmin={isAdmin} // Kiểm tra quyền Admin
+                isAdmin // Kiểm tra quyền Admin
                 onClose={() => setInfoView('INFO')} // Quay lại trang Info
               />
             )}

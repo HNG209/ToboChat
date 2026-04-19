@@ -31,6 +31,14 @@ export interface UserResponse {
   totalUnreadMessages: number
 }
 
+export interface RoomMemberResponse {
+    role: 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
+    roomName: string
+    status: 'ACTIVE' | 'PENDING'
+    roomType: 'DM' | 'GROUP'
+    addedBy?: string
+}
+
 export interface FriendRequestResponse {
   id: string
   name: string

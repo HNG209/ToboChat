@@ -200,7 +200,7 @@ export const ConversationInfoContent = ({
                 hoverStyle={{ backgroundColor: '$red4' }}
                 onPress={onLeaveGroup}
               >
-                <Text color="$red10" fontWeight="700" fontSize="$3">Rời khỏi nhóm</Text>
+                <Text color="$red10" fontWeight="700" fontSize="$3">Rời nhóm</Text>
               </Button>
             </YStack>
           )}

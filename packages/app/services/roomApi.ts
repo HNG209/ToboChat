@@ -3,10 +3,11 @@ import {
   PageResponse,
   RoomResponse,
   GroupAcceptRequestResponse,
+  RoomMemberResponse,
 } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { RoomStatus } from '@my/ui'
-import { RoomCreateRequest } from 'app/types/Request'
+import { RoomCreateRequest, RoomUpdateRequest } from 'app/types/Request'
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -20,6 +21,14 @@ export const roomApi = baseApi.injectEndpoints({
         },
       }),
       providesTags: ['Rooms'],
+    }),
+
+    // Thông tin của tôi trong nhóm
+    getMyInfo: builder.query<RoomMemberResponse, { roomId: string }>({
+      query: ({ roomId }) => ({
+        url: `/rooms/${roomId}/me`,
+        method: 'GET',
+      }),
     }),
 
     // Lấy danh sách lời mời tham gia nhóm
@@ -51,6 +60,17 @@ export const roomApi = baseApi.injectEndpoints({
       }),
     }),
 
+    updateRoomSettings: builder.mutation<void, { roomId: string; request: RoomUpdateRequest }>({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}`,
+        method: 'PATCH',
+        data: {
+          ...data.request,
+        },
+      }),
+      // invalidatesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
+    }),
+
     addMembers: builder.mutation<void, { roomId: string; targetUserIds: string[] }>({
       query: ({ roomId, targetUserIds }) => ({
         url: `/rooms/${roomId}/members`,
@@ -64,6 +84,7 @@ export const roomApi = baseApi.injectEndpoints({
         url: `/rooms/${roomId}`,
         method: 'GET',
       }),
+      // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
     markAsRead: builder.mutation<ApiResponse<void>, string>({
@@ -79,7 +100,9 @@ export const roomApi = baseApi.injectEndpoints({
 
 export const {
   useGetJoinedRoomsQuery,
+  useGetMyInfoQuery,
   useCreateGroupMutation,
+  useUpdateRoomSettingsMutation,
   useRespondGroupInviteMutation,
   useGetGroupInvitesQuery,
   useGetRoomMetadataQuery,

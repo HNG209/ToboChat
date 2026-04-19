@@ -51,3 +51,10 @@ export interface RoomCreateRequest {
   roomName: string
   memberIds: string[]
 }
+
+export interface RoomUpdateRequest {
+  allowAddMember?: boolean
+  allowSendMessage?: boolean
+  allowUpdateMetadata?: boolean
+  approveMember?: boolean
+}
