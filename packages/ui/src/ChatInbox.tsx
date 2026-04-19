@@ -139,13 +139,32 @@ export default function ChatInbox() {
       );
     }
 
+    const handleGroupDisband = (roomId: string) => {
+      console.log("okokok", roomId);
+      dispatch(
+        roomApi.util.updateQueryData(
+          'getJoinedRooms',
+          { status: 'ACTIVE' },
+          (draft) => {
+            const index = draft.items?.findIndex((r) => r.id === roomId)
+
+            if (index !== undefined && index !== -1) {
+              draft.items.splice(index, 1)
+            }
+          }
+        )
+      );
+    }
+
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     socket.on('new_room', handleNewRoom)
+    socket.on('room_disband', handleGroupDisband)
     return () => {
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('new_room', handleNewRoom)
+      socket.off('room_disband', handleGroupDisband)
     }
   }, [dispatch, isSocketReady, status])
 

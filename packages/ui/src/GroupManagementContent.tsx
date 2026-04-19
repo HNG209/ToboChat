@@ -12,10 +12,11 @@ import {
 } from "tamagui"
 import { ArrowLeft, ChevronRight } from "@tamagui/lucide-icons"
 import { RoomResponse } from "app/types/Response"
-import { roomApi, useUpdateRoomSettingsMutation } from 'app/services/roomApi'
+import { roomApi, useDisbandGroupMutation, useUpdateRoomSettingsMutation } from 'app/services/roomApi'
 import { RoomUpdateRequest } from 'app/types/Request'
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from 'app/store'
+import { useRouter } from 'solito/navigation'
 
 type GroupManagementProps = {
   roomData: RoomResponse | undefined
@@ -70,28 +71,54 @@ export const GroupManagementContent = ({
   onClose,
 }: GroupManagementProps) => {
   const [updateRoomSettings] = useUpdateRoomSettingsMutation();
+  const [disbandGroup] = useDisbandGroupMutation();
   const dispatch = useDispatch<AppDispatch>()
+  const router = useRouter()
+
 
   // 2. Viết hàm xử lý chung cho tất cả các Switch
   const handleToggleSetting = async (settingKey: keyof RoomUpdateRequest, newValue: boolean) => {
     if (!roomData?.id) return;
     const patchResult = dispatch(
       roomApi.util.updateQueryData(
-        'getRoomMetadata',          // Tên endpoint bạn muốn cập nhật cache
-        { roomId: roomData.id },    // Tham số (args) đã dùng để gọi endpoint này trước đó
+        'getRoomMetadata',
+        { roomId: roomData.id },
         (draft) => {
-          // 'draft' là bản sao dữ liệu hiện tại trong cache.
-          // Cập nhật giá trị mới vào draft
           (draft as any)[settingKey] = newValue;
         }
       )
     );
     try {
       await updateRoomSettings({ roomId: roomData.id, request: { [settingKey]: newValue } })
-
     } catch (error) {
       patchResult.undo();
       console.error(`Lỗi khi cập nhật ${settingKey}:`, error);
+    }
+  }
+
+  const handleDisbandGroup = async () => {
+    try {
+      if (!roomData) return;
+      await disbandGroup({ roomId: roomData.id }).unwrap();
+
+      // xoa cache
+      dispatch(
+        roomApi.util.updateQueryData(
+          'getJoinedRooms',
+          { status: 'ACTIVE' },
+          (draft) => {
+            const index = draft.items?.findIndex((r) => r.id === roomData.id)
+            console.log('nah', index);
+
+            if (index !== undefined && index !== -1) {
+              draft.items.splice(index, 1)
+            }
+          }
+        )
+      );
+      router.replace("/chat");
+    } catch (error) {
+      console.error('Lỗi khi giải tán nhóm');
     }
   }
 
@@ -180,7 +207,7 @@ export const GroupManagementContent = ({
               <Button
                 theme="red"
                 backgroundColor="$red3"
-                // onPress={onDissolveGroup}
+                onPress={handleDisbandGroup}
                 pressStyle={{ scale: 0.97 }}
               >
                 <Text color="$red10" fontWeight="700" fontSize="$4">Giải tán nhóm</Text>

@@ -1136,7 +1136,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               </XStack>
             )}
             {
-              (!isAdmin && !roomData?.allowSendMessage) ?
+              (roomData?.roomType == 'GROUP' && !isAdmin && !roomData?.allowSendMessage) ?
                 <XStack
                   alignItems="center"
                   justifyContent="center"

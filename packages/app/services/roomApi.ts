@@ -71,6 +71,13 @@ export const roomApi = baseApi.injectEndpoints({
       // invalidatesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
+    disbandGroup: builder.mutation<void, { roomId: string }>({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}`,
+        method: 'DELETE',
+      }),
+    }),
+
     addMembers: builder.mutation<void, { roomId: string; targetUserIds: string[] }>({
       query: ({ roomId, targetUserIds }) => ({
         url: `/rooms/${roomId}/members`,
@@ -102,6 +109,7 @@ export const {
   useGetJoinedRoomsQuery,
   useGetMyInfoQuery,
   useCreateGroupMutation,
+  useDisbandGroupMutation,
   useUpdateRoomSettingsMutation,
   useRespondGroupInviteMutation,
   useGetGroupInvitesQuery,
