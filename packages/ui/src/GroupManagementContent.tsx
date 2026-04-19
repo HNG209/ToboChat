@@ -74,28 +74,28 @@ export const GroupManagementContent = ({
         <YStack p="$2" space="$1">
           <SettingRow
             label="Cho phép thêm thành viên vào nhóm"
-            defaultValue={true}
+            defaultValue={roomData?.allowAddMember ?? true}
             isAdmin={isAdmin}
           />
           <Separator opacity={0.5} />
 
           <SettingRow
             label="Cho phép thành viên gửi tin nhắn"
-            defaultValue={true}
+            defaultValue={roomData?.allowSendMessage ?? true}
             isAdmin={isAdmin}
           />
           <Separator opacity={0.5} />
 
           <SettingRow
             label="Cho phép chỉnh sửa thông tin phòng chat"
-            defaultValue={true}
+            defaultValue={roomData?.allowUpdateMetadata ?? true}
             isAdmin={isAdmin}
           />
           <Separator opacity={0.5} />
 
           <SettingRow
             label="Phê duyệt khi vào phòng"
-            defaultValue={false}
+            defaultValue={roomData?.approveMember ?? false}
             isAdmin={isAdmin}
           />
 

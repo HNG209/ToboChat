@@ -4,7 +4,7 @@ import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
 import { userApi } from 'app/services/userApi'
-import { MessageResponse } from 'app/types/Response'
+import { MessageResponse, RoomResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
@@ -48,9 +48,6 @@ export default function ChatInbox() {
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
 
-  // =========================
-  // API: fetch rooms by status
-  // =========================
   const { data, isLoading, isError } = useGetJoinedRoomsQuery(
     { status },
     {
@@ -59,9 +56,6 @@ export default function ChatInbox() {
     }
   )
 
-  // =========================
-  // SOCKET INIT
-  // =========================
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
 
@@ -78,9 +72,6 @@ export default function ChatInbox() {
     return () => clearTimeout(timeoutId)
   }, [])
 
-  // =========================
-  // SOCKET MESSAGE HANDLER
-  // =========================
   useEffect(() => {
     if (!isSocketReady) return
 
@@ -137,17 +128,27 @@ export default function ChatInbox() {
       )
     }
 
+    const handleNewRoom = (newRoom: RoomResponse) => {
+      // Cập nhật cache rtk-query để thêm nhóm mới vào danh sách phòng
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          if (draft) {
+            draft.items.unshift(newRoom);
+          }
+        })
+      );
+    }
+
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
+    socket.on('new_room', handleNewRoom)
     return () => {
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
+      socket.off('new_room', handleNewRoom)
     }
   }, [dispatch, isSocketReady, status])
 
-  // =========================
-  // OPEN ROOM
-  // =========================
   const handleRoomPress = (roomId: string, unreadCount: number) => {
     dispatch(
       roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
@@ -171,9 +172,6 @@ export default function ChatInbox() {
     router.push(`/chat/${roomId}`)
   }
 
-  // =========================
-  // LOADING / ERROR
-  // =========================
   if (!hasSession || isLoading) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
@@ -190,9 +188,6 @@ export default function ChatInbox() {
     )
   }
 
-  // =========================
-  // UI
-  // =========================
   return (
     <YStack flex={1} backgroundColor="$color2">
 

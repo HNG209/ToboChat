@@ -15,8 +15,10 @@ import {
 import { Check, X } from '@tamagui/lucide-icons';
 import { StyledFlatList } from './StyledFlatList';
 import { useGetMyFriendListQuery } from 'app/services/contactApi';
-import { useCreateGroupMutation } from 'app/services/roomApi';
+import { roomApi, useCreateGroupMutation } from 'app/services/roomApi';
 import { ActivityIndicator } from 'react-native';
+import { AppDispatch } from 'app/store';
+import { useDispatch } from 'react-redux';
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -27,16 +29,16 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
+  const dispatch = useDispatch<AppDispatch>()
   const {
     data: friendsData,
     isLoading: friendsLoading,
     error: friendsError,
   } = useGetMyFriendListQuery({ limit: 10 })
-  const [createGroup] = useCreateGroupMutation();
+  const [createGroup, { isLoading: isCreatingGroup }] = useCreateGroupMutation();
 
   // Hàm xử lý chọn/bỏ chọn thành viên
   const toggleMember = (id: string) => {
-    console.log('Toggling member with id:', id);
     setSelectedMembers((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
     );
@@ -44,7 +46,7 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
   };
 
   // Hàm xử lý validate và tạo nhóm
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     if (!groupName.trim()) {
       setErrorMsg('Tên nhóm không được để trống.');
       return;
@@ -55,13 +57,20 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
     }
 
     setErrorMsg('');
-    console.log('Creating group with name:', groupName, 'and members:', selectedMembers);
 
     try {
-      createGroup({ roomName: groupName, memberIds: selectedMembers }).unwrap()
-        .then(() => {
-          handleClose();
-        });
+      const result = await createGroup({ roomName: groupName, memberIds: selectedMembers }).unwrap()
+      onOpenChange(false);
+      // Cập nhật cache rtk-query để thêm nhóm mới vào danh sách phòng
+      // Điều này sẽ tự động kích hoạt re-render ở những nơi sử dụng useGetJoinedRoomsQuery
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          if (draft) {
+            draft.items.unshift(result);
+            // draft.total += 1;
+          }
+        })
+      );
     } catch (error) {
       console.error('Lỗi khi tạo nhóm:', error);
       setErrorMsg('Có lỗi xảy ra khi tạo nhóm. Vui lòng thử lại.');
@@ -217,8 +226,10 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
             {/* Các nút hành động */}
             <YStack space="$2" mt="$3" flexDirection="row" justifyContent="flex-end">
               <Theme>
-                <Button onPress={handleCreateGroup} fontWeight="bold">
-                  Tạo nhóm
+                <Button onPress={handleCreateGroup} fontWeight="bold" disabled={isCreatingGroup}>
+                  {isCreatingGroup ?
+                    <ActivityIndicator size="small" color="#FFF" />
+                    : 'Tạo nhóm'}
                 </Button>
               </Theme>
               <Button onPress={handleClose} variant="outlined" chromeless>

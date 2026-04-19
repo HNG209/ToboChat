@@ -17,7 +17,7 @@ export const roomApi = baseApi.injectEndpoints({
       providesTags: ['Rooms'],
     }),
 
-    createGroup: builder.mutation<void, RoomCreateRequest>({
+    createGroup: builder.mutation<RoomResponse, RoomCreateRequest>({
       query: (data) => ({
         url: '/rooms',
         method: 'POST',

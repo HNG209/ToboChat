@@ -43,6 +43,14 @@ export interface RoomResponse {
   roomType: RoomType
   latestMessage: MessageResponse
   createdAt: string
+  
+  allowAddMember: boolean
+  allowSendMessage: boolean
+  allowUpdateMetadata: boolean
+  approveMember: boolean
+
+  memberCount: number
+  pendingCount: number
   unreadMessages: number
 }
 
