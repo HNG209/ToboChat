@@ -44,7 +44,7 @@ export const ConversationInfoContent = ({
   onManageGroup
 }: ConversationInfoProps) => {
   const isWeb = Platform.OS === 'web'
-  const isGroup = 'GROUP'
+  const isGroup = roomData?.roomType === "GROUP"
   const memberCount = roomData?.memberCount || 0
 
   // Sửa containerProps để đảm bảo luôn chiếm diện tích trên Native
@@ -67,7 +67,6 @@ export const ConversationInfoContent = ({
       {/* --- HEADER --- */}
       <XStack
         p="$3"
-        pt={0}
         alignItems="center"
         justifyContent="space-between"
         borderBottomWidth={0.5}
@@ -84,7 +83,7 @@ export const ConversationInfoContent = ({
               backgroundColor="transparent"
             />
           )}
-          <Text fontWeight="700" fontSize="$5" color="$color" alignSelf='center'>
+          <Text fontWeight="700" fontSize="$5" color="$color">
             {isGroup ? 'Thông tin nhóm' : 'Thông tin hội thoại'}
           </Text>
         </XStack>
@@ -140,7 +139,6 @@ export const ConversationInfoContent = ({
               pressTheme
               title="Thành viên nhóm"
               subTitle={`${memberCount} thành viên`}
-              iconBefore={<Circle size={30} backgroundColor="$blue3"><UserPlus size={16} color="$blue10" /></Circle>}
               iconAfter={ChevronRight}
               borderRadius="$4"
               onPress={() => { }}

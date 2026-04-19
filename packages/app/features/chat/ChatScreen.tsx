@@ -64,6 +64,7 @@ import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader';
 import { ChatScreenFooter } from '@my/ui/src/ChatScreenFooter';
 import { MessageItem } from '@my/ui/src/MessageItem';
 import { ConversationInfoContent } from '@my/ui/src/ConversationInfoContent';
+import { GroupManagementContent } from '@my/ui/src/GroupManagementContent';
 
 
 
@@ -146,6 +147,13 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
   // Show infor screen
   const [showInfo, setShowInfo] = useState(false)
+  const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT'>('INFO');
+  // Check admin of a group
+  const isAdmin = true;
+  const handleCloseInfo = () => {
+    setShowInfo(false);
+    setTimeout(() => setInfoView('INFO'), 300); // Đợi đóng xong rồi mới reset để tránh bị giật giao diện
+  };
   const listBottomSpacer = isWeb ? 0 : composerHeight
   const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
   // Android keyboard handling: don't rely on KeyboardAvoidingView only.
@@ -1142,41 +1150,45 @@ export function ChatScreen({ roomId, insets }: Props) {
         {/* --- SIDEBAR THÔNG TIN (CHỈ CHO WEB) --- */}
         {Platform.OS === 'web' && showInfo && (
           <YStack
-            width={350} // Độ rộng giống Zalo
+            width={350}
             height="100%"
             borderLeftWidth={1}
             borderColor="$borderColor"
             bg="$background"
-            animation="lazy"
-            // Hiệu ứng trượt nhẹ từ phải sang
-            enterStyle={{ x: 10, opacity: 0 }}
-            exitStyle={{ x: 10, opacity: 0 }}
           >
-            <ConversationInfoContent
-              roomData={roomData}
-              onClose={() => setShowInfo(false)}
-            />
+            {infoView === 'INFO' ? (
+              <ConversationInfoContent
+                roomData={roomData}
+                onClose={() => setShowInfo(false)}
+                onManageGroup={() => setInfoView('MANAGEMENT')} // Chuyển sang Management
+              />
+            ) : (
+              <GroupManagementContent
+                roomData={roomData}
+                isAdmin={isAdmin} // Kiểm tra quyền Admin
+                onClose={() => setInfoView('INFO')} // Quay lại trang Info
+              />
+            )}
           </YStack>
         )}
         {/* --- HIỂN THỊ TRÊN MOBILE (Dùng Sheet) --- */}
         {Platform.OS !== 'web' && (
-          <Sheet
-            open={showInfo}
-            onOpenChange={setShowInfo}
-            snapPoints={[98]} // Chiếm 90% chiều cao màn hình
-            dismissOnSnapToBottom
-            modal
-          >
-            <Sheet.Overlay
-              enterStyle={{ opacity: 0 }}
-              exitStyle={{ opacity: 0 }}
-            />
-            <Sheet.Frame backgroundColor="$background">
-              <Sheet.Handle />
-              <ConversationInfoContent
-                roomData={roomData}
-                onClose={() => setShowInfo(false)}
-              />
+          <Sheet open={showInfo} onOpenChange={setShowInfo} snapPoints={[98]} modal dismissOnSnapToBottom={false} // Không cho đóng khi kéo xuống đáy
+            disableDrag={true}>
+            <Sheet.Frame>
+              {infoView === 'INFO' ? (
+                <ConversationInfoContent
+                  roomData={roomData}
+                  onClose={() => setShowInfo(false)}
+                  onManageGroup={() => setInfoView('MANAGEMENT')}
+                />
+              ) : (
+                <GroupManagementContent
+                  roomData={roomData}
+                  isAdmin={isAdmin}
+                  onClose={() => setInfoView('INFO')}
+                />
+              )}
             </Sheet.Frame>
           </Sheet>
         )}
