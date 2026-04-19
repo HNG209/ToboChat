@@ -43,7 +43,7 @@ export interface RoomResponse {
   roomType: RoomType
   latestMessage: MessageResponse
   createdAt: string
-  
+
   allowAddMember: boolean
   allowSendMessage: boolean
   allowUpdateMetadata: boolean
@@ -65,6 +65,13 @@ export interface MessageResponse {
   messageStatus?: 'SENT' | 'REVOKED'
   localStatus?: 'VISIBLE' | 'DELETED'
   attachments?: Attachment[]
+}
+
+export interface GroupAcceptRequestResponse {
+  roomId: string
+  roomName: string
+  avatarUrl: string
+  inviter: UserResponse
 }
 
 export interface Attachment {

@@ -1,11 +1,10 @@
-import React from 'react'
 import { Button, XStack, YStack, Text, Avatar } from 'tamagui'
 import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
-import { FriendResponse } from 'app/types/Response'
+import { FriendResponse, UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
 
 type Props = {
-  user: FriendResponse
+  user: UserResponse
   description?: string
   isGroup?: boolean
   requestId?: string

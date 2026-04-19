@@ -1,4 +1,9 @@
-import { ApiResponse, PageResponse, RoomResponse } from 'app/types/Response'
+import {
+  ApiResponse,
+  PageResponse,
+  RoomResponse,
+  GroupAcceptRequestResponse,
+} from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { RoomStatus } from '@my/ui'
 import { RoomCreateRequest } from 'app/types/Request'
@@ -15,6 +20,27 @@ export const roomApi = baseApi.injectEndpoints({
         },
       }),
       providesTags: ['Rooms'],
+    }),
+
+    // Lấy danh sách lời mời tham gia nhóm
+    getGroupInvites: builder.query<PageResponse<GroupAcceptRequestResponse>, void>({
+      query: () => ({
+        url: '/group-invites',
+        method: 'GET',
+      }),
+      providesTags: ['Rooms'],
+    }),
+
+    // Phản hồi lời mời tham gia nhóm
+    respondGroupInvite: builder.mutation<RoomResponse, { groupId: string; accept: boolean }>({
+      query: ({ groupId, accept }) => ({
+        url: `/group-invites/${groupId}?accept=${accept}`,
+        method: 'PUT',
+        params: {
+          accept,
+        },
+      }),
+      invalidatesTags: ['Rooms'],
     }),
 
     createGroup: builder.mutation<RoomResponse, RoomCreateRequest>({
@@ -46,6 +72,8 @@ export const roomApi = baseApi.injectEndpoints({
 export const {
   useGetJoinedRoomsQuery,
   useCreateGroupMutation,
+  useRespondGroupInviteMutation,
+  useGetGroupInvitesQuery,
   useGetRoomMetadataQuery,
   useMarkAsReadMutation,
 } = roomApi
