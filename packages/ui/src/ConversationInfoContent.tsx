@@ -27,6 +27,7 @@ import {
 } from "@tamagui/lucide-icons"
 import { Platform } from 'react-native'
 import { RoomResponse } from "app/types/Response"
+import { AddMemberDialog } from './group/AddMemberDialog'
 
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
@@ -43,6 +44,7 @@ export const ConversationInfoContent = ({
   onAddMember,
   onManageGroup
 }: ConversationInfoProps) => {
+  const [openAddMember, setOpenAddMember] = React.useState(false)
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
   const memberCount = roomData?.memberCount || 0
@@ -87,11 +89,15 @@ export const ConversationInfoContent = ({
             {isGroup ? 'Thông tin nhóm' : 'Thông tin hội thoại'}
           </Text>
         </XStack>
-
-
       </XStack>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ pb: "$8" }}>
+      <AddMemberDialog
+        roomId={roomData?.id || ''}
+        open={openAddMember}
+        onOpenChange={() => setOpenAddMember(false)}
+      />
+
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* --- PROFILE SECTION --- */}
         <YStack alignItems="center" py="$6" px="$4" space="$3">
           <Avatar circular size="$9" borderWidth={1} borderColor="$borderColor">
@@ -117,7 +123,7 @@ export const ConversationInfoContent = ({
             <QuickActionButton icon={Bell} label="Thông báo" />
             {isGroup && (
               <>
-                <QuickActionButton icon={UserPlus} label="Thêm TV" color="$blue10" onPress={onAddMember} />
+                <QuickActionButton icon={UserPlus} label="Thêm TV" color="$blue10" onPress={() => setOpenAddMember(true)} />
                 <QuickActionButton icon={ShieldCheck} label="Quản lý" color="$green10" onPress={onManageGroup} />
               </>
             )}
@@ -187,7 +193,7 @@ export const ConversationInfoContent = ({
 
           {/* DANGER ZONE */}
           {isGroup && (
-            <YStack p="$4" mt="$4">
+            <YStack p="$4">
               <Button
                 size="$4"
                 backgroundColor="$red3"

@@ -17,7 +17,7 @@ export const contactApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getMyFriendList: builder.query<PageResponse<FriendResponse>, GetMyFriendsRequest | void>({
       query: (params) => ({
-        url: '/users/me/friends',
+        url: `/users/me/friends`,
         method: 'GET',
         params,
       }),

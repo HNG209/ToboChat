@@ -2,6 +2,7 @@ import { Attachment } from './Chat'
 
 // ===== Request =====
 export interface GetMyFriendsRequest {
+  roomId?: string
   cursor?: string
   limit?: number
 }

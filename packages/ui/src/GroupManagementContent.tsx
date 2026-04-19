@@ -71,7 +71,7 @@ export const GroupManagementContent = ({
       </XStack>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <YStack p="$2" space="$1">
+        <YStack space="$1">
           <SettingRow
             label="Cho phép thêm thành viên vào nhóm"
             defaultValue={roomData?.allowAddMember ?? true}
@@ -87,7 +87,7 @@ export const GroupManagementContent = ({
           <Separator opacity={0.5} />
 
           <SettingRow
-            label="Cho phép chỉnh sửa thông tin phòng chat"
+            label="Cho phép chỉnh sửa thông tin phòng"
             defaultValue={roomData?.allowUpdateMetadata ?? true}
             isAdmin={isAdmin}
           />
@@ -119,10 +119,9 @@ export const GroupManagementContent = ({
           </YStack>
 
           {isAdmin && (
-            <YStack p="$4" mt="$10">
+            <YStack p="$4">
               <Button
                 theme="red"
-                icon={Trash2}
                 backgroundColor="$red3"
                 onPress={onDissolveGroup}
                 pressStyle={{ scale: 0.97 }}

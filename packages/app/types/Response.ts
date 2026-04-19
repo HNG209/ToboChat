@@ -17,6 +17,8 @@ export interface FriendResponse {
   name: string
   avatarUrl?: string
   createdAt: string
+  inRoom?: boolean
+  allowAutoAddToGroup: boolean
 }
 
 export interface UserResponse {

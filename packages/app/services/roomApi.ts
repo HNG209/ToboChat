@@ -51,6 +51,14 @@ export const roomApi = baseApi.injectEndpoints({
       }),
     }),
 
+    addMembers: builder.mutation<void, { roomId: string; targetUserIds: string[] }>({
+      query: ({ roomId, targetUserIds }) => ({
+        url: `/rooms/${roomId}/members`,
+        method: 'POST',
+        data: { targetUserIds },
+      }),
+    }),
+
     getRoomMetadata: builder.query<RoomResponse, { roomId: string }>({
       query: ({ roomId }) => ({
         url: `/rooms/${roomId}`,
@@ -76,4 +84,5 @@ export const {
   useGetGroupInvitesQuery,
   useGetRoomMetadataQuery,
   useMarkAsReadMutation,
+  useAddMembersMutation,
 } = roomApi
