@@ -1,10 +1,11 @@
 import { ApiResponse, PageResponse, RoomResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { RoomStatus } from '@my/ui'
+import { RoomCreateRequest } from 'app/types/Request'
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getJoinedRooms: builder.query<PageResponse<RoomResponse>, {status: RoomStatus}>({
+    getJoinedRooms: builder.query<PageResponse<RoomResponse>, { status: RoomStatus }>({
       // Lấy danh sách phòng của người dùng hiện tại
       query: (params) => ({
         url: `/rooms?status=${params.status}`,
@@ -13,7 +14,15 @@ export const roomApi = baseApi.injectEndpoints({
           status: params.status,
         },
       }),
-      providesTags: ['Rooms']
+      providesTags: ['Rooms'],
+    }),
+
+    createGroup: builder.mutation<void, RoomCreateRequest>({
+      query: (data) => ({
+        url: '/rooms',
+        method: 'POST',
+        data,
+      }),
     }),
 
     getRoomMetadata: builder.query<RoomResponse, { roomId: string }>({
@@ -23,15 +32,20 @@ export const roomApi = baseApi.injectEndpoints({
       }),
     }),
 
-    markAsRead: builder.mutation<ApiResponse<void>, string> ({
+    markAsRead: builder.mutation<ApiResponse<void>, string>({
       query: (roomId) => ({
         url: `/rooms/${roomId}/read`,
         method: 'PATCH',
       }),
-      invalidatesTags: ['Rooms']
-    })
+      invalidatesTags: ['Rooms'],
+    }),
   }),
   overrideExisting: true,
 })
 
-export const { useGetJoinedRoomsQuery, useGetRoomMetadataQuery, useMarkAsReadMutation } = roomApi
+export const {
+  useGetJoinedRoomsQuery,
+  useCreateGroupMutation,
+  useGetRoomMetadataQuery,
+  useMarkAsReadMutation,
+} = roomApi

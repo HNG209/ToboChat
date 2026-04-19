@@ -45,3 +45,8 @@ export interface SendMessageRequest {
   replyTo?: string
   attachments: Attachment[]
 }
+
+export interface RoomCreateRequest {
+  roomName: string
+  memberIds: string[]
+}
