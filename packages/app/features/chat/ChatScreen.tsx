@@ -21,6 +21,7 @@ import {
   ZStack,
   ForwardMessageDialog,
   RoomStatus,
+  Sheet,
 } from '@my/ui'
 import {
   SendHorizontal,
@@ -62,6 +63,7 @@ import { formatPreviewMessage } from 'app/utils/chatHelper';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader';
 import { ChatScreenFooter } from '@my/ui/src/ChatScreenFooter';
 import { MessageItem } from '@my/ui/src/MessageItem';
+import { ConversationInfoContent } from '@my/ui/src/ConversationInfoContent';
 
 
 
@@ -142,7 +144,8 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
   const isClosingViewerRef = useRef(false)
   const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
-
+  // Show infor screen
+  const [showInfo, setShowInfo] = useState(false)
   const listBottomSpacer = isWeb ? 0 : composerHeight
   const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
   // Android keyboard handling: don't rely on KeyboardAvoidingView only.
@@ -698,451 +701,497 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   return (
     <Theme name={theme}>
-      <KeyboardAvoidingView
-        enabled={Platform.OS === 'ios'}
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
-        <YStack
-          flex={1}
-          bg="$background"
-          paddingBottom={Platform.OS === 'android' ? effectiveAndroidKeyboardHeight : 0}
+      <XStack flex={1} bg="$background">
+        <KeyboardAvoidingView
+          enabled={Platform.OS === 'ios'}
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
         >
-          {/* --- HEADER --- */}
-          <ChatScreenHeader
-            roomData={roomData}
-            isRoomLoading={isRoomLoading}
-            insets={insets}
-            linkProps={linkProps}
-          />
-
-          {/* --- BODY (FLATLIST) --- */}
-          {/* Lần tải đầu tiên của cả phòng */}
-          {isLoading ? (
-            <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
-              <ActivityIndicator size="large" color="#888" />
-            </XStack>
-          ) : isError && !isRoomNotFound ? (
-            <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
-              <Text color="red">Lỗi khi tải tin nhắn!</Text>
-            </XStack>
-          ) : (
-            <StyledFlatList
-              ref={flatListRef}
-              data={data?.items || []}
-              inverted={true}
-              keyExtractor={(item: MessageResponse) => item.id}
-              contentContainerStyle={{
-                // FlatList is inverted, so paddingTop becomes the *bottom* spacing.
-                // This prevents the newest message + avatar from being hidden under the composer.
-                paddingTop: listBottomSpacer + 13,
-                // In inverted mode, paddingBottom becomes the *top* spacing.
-                paddingBottom: 20,
-              }}
-              onEndReached={() => {
-                console.log('onEndReached (load older messages)')
-                handleLoadMore('before')
-              }}
-              onStartReached={() => {
-                if (
-                  !isFetchingMore &&
-                  !isJumpingToReplyRef.current &&
-                  data?.prevCursor &&
-                  isUserAtBottomRef.current &&
-                  !justNudgedRef.current // Chặn fetch nếu vừa nudge
-                ) {
-                  console.log('onStartReached (load newer messages)')
-                  handleLoadMore('after')
-                }
-              }}
-              maintainVisibleContentPosition={{
-                // Giữ nguyên vị trí hiển thị khi load thêm tin nhắn
-                minIndexForVisible: 1,
-                autoscrollToTopThreshold: 10,
-              }}
-              onScroll={(e) => {
-                const { contentOffset } = e.nativeEvent
-                const atBottom = contentOffset.y < 20
-                if (atBottom && justNudgedRef.current) {
-                  // User đã scroll về cuối sau khi nudge, cho phép fetch lại
-                  justNudgedRef.current = false
-                }
-                isUserAtBottomRef.current = atBottom
-              }}
-              onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
-                if (flatListRef.current) {
-                  flatListRef.current.scrollToOffset({
-                    offset: highestMeasuredFrameIndex * averageItemLength,
-                    animated: true,
-                  })
-                  setTimeout(() => {
-                    flatListRef.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 })
-                    isJumpingToReplyRef.current = false
-                  }, 300)
-                } else {
-                  isJumpingToReplyRef.current = false
-                }
-              }}
-              onEndReachedThreshold={0.1}
-              keyboardDismissMode="interactive"
-              keyboardShouldPersistTaps="always"
-              removeClippedSubviews={false}
-              ListEmptyComponent={
-                <YStack
-                  flex={1}
-                  justifyContent="center"
-                  alignItems="center"
-                  py="$10"
-                  // Vì Flatlist inverted, component rỗng cũng bị lộn ngược, cần scaleY: -1 để chữ đứng thẳng lại
-                  transform={[{ scaleY: -1 }]}
-                >
-                  <Text color="$color10" fontSize="$4">
-                    Chưa có tin nhắn nào. Hãy gửi lời chào!
-                  </Text>
-                </YStack>
-              }
-              // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
-              ListFooterComponent={
-                isFetchingMore && loadMoreDirectionRef.current === 'before' ? (
-                  <XStack justifyContent="center" alignItems="center" py="$4">
-                    <ActivityIndicator size="small" color="#888" />
-                  </XStack>
-                ) : null
-              }
-              ListHeaderComponent={
-                isFetchingMore && loadMoreDirectionRef.current === 'after' ? (
-                  <XStack justifyContent="center" alignItems="center" py="$4">
-                    <ActivityIndicator size="small" color="#888" />
-                  </XStack>
-                ) : null
-              }
-
-              renderItem={({ item: msg, index }) => (
-                <MessageItem
-                  msg={msg}
-                  index={index}
-                  items={data?.items || []}
-                  theme={theme}
-                  selfUserId={selfUserId}
-                  selectionMode={selectionMode}
-                  selected={selectedIds.has(msg.id)} // Truyền boolean true/false
-                  locallyDeleted={locallyDeletedIds}
-                  locallyRecalled={locallyRecalledIds}
-
-                  // Mapping các actions
-                  onToggleSelect={toggleSelected} // Chỉ truyền tên hàm
-                  onEnterMultiSelect={handleEnterMultiSelect}
-                  onReply={setReplyTo}
-                  onForward={(msg) => openForwardDialog([msg])}
-                  onDelete={(msg) => handleDeleteMessage(msg.id)}
-                  onDeleteForMe={(msg) => handleDeleteMessage(msg.id)}
-                  onRecall={handleRevokeMessage}
-                  onCopy={(m) => copyText(m.content)}
-                  onOpenMedia={openViewer}
-                  onPressReplyRef={handlePressReply}
-                  openViewer={openViewer}
-                />
-              )}
+          <YStack
+            flex={1}
+            bg="$background"
+            paddingBottom={Platform.OS === 'android' ? effectiveAndroidKeyboardHeight : 0}
+          >
+            {/* --- HEADER --- */}
+            <ChatScreenHeader
+              roomData={roomData}
+              onInfoPress={() => setShowInfo(!showInfo)}
+              isRoomLoading={isRoomLoading}
+              insets={insets}
+              linkProps={linkProps}
             />
-          )}
 
-
-          {selectionMode && (
-            <XStack
-              px="$3"
-              py="$2"
-              bg="$background"
-              borderColor="$borderColor"
-              borderTopWidth={1}
-              alignItems="center"
-              width="100%"
-              justifyContent="space-between"
-              // --- THÊM RESPONSIVE TẠI ĐÂY ---
-              {...(Platform.OS !== 'web' && {
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                zIndex: 1000,
-                backgroundColor: theme === 'dark' ? '$color2' : 'white',
-                paddingBottom: (insets?.bottom ?? 0) + 8,
-                minHeight: composerHeight || 60,
-              })}
-            // ----------------------------
-            >
-              <XStack alignItems="center" space="$2" flex={1}>
-                <Text fontWeight="700">{selectedCount}</Text>
-                <Text color="$color10">Đã chọn</Text>
+            {/* --- BODY (FLATLIST) --- */}
+            {/* Lần tải đầu tiên của cả phòng */}
+            {isLoading ? (
+              <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
+                <ActivityIndicator size="large" color="#888" />
               </XStack>
-
-              <XStack space="$1" alignItems="center">
-                <Button
-                  size="$3"
-                  borderRadius="$10"
-                  theme="blue"
-                  icon={<Copy size={16} />}
-                  disabled={selectedCount === 0}
-                  onPress={async () => {
-                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
-                    const text = selected
-                      .slice()
-                      .reverse()
-                      .map((m) => m.content)
-                      .join('\n')
-                    await copyText(text)
-                  }}
-                >
-                  {Platform.OS === 'web' ? 'Sao chép' : ''}
-                </Button>
-
-                <Button
-                  size="$3"
-                  borderRadius="$10"
-                  theme="green"
-                  icon={<Forward size={16} />}
-                  disabled={selectedCount === 0}
-                  onPress={() => {
-                    const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
-                    const text = selected
-                      .slice()
-                      .reverse()
-                      .map((m) => m.content)
-                      .join('\n')
-                    setMessage(text)
-                    setSelectionMode(false)
-                    setSelectedIds(new Set())
-                    openForwardDialog(selectedMessages)
-                  }}
-                >
-                  {Platform.OS === 'web' ? 'Chuyển tiếp' : ''}
-                </Button>
-
-                <Button
-                  size="$3"
-                  borderRadius="$10"
-                  theme="red"
-                  icon={<Trash2 size={16} />}
-                  disabled={selectedCount === 0}
-                  onPress={() => {
-                    const mine = (normalizedMessages || []).filter(
-                      (m) => selectedIds.has(m.id) && m.self
-                    )
-                    if (mine.length > 0) {
-                      setLocallyRecalledIds((prev) => {
-                        const next = new Set(prev)
-                        for (const m of mine) next.delete(m.id)
-                        return next
-                      })
-                      setLocallyDeletedIds((prev) => {
-                        const next = new Set(prev)
-                        for (const m of mine) next.add(m.id)
-                        return next
-                      })
-                    }
-                    setSelectionMode(false)
-                    setSelectedIds(new Set())
-                  }}
-                >
-                  {Platform.OS === 'web' ? 'Xóa' : ''}
-                </Button>
-
-                <Button
-                  size="$3"
-                  borderRadius="$10"
-                  chromeless
-                  onPress={() => {
-                    setSelectionMode(false)
-                    setSelectedIds(new Set())
-                  }}
-                >
-                  Hủy
-                </Button>
+            ) : isError && !isRoomNotFound ? (
+              <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
+                <Text color="red">Lỗi khi tải tin nhắn!</Text>
               </XStack>
-            </XStack>
-          )}
+            ) : (
+              <StyledFlatList
+                ref={flatListRef}
+                data={data?.items || []}
+                inverted={true}
+                keyExtractor={(item: MessageResponse) => item.id}
+                contentContainerStyle={{
+                  // FlatList is inverted, so paddingTop becomes the *bottom* spacing.
+                  // This prevents the newest message + avatar from being hidden under the composer.
+                  paddingTop: listBottomSpacer + 13,
+                  // In inverted mode, paddingBottom becomes the *top* spacing.
+                  paddingBottom: 20,
+                }}
+                onEndReached={() => {
+                  console.log('onEndReached (load older messages)')
+                  handleLoadMore('before')
+                }}
+                onStartReached={() => {
+                  if (
+                    !isFetchingMore &&
+                    !isJumpingToReplyRef.current &&
+                    data?.prevCursor &&
+                    isUserAtBottomRef.current &&
+                    !justNudgedRef.current // Chặn fetch nếu vừa nudge
+                  ) {
+                    console.log('onStartReached (load newer messages)')
+                    handleLoadMore('after')
+                  }
+                }}
+                maintainVisibleContentPosition={{
+                  // Giữ nguyên vị trí hiển thị khi load thêm tin nhắn
+                  minIndexForVisible: 1,
+                  autoscrollToTopThreshold: 10,
+                }}
+                onScroll={(e) => {
+                  const { contentOffset } = e.nativeEvent
+                  const atBottom = contentOffset.y < 20
+                  if (atBottom && justNudgedRef.current) {
+                    // User đã scroll về cuối sau khi nudge, cho phép fetch lại
+                    justNudgedRef.current = false
+                  }
+                  isUserAtBottomRef.current = atBottom
+                }}
+                onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToOffset({
+                      offset: highestMeasuredFrameIndex * averageItemLength,
+                      animated: true,
+                    })
+                    setTimeout(() => {
+                      flatListRef.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 })
+                      isJumpingToReplyRef.current = false
+                    }, 300)
+                  } else {
+                    isJumpingToReplyRef.current = false
+                  }
+                }}
+                onEndReachedThreshold={0.1}
+                keyboardDismissMode="interactive"
+                keyboardShouldPersistTaps="always"
+                removeClippedSubviews={false}
+                ListEmptyComponent={
+                  <YStack
+                    flex={1}
+                    justifyContent="center"
+                    alignItems="center"
+                    py="$10"
+                    // Vì Flatlist inverted, component rỗng cũng bị lộn ngược, cần scaleY: -1 để chữ đứng thẳng lại
+                    transform={[{ scaleY: -1 }]}
+                  >
+                    <Text color="$color10" fontSize="$4">
+                      Chưa có tin nhắn nào. Hãy gửi lời chào!
+                    </Text>
+                  </YStack>
+                }
+                // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
+                ListFooterComponent={
+                  isFetchingMore && loadMoreDirectionRef.current === 'before' ? (
+                    <XStack justifyContent="center" alignItems="center" py="$4">
+                      <ActivityIndicator size="small" color="#888" />
+                    </XStack>
+                  ) : null
+                }
+                ListHeaderComponent={
+                  isFetchingMore && loadMoreDirectionRef.current === 'after' ? (
+                    <XStack justifyContent="center" alignItems="center" py="$4">
+                      <ActivityIndicator size="small" color="#888" />
+                    </XStack>
+                  ) : null
+                }
 
-          <ForwardMessageDialog
-            open={forwardDialogOpen}
-            onOpenChange={setForwardDialogOpen}
-            messages={forwardSourceMessages}
-            rooms={availableForwardRooms}
-            isLoadingRooms={isJoinedRoomsLoading}
-            currentRoomId={roomId}
-            isSubmitting={isForwarding}
-            onConfirm={handleForwardConfirm}
-          />
+                renderItem={({ item: msg, index }) => (
+                  <MessageItem
+                    msg={msg}
+                    index={index}
+                    items={data?.items || []}
+                    theme={theme}
+                    selfUserId={selfUserId}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(msg.id)} // Truyền boolean true/false
+                    locallyDeleted={locallyDeletedIds}
+                    locallyRecalled={locallyRecalledIds}
 
-          {/* --- FOOTER (INPUT) --- */}
-          {/* --- PHẦN NHÃN TRẢ LỜI TRÊN INPUT --- */}
-          {!selectionMode && replyTo && (() => {
-            const replyAttachments = replyTo.attachments || [];
-            const firstAt = replyAttachments[0];
-            const isImage = firstAt?.contentType?.startsWith('image/');
-            const isVideo = firstAt?.contentType?.startsWith('video/');
-            const isFile = firstAt && !isImage && !isVideo;
+                    // Mapping các actions
+                    onToggleSelect={toggleSelected} // Chỉ truyền tên hàm
+                    onEnterMultiSelect={handleEnterMultiSelect}
+                    onReply={setReplyTo}
+                    onForward={(msg) => openForwardDialog([msg])}
+                    onDelete={(msg) => handleDeleteMessage(msg.id)}
+                    onDeleteForMe={(msg) => handleDeleteMessage(msg.id)}
+                    onRecall={handleRevokeMessage}
+                    onCopy={(m) => copyText(m.content)}
+                    onOpenMedia={openViewer}
+                    onPressReplyRef={handlePressReply}
+                    openViewer={openViewer}
+                  />
+                )}
+              />
+            )}
 
-            let displayLabel = replyTo.content || '';
-            if (isImage) displayLabel = '[Hình ảnh]';
-            if (isVideo) displayLabel = '[Video]';
-            if (isFile) displayLabel = `[File] ${firstAt.fileName}`;
 
-            return (
+            {selectionMode && (
               <XStack
                 px="$3"
                 py="$2"
                 bg="$background"
-                borderTopWidth={1}
                 borderColor="$borderColor"
+                borderTopWidth={1}
                 alignItems="center"
-                space="$2"
-                animation="quick"
-                enterStyle={{ opacity: 0, y: 10 }}
+                width="100%"
+                justifyContent="space-between"
+                // --- THÊM RESPONSIVE TẠI ĐÂY ---
+                {...(Platform.OS !== 'web' && {
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 1000,
+                  backgroundColor: theme === 'dark' ? '$color2' : 'white',
+                  paddingBottom: (insets?.bottom ?? 0) + 8,
+                  minHeight: composerHeight || 60,
+                })}
+              // ----------------------------
               >
-                {/* Vạch kẻ xanh bên trái */}
-                <YStack width={3} height="80%" bg="$blue10" borderRadius="$1" />
+                <XStack alignItems="center" space="$2" flex={1}>
+                  <Text fontWeight="700">{selectedCount}</Text>
+                  <Text color="$color10">Đã chọn</Text>
+                </XStack>
 
-                {/* Thumbnail nhỏ nếu là Media */}
-                {(isImage || isVideo) && (
-                  <Image
-                    source={{ uri: firstAt.fileUrl }}
-                    width={36}
-                    height={36}
-                    borderRadius="$2"
-                    bg="$color5"
-                  />
-                )}
+                <XStack space="$1" alignItems="center">
+                  <Button
+                    size="$3"
+                    borderRadius="$10"
+                    theme="blue"
+                    icon={<Copy size={16} />}
+                    disabled={selectedCount === 0}
+                    onPress={async () => {
+                      const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
+                      const text = selected
+                        .slice()
+                        .reverse()
+                        .map((m) => m.content)
+                        .join('\n')
+                      await copyText(text)
+                    }}
+                  >
+                    {Platform.OS === 'web' ? 'Sao chép' : ''}
+                  </Button>
 
-                {/* Nội dung text */}
-                <YStack flex={1} justifyContent="center">
-                  <Text fontWeight="700" fontSize="$3" color="$blue10" numberOfLines={1}>
-                    Đang trả lời: {replyTo.user?.name || 'Người dùng'}
-                  </Text>
-                  <Text fontSize="$2" color="$color10" numberOfLines={1}>
-                    {displayLabel}
-                  </Text>
-                </YStack>
+                  <Button
+                    size="$3"
+                    borderRadius="$10"
+                    theme="green"
+                    icon={<Forward size={16} />}
+                    disabled={selectedCount === 0}
+                    onPress={() => {
+                      const selected = (data?.items || []).filter((m) => selectedIds.has(m.id))
+                      const text = selected
+                        .slice()
+                        .reverse()
+                        .map((m) => m.content)
+                        .join('\n')
+                      setMessage(text)
+                      setSelectionMode(false)
+                      setSelectedIds(new Set())
+                      openForwardDialog(selectedMessages)
+                    }}
+                  >
+                    {Platform.OS === 'web' ? 'Chuyển tiếp' : ''}
+                  </Button>
 
-                {/* Nút Hủy (X) để tắt chế độ trả lời */}
-                <Button
-                  size="$2"
-                  circular
-                  chromeless
-                  icon={X}
-                  onPress={() => setReplyTo(null)}
-                />
+                  <Button
+                    size="$3"
+                    borderRadius="$10"
+                    theme="red"
+                    icon={<Trash2 size={16} />}
+                    disabled={selectedCount === 0}
+                    onPress={() => {
+                      const mine = (normalizedMessages || []).filter(
+                        (m) => selectedIds.has(m.id) && m.self
+                      )
+                      if (mine.length > 0) {
+                        setLocallyRecalledIds((prev) => {
+                          const next = new Set(prev)
+                          for (const m of mine) next.delete(m.id)
+                          return next
+                        })
+                        setLocallyDeletedIds((prev) => {
+                          const next = new Set(prev)
+                          for (const m of mine) next.add(m.id)
+                          return next
+                        })
+                      }
+                      setSelectionMode(false)
+                      setSelectedIds(new Set())
+                    }}
+                  >
+                    {Platform.OS === 'web' ? 'Xóa' : ''}
+                  </Button>
+
+                  <Button
+                    size="$3"
+                    borderRadius="$10"
+                    chromeless
+                    onPress={() => {
+                      setSelectionMode(false)
+                      setSelectedIds(new Set())
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </XStack>
               </XStack>
-            );
-          })()}
-          {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}
-          {drafts.length > 0 && (
-            <XStack px="$3" py="$2" space="$2" bg="$background">
-              <StyledFlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                data={drafts}
-                keyExtractor={(item: any) => item.id}
-                renderItem={({ item }: { item: any }) => {
-                  const isImage = item.contentType?.startsWith('image/')
-                  const isVideo = item.contentType?.startsWith('video/')
+            )}
 
-                  return (
-                    <YStack
-                      width={70}
-                      height={70}
-                      marginRight="$2"
-                      borderRadius="$3"
-                      overflow="hidden"
+            <ForwardMessageDialog
+              open={forwardDialogOpen}
+              onOpenChange={setForwardDialogOpen}
+              messages={forwardSourceMessages}
+              rooms={availableForwardRooms}
+              isLoadingRooms={isJoinedRoomsLoading}
+              currentRoomId={roomId}
+              isSubmitting={isForwarding}
+              onConfirm={handleForwardConfirm}
+            />
+
+            {/* --- FOOTER (INPUT) --- */}
+            {/* --- PHẦN NHÃN TRẢ LỜI TRÊN INPUT --- */}
+            {!selectionMode && replyTo && (() => {
+              const replyAttachments = replyTo.attachments || [];
+              const firstAt = replyAttachments[0];
+              const isImage = firstAt?.contentType?.startsWith('image/');
+              const isVideo = firstAt?.contentType?.startsWith('video/');
+              const isFile = firstAt && !isImage && !isVideo;
+
+              let displayLabel = replyTo.content || '';
+              if (isImage) displayLabel = '[Hình ảnh]';
+              if (isVideo) displayLabel = '[Video]';
+              if (isFile) displayLabel = `[File] ${firstAt.fileName}`;
+
+              return (
+                <XStack
+                  px="$3"
+                  py="$2"
+                  bg="$background"
+                  borderTopWidth={1}
+                  borderColor="$borderColor"
+                  alignItems="center"
+                  space="$2"
+                  animation="quick"
+                  enterStyle={{ opacity: 0, y: 10 }}
+                >
+                  {/* Vạch kẻ xanh bên trái */}
+                  <YStack width={3} height="80%" bg="$blue10" borderRadius="$1" />
+
+                  {/* Thumbnail nhỏ nếu là Media */}
+                  {(isImage || isVideo) && (
+                    <Image
+                      source={{ uri: firstAt.fileUrl }}
+                      width={36}
+                      height={36}
+                      borderRadius="$2"
                       bg="$color5"
-                      position="relative"
-                    >
-                      <ZStack fullscreen>
-                        {/* 1. Hiển thị nội dung (Dùng localUri để hiện ảnh ngay lập tức) */}
-                        {isImage ? (
-                          <Image
-                            source={{ uri: item.localUri }}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              opacity: item.isUploading ? 0.5 : 1,
-                            }}
-                          />
-                        ) : (
-                          <YStack
-                            fullscreen
-                            alignItems="center"
-                            justifyContent="center"
-                            bg="$blue5"
-                            opacity={item.isUploading ? 0.5 : 1}
-                          >
-                            {isVideo ? (
-                              <Video size={20} color="$blue10" />
-                            ) : (
-                              <FileText size={20} color="$orange10" />
-                            )}
-                          </YStack>
-                        )}
+                    />
+                  )}
 
-                        {/* 2. LỚP PHỦ LOADING (Chỉ hiện khi isUploading = true) */}
-                        {item.isUploading && (
-                          <YStack
-                            fullscreen
-                            alignItems="center"
-                            justifyContent="center"
-                            backgroundColor="rgba(0,0,0,0.2)"
-                          >
-                            <ActivityIndicator size="small" color="white" />
-                          </YStack>
-                        )}
+                  {/* Nội dung text */}
+                  <YStack flex={1} justifyContent="center">
+                    <Text fontWeight="700" fontSize="$3" color="$blue10" numberOfLines={1}>
+                      Đang trả lời: {replyTo.user?.name || 'Người dùng'}
+                    </Text>
+                    <Text fontSize="$2" color="$color10" numberOfLines={1}>
+                      {displayLabel}
+                    </Text>
+                  </YStack>
 
-                        {/* 3. NÚT XÓA (Chỉ hiện khi không đang upload hoặc hiển thị ở góc) */}
-                        {!item.isUploading && (
-                          <XStack
-                            position="absolute"
-                            top={2}
-                            right={2}
-                            onPress={() => removeDraft(item.id)}
-                          >
-                            <Circle
-                              size={18}
-                              bg="rgba(0,0,0,0.5)"
+                  {/* Nút Hủy (X) để tắt chế độ trả lời */}
+                  <Button
+                    size="$2"
+                    circular
+                    chromeless
+                    icon={X}
+                    onPress={() => setReplyTo(null)}
+                  />
+                </XStack>
+              );
+            })()}
+            {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}
+            {drafts.length > 0 && (
+              <XStack px="$3" py="$2" space="$2" bg="$background">
+                <StyledFlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={drafts}
+                  keyExtractor={(item: any) => item.id}
+                  renderItem={({ item }: { item: any }) => {
+                    const isImage = item.contentType?.startsWith('image/')
+                    const isVideo = item.contentType?.startsWith('video/')
+
+                    return (
+                      <YStack
+                        width={70}
+                        height={70}
+                        marginRight="$2"
+                        borderRadius="$3"
+                        overflow="hidden"
+                        bg="$color5"
+                        position="relative"
+                      >
+                        <ZStack fullscreen>
+                          {/* 1. Hiển thị nội dung (Dùng localUri để hiện ảnh ngay lập tức) */}
+                          {isImage ? (
+                            <Image
+                              source={{ uri: item.localUri }}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                opacity: item.isUploading ? 0.5 : 1,
+                              }}
+                            />
+                          ) : (
+                            <YStack
+                              fullscreen
                               alignItems="center"
                               justifyContent="center"
+                              bg="$blue5"
+                              opacity={item.isUploading ? 0.5 : 1}
                             >
-                              <X size={12} color="white" />
-                            </Circle>
-                          </XStack>
-                        )}
-                      </ZStack>
-                    </YStack>
-                  )
-                }}
+                              {isVideo ? (
+                                <Video size={20} color="$blue10" />
+                              ) : (
+                                <FileText size={20} color="$orange10" />
+                              )}
+                            </YStack>
+                          )}
+
+                          {/* 2. LỚP PHỦ LOADING (Chỉ hiện khi isUploading = true) */}
+                          {item.isUploading && (
+                            <YStack
+                              fullscreen
+                              alignItems="center"
+                              justifyContent="center"
+                              backgroundColor="rgba(0,0,0,0.2)"
+                            >
+                              <ActivityIndicator size="small" color="white" />
+                            </YStack>
+                          )}
+
+                          {/* 3. NÚT XÓA (Chỉ hiện khi không đang upload hoặc hiển thị ở góc) */}
+                          {!item.isUploading && (
+                            <XStack
+                              position="absolute"
+                              top={2}
+                              right={2}
+                              onPress={() => removeDraft(item.id)}
+                            >
+                              <Circle
+                                size={18}
+                                bg="rgba(0,0,0,0.5)"
+                                alignItems="center"
+                                justifyContent="center"
+                              >
+                                <X size={12} color="white" />
+                              </Circle>
+                            </XStack>
+                          )}
+                        </ZStack>
+                      </YStack>
+                    )
+                  }}
+                />
+              </XStack>
+            )}
+            <ChatScreenFooter
+              drafts={drafts}
+              handleSendMessage={handleSendMessage}
+              handlePickFile={handlePickFile}
+              theme={theme}
+              isWeb={isWeb}
+              insets={insets}
+              composerHeight={composerHeight}
+              setComposerHeight={setComposerHeight}
+            />
+          </YStack>
+
+
+        </KeyboardAvoidingView>
+        {/* --- SIDEBAR THÔNG TIN (CHỈ CHO WEB) --- */}
+        {Platform.OS === 'web' && showInfo && (
+          <YStack
+            width={350} // Độ rộng giống Zalo
+            height="100%"
+            borderLeftWidth={1}
+            borderColor="$borderColor"
+            bg="$background"
+            animation="lazy"
+            // Hiệu ứng trượt nhẹ từ phải sang
+            enterStyle={{ x: 10, opacity: 0 }}
+            exitStyle={{ x: 10, opacity: 0 }}
+          >
+            <ConversationInfoContent
+              roomData={roomData}
+              onClose={() => setShowInfo(false)}
+            />
+          </YStack>
+        )}
+        {/* --- HIỂN THỊ TRÊN MOBILE (Dùng Sheet) --- */}
+        {Platform.OS !== 'web' && (
+          <Sheet
+            open={showInfo}
+            onOpenChange={setShowInfo}
+            snapPoints={[98]} // Chiếm 90% chiều cao màn hình
+            dismissOnSnapToBottom
+            modal
+          >
+            <Sheet.Overlay
+              enterStyle={{ opacity: 0 }}
+              exitStyle={{ opacity: 0 }}
+            />
+            <Sheet.Frame backgroundColor="$background">
+              <Sheet.Handle />
+              <ConversationInfoContent
+                roomData={roomData}
+                onClose={() => setShowInfo(false)}
               />
-            </XStack>
-          )}
-          <ChatScreenFooter
-            drafts={drafts}
-            handleSendMessage={handleSendMessage}
-            handlePickFile={handlePickFile}
-            theme={theme}
-            isWeb={isWeb}
-            insets={insets}
-            composerHeight={composerHeight}
-            setComposerHeight={setComposerHeight}
-          />
-        </YStack>
-        <MediaViewer
-          visible={viewerVisible}
-          mediaList={currentMediaList}
-          activeIndex={activeMediaIndex}
-          onClose={() => {
-            setViewerVisible(false)
-            setSelectionMode(false)
-          }}
-          onNext={() => setActiveMediaIndex((prev) => prev + 1)}
-          onPrev={() => setActiveMediaIndex((prev) => prev - 1)}
-        />
-      </KeyboardAvoidingView>
+            </Sheet.Frame>
+          </Sheet>
+        )}
+      </XStack>
+      <MediaViewer
+        visible={viewerVisible}
+        mediaList={currentMediaList}
+        activeIndex={activeMediaIndex}
+        onClose={() => {
+          setViewerVisible(false)
+          setSelectionMode(false)
+        }}
+        onNext={() => setActiveMediaIndex((prev) => prev + 1)}
+        onPrev={() => setActiveMediaIndex((prev) => prev - 1)}
+      />
     </Theme >
   )
 }

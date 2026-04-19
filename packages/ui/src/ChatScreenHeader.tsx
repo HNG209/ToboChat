@@ -7,9 +7,10 @@ type Props = {
   isRoomLoading: boolean,
   insets: { top: number; bottom: number; left: number; right: number } | undefined,
   linkProps: React.ComponentProps<typeof Button>
+  onInfoPress?: () => void
 }
 
-export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps }: Props) => {
+export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps, onInfoPress }: Props) => {
   return (
     <XStack
       alignItems="center"
@@ -27,14 +28,14 @@ export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps }:
       <XStack alignItems="center" space="$3">
         <Button size="$3" circular chromeless icon={ChevronLeft} {...linkProps} />
         <XStack alignItems="center" space="$2">
-          <Avatar circular size="$4" marginRight="$2">
+          <Avatar circular size="$3" marginRight="$2">
             <Avatar.Image
               src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
             />
             <Avatar.Fallback borderColor="gray" />
           </Avatar>
           <YStack>
-            <Text fontWeight="bold" fontSize="$5">
+            <Text fontWeight="bold" fontSize="$4">
               {isRoomLoading ? 'Đang tải...' : roomData?.roomName || 'Tên phòng'}
             </Text>
             <XStack alignItems="center" space="$1.5">
@@ -47,9 +48,9 @@ export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps }:
         </XStack>
       </XStack>
       <XStack space="$1">
-        <Button size="$3" circular chromeless icon={Phone} />
-        <Button size="$3" circular chromeless icon={Video} />
-        <Button size="$3" circular chromeless icon={Info} />
+        <Button size="$4" circular chromeless icon={Phone} />
+        <Button size="$4" circular chromeless icon={Video} />
+        <Button size="$4" circular chromeless icon={Info} onPress={onInfoPress} />
       </XStack>
     </XStack>
   )
