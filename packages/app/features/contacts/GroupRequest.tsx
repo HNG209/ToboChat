@@ -19,18 +19,29 @@ export default function GroupRequestPage() {
 
   const handleAction = async (action: string, id: string) => {
     try {
-      const newRoom = await respondGroupInvite({ groupId: id, accept: true }).unwrap()
+      const isAccept = action === 'join';
+
+      const response = await respondGroupInvite({ groupId: id, accepted: isAccept }).unwrap();
       dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
-          if (draft) {
-            draft.items.unshift(newRoom);
+        roomApi.util.updateQueryData('getGroupInvites' as any, undefined, (draft: any) => {
+          if (draft && draft.items) {
+            draft.items = draft.items.filter((item: any) => item.id !== id);
           }
         })
       );
+      if (isAccept && response && response.id) {
+        dispatch(
+          roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+            if (draft && draft.items) {
+              draft.items.unshift(response);
+            }
+          })
+        );
+      }
     } catch (error) {
-      console.error('Lỗi phản hồi lời mời nhóm:', error)
+      console.error('Lỗi phản hồi lời mời nhóm:', error);
     }
-  }
+  };
 
   return (
     <XStack

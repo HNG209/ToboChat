@@ -52,7 +52,7 @@ import {
 } from 'app/services/chatApi'
 import { roomApi, useGetJoinedRoomsQuery, useGetMyInfoQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
-import { useDispatch, useSelector } from 'react-redux'
+import { Provider, useDispatch, useSelector } from 'react-redux'
 import { Attachment, MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState, store } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
@@ -1196,22 +1196,31 @@ export function ChatScreen({ roomId, insets }: Props) {
         )}
         {/* --- HIỂN THỊ TRÊN MOBILE (Dùng Sheet) --- */}
         {Platform.OS !== 'web' && (
-          <Sheet open={showInfo} onOpenChange={setShowInfo} snapPoints={[98]} modal dismissOnSnapToBottom={false} // Không cho đóng khi kéo xuống đáy
-            disableDrag={true}>
+          <Sheet
+            open={showInfo}
+            onOpenChange={setShowInfo}
+            snapPoints={[98]}
+            modal
+            dismissOnSnapToBottom={false}
+            disableDrag={true}
+          >
             <Sheet.Frame>
-              {infoView === 'INFO' ? (
-                <ConversationInfoContent
-                  roomData={roomData}
-                  onClose={() => setShowInfo(false)}
-                  onManageGroup={() => setInfoView('MANAGEMENT')}
-                />
-              ) : (
-                <GroupManagementContent
-                  roomData={roomData}
-                  isAdmin={isAdmin}
-                  onClose={() => setInfoView('INFO')}
-                />
-              )}
+              {/* Bọc Provider ở đây để "cứu" các component con bên trong Portal */}
+              <Provider store={store}>
+                {infoView === 'INFO' ? (
+                  <ConversationInfoContent
+                    roomData={roomData}
+                    onClose={() => setShowInfo(false)}
+                    onManageGroup={() => setInfoView('MANAGEMENT')}
+                  />
+                ) : (
+                  <GroupManagementContent
+                    roomData={roomData}
+                    isAdmin={isAdmin}
+                    onClose={() => setInfoView('INFO')}
+                  />
+                )}
+              </Provider>
             </Sheet.Frame>
           </Sheet>
         )}

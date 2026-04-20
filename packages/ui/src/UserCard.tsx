@@ -60,14 +60,26 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
       {/* RIGHT: Các nút hành động */}
       <XStack gap="$2" alignItems="center">
         {isGroup ? (
-          <Button
-            size="$3"
-            variant="outline"
-            borderRadius="$4"
-            onPress={() => onAction?.('join', user.id)}
-          >
-            Vào nhóm
-          </Button>
+          <XStack gap="$2">
+            <Button
+              size="$3"
+              variant="outline"
+              theme="red"
+              borderRadius="$4"
+              icon={<X size={16} />}
+              onPress={() => onAction?.('cancel', user.id)}
+            >
+              Từ chối
+            </Button>
+            <Button
+              size="$3"
+              variant="outline"
+              borderRadius="$4"
+              onPress={() => onAction?.('join', user.id)}
+            >
+              Vào nhóm
+            </Button>
+          </XStack>
         ) : (
           <>
             {/* Trường hợp: Danh sách bạn bè bình thường */}
@@ -121,6 +133,6 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
           </>
         )}
       </XStack>
-    </XStack>
+    </XStack >
   )
 }

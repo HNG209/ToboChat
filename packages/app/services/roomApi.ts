@@ -42,14 +42,13 @@ export const roomApi = baseApi.injectEndpoints({
     }),
 
     // Phản hồi lời mời tham gia nhóm
-    respondGroupInvite: builder.mutation<RoomResponse, { groupId: string; accept: boolean }>({
-      query: ({ groupId, accept }) => ({
-        url: `/group-invites/${groupId}?accept=${accept}`,
+    respondGroupInvite: builder.mutation<any, { groupId: string; accepted: boolean }>({
+      query: ({ groupId, accepted }) => ({
+        url: `/group-invites/${groupId}`,
         method: 'PUT',
-        params: {
-          accept,
-        },
+        params: { accepted },
       }),
+
       invalidatesTags: ['Rooms'],
     }),
 
