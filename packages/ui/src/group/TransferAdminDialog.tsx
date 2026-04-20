@@ -49,10 +49,10 @@ export function TransferAdminDialog({ open, onOpenChange, roomId, onSuccess }: T
   const filteredMembers = membersData?.items?.filter((item: any) => {
     return !myInfo || item.id !== myInfo.id;
   }) || [];
-
+  if (!open) return null
   return (
-    <Dialog modal open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
+    <Dialog modal={false} open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal forceMount>
         <Dialog.Overlay
           key="overlay"
           animation="quick"
@@ -71,6 +71,7 @@ export function TransferAdminDialog({ open, onOpenChange, roomId, onSuccess }: T
           width="90%"
           maxWidth={400}
           borderRadius="$5"
+          zIndex={100000}
         >
           <Dialog.Close asChild onPress={handleClose}>
             <Button position="absolute" top="$3" right="$3" size="$2" circular icon={X} chromeless />
@@ -84,14 +85,14 @@ export function TransferAdminDialog({ open, onOpenChange, roomId, onSuccess }: T
           </Text>
 
           <YStack space="$4">
-            <YStack>
+            <YStack flexShrink={1} height={300} >
               <StyledFlatList
                 borderWidth={1}
                 borderColor="$borderColor"
                 borderRadius="$3"
                 data={filteredMembers} // Sử dụng danh sách đã được lọc ở đây
                 keyExtractor={(item: any) => item.id}
-                style={{ maxHeight: 300 }}
+                style={{ minHeight: 300 }}
                 showsVerticalScrollIndicator={false}
                 ListFooterComponent={
                   membersLoading ? (

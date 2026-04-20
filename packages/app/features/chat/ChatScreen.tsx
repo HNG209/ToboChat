@@ -66,6 +66,7 @@ import { ChatScreenFooter } from '@my/ui/src/ChatScreenFooter';
 import { MessageItem } from '@my/ui/src/MessageItem';
 import { ConversationInfoContent } from '@my/ui/src/ConversationInfoContent';
 import { GroupManagementContent } from '@my/ui/src/GroupManagementContent';
+import { AddMemberContent } from '@my/ui/src/group/AddMemberDialog';
 
 
 
@@ -148,7 +149,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
   // Show infor screen
   const [showInfo, setShowInfo] = useState(false)
-  const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT'>('INFO');
+  const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD'>('INFO');
   const handleCloseInfo = () => {
     setShowInfo(false);
     setTimeout(() => setInfoView('INFO'), 300); // Đợi đóng xong rồi mới reset để tránh bị giật giao diện
@@ -1183,13 +1184,19 @@ export function ChatScreen({ roomId, insets }: Props) {
               <ConversationInfoContent
                 roomData={roomData}
                 onClose={() => setShowInfo(false)}
-                onManageGroup={() => setInfoView('MANAGEMENT')} // Chuyển sang Management
+                onManageGroup={() => setInfoView('MANAGEMENT')}
+                onAddMember={() => setInfoView('ADD')}
               />
-            ) : (
+            ) : infoView === 'MANAGEMENT' ? (
               <GroupManagementContent
                 roomData={roomData}
-                isAdmin={isAdmin} // Kiểm tra quyền Admin
-                onClose={() => setInfoView('INFO')} // Quay lại trang Info
+                isAdmin={isAdmin}
+                onClose={() => setInfoView('INFO')}
+              />
+            ) : (
+              <AddMemberContent
+                roomId={roomData?.id}
+                onClose={() => setInfoView('INFO')}
               />
             )}
           </YStack>
@@ -1205,18 +1212,23 @@ export function ChatScreen({ roomId, insets }: Props) {
             disableDrag={true}
           >
             <Sheet.Frame>
-              {/* Bọc Provider ở đây để "cứu" các component con bên trong Portal */}
               <Provider store={store}>
                 {infoView === 'INFO' ? (
                   <ConversationInfoContent
                     roomData={roomData}
                     onClose={() => setShowInfo(false)}
                     onManageGroup={() => setInfoView('MANAGEMENT')}
+                    onAddMember={() => setInfoView('ADD')}
                   />
-                ) : (
+                ) : infoView === 'MANAGEMENT' ? (
                   <GroupManagementContent
                     roomData={roomData}
                     isAdmin={isAdmin}
+                    onClose={() => setInfoView('INFO')}
+                  />
+                ) : (
+                  <AddMemberContent
+                    roomId={roomData?.id}
                     onClose={() => setInfoView('INFO')}
                   />
                 )}

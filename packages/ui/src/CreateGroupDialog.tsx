@@ -161,13 +161,14 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
               </Label>
 
               {/* Vùng cuộn bằng FlatList */}
-              <StyledFlatList
+              <YStack height={300} flexShrink={1}><StyledFlatList
                 borderWidth={1}
                 borderColor="$borderColor"
                 borderRadius="$3"
                 data={friendsData?.items || []}
                 keyExtractor={(item) => item.id}
-                style={{ maxHeight: 250 }}
+                style={{ flex: 0, minHeight: 300 }}
+
                 showsVerticalScrollIndicator={false}
                 ListFooterComponent={
                   friendsLoading ? (
@@ -249,6 +250,8 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
                   );
                 }}
               />
+              </YStack>
+
             </YStack>
 
             {/* Khu vực hiển thị lỗi */}

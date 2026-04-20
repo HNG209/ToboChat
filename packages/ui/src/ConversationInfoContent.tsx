@@ -28,7 +28,6 @@ import {
 import { Alert, Platform } from 'react-native'
 import { RoomResponse } from "app/types/Response"
 import { roomApi, useCheckLeaveMutation, useLeaveGroupMutation } from 'app/services/roomApi'
-import { AddMemberDialog } from './group/AddMemberDialog'
 import { TransferAdminDialog } from './group/TransferAdminDialog'
 import { useRouter } from 'solito/navigation'
 import { AppDispatch } from 'app/store'
@@ -54,7 +53,6 @@ export const ConversationInfoContent = ({
   const [checkLeave, { isLoading: isChecking }] = useCheckLeaveMutation()
   const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
   const [openTransferAdmin, setOpenTransferAdmin] = useState(false) // State cho Modal chuyển quyền
-  const [openAddMember, setOpenAddMember] = React.useState(false)
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
   const memberCount = roomData?.memberCount || 0
@@ -140,27 +138,47 @@ export const ConversationInfoContent = ({
         borderColor="$borderColor"
         backgroundColor="$background"
       >
-        <XStack alignItems="center" space="$2">
+        <XStack
+          alignItems="center"
+          justifyContent="center" // Căn giữa nội dung bên trong
+          paddingVertical="$1"
+          minHeight={45} // Đảm bảo chiều cao header ổn định
+          width="100%"
+          position="relative"
+        >
+          {/* NÚT BACK (Mobile) - Căn trái tuyệt đối */}
           {!isWeb && (
             <Button
               icon={ArrowLeft}
               chromeless
               circular
               onPress={onClose}
+              position="absolute"
+              left="$2"
               backgroundColor="transparent"
             />
           )}
-          <Text fontWeight="700" fontSize="$5" color="$color">
+
+          {/* TIÊU ĐỀ - Luôn ở giữa */}
+          <Text fontWeight="700" fontSize="$5" color="$color" textAlign="center">
             {isGroup ? 'Thông tin nhóm' : 'Thông tin hội thoại'}
           </Text>
+
+          {/* NÚT X (Web) - Căn phải tuyệt đối */}
+          {isWeb && (
+            <Button
+              icon={X} // Đảm bảo bạn đã import { X } từ lucide-icons
+              chromeless
+              circular
+              onPress={onClose}
+              position="absolute"
+              right="$2"
+              backgroundColor="transparent"
+            />
+          )}
         </XStack>
       </XStack>
 
-      <AddMemberDialog
-        roomId={roomData?.id || ''}
-        open={openAddMember}
-        onOpenChange={() => setOpenAddMember(false)}
-      />
 
       <TransferAdminDialog
         roomId={roomData?.id || ''}
@@ -211,7 +229,7 @@ export const ConversationInfoContent = ({
             <QuickActionButton icon={Bell} label="Thông báo" />
             {isGroup && (
               <>
-                <QuickActionButton icon={UserPlus} label="Thêm TV" color="$blue10" onPress={() => setOpenAddMember(true)} />
+                <QuickActionButton icon={UserPlus} label="Thêm thành viên" color="$blue10" onPress={onAddMember} />
                 <QuickActionButton icon={ShieldCheck} label="Quản lý" color="$green10" onPress={onManageGroup} />
               </>
             )}
