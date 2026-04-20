@@ -14,9 +14,11 @@ import {
 import { Check, ArrowLeft, Info, UserPlus } from '@tamagui/lucide-icons';
 import { StyledFlatList } from '../StyledFlatList';
 import { useGetMyFriendListQuery } from 'app/services/contactApi';
-import { useAddMembersMutation } from 'app/services/roomApi';
+import { roomApi, useAddMembersMutation } from 'app/services/roomApi';
 import { ActivityIndicator } from 'react-native';
-
+import { useDispatch } from 'react-redux'
+import { Platform } from 'expo-modules-core'
+import { AppDispatch } from 'app/store'
 interface AddMemberContentProps {
   roomId: string;
   onClose: () => void; // Hàm để quay lại trang Info
@@ -25,7 +27,7 @@ interface AddMemberContentProps {
 export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
-
+  const dispatch = useDispatch<AppDispatch>()
   const {
     data: friendsData,
     isLoading: friendsLoading,
@@ -46,10 +48,24 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
       setErrorMsg('Vui lòng chọn ít nhất 1 người.');
       return;
     }
+
     try {
+      // Cập nhật memberCount cho chính mình thấy ngay trên UI
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          const room = draft.items?.find((r) => r.id === roomId);
+          if (room) {
+            room.memberCount = (room.memberCount || 0) + selectedMembers.length;
+          }
+        })
+      );
       await addMembers({ roomId, targetUserIds: selectedMembers }).unwrap();
-      onClose(); // Thành công thì quay lại trang Info
+
+
+
+      onClose();
     } catch (error) {
+      console.error("Lỗi thêm thành viên:", error);
       setErrorMsg('Có lỗi xảy ra. Vui lòng thử lại.');
     }
   };

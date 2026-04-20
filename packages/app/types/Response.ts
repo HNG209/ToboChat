@@ -1,4 +1,5 @@
 import { FriendStatus, RoomType } from './Enums'
+import { UserResponse } from 'app/types/Response'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -29,9 +30,11 @@ export interface UserResponse {
   createdAt: string
   friendStatus?: FriendStatus
   totalUnreadMessages: number
+  allowAutoAddToGroup?: boolean
 }
 
 export interface RoomMemberResponse {
+  roomId: string
   id: string
   role: 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
   roomName: string
@@ -98,4 +101,10 @@ export interface Attachment {
   fileName: string
   contentType: string
   fileSize: number
+}
+export interface GroupPendingRequestResponse {
+  roomId: string
+  roomName: string
+  user: UserResponse
+  requester: UserResponse
 }

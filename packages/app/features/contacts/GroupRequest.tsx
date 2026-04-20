@@ -21,14 +21,16 @@ export default function GroupRequestPage() {
     try {
       const isAccept = action === 'join';
 
-      const response = await respondGroupInvite({ groupId: id, accepted: isAccept }).unwrap();
       dispatch(
-        roomApi.util.updateQueryData('getGroupInvites' as any, undefined, (draft: any) => {
-          if (draft && draft.items) {
-            draft.items = draft.items.filter((item: any) => item.id !== id);
+        roomApi.util.updateQueryData('getGroupInvites', undefined, (draft) => {
+          const index = draft.items?.findIndex((r) => r.roomId === id);
+          if (index !== -1 && index !== undefined) {
+            draft.items.splice(index, 1);
           }
         })
       );
+      const response = await respondGroupInvite({ groupId: id, accepted: isAccept }).unwrap();
+
       if (isAccept && response && response.id) {
         dispatch(
           roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {

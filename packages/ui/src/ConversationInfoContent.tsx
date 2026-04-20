@@ -39,6 +39,9 @@ type ConversationInfoProps = {
   onLeaveGroup?: () => void
   onAddMember?: () => void
   onManageGroup?: () => void
+  onViewMembers: () => void
+  onApproveMembers: () => void,
+  isAdmin: boolean
 }
 
 export const ConversationInfoContent = ({
@@ -46,7 +49,10 @@ export const ConversationInfoContent = ({
   onClose,
   onLeaveGroup,
   onAddMember,
-  onManageGroup
+  onManageGroup,
+  onViewMembers,
+  onApproveMembers,
+  isAdmin,
 }: ConversationInfoProps) => {
   const dispatch = useDispatch<AppDispatch>()
   const router = useRouter();
@@ -56,7 +62,6 @@ export const ConversationInfoContent = ({
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
   const memberCount = roomData?.memberCount || 0
-
   const handleLeaveGroupPress = async () => {
     if (!roomData) return;
 
@@ -167,7 +172,7 @@ export const ConversationInfoContent = ({
           {/* NÚT X (Web) - Căn phải tuyệt đối */}
           {isWeb && (
             <Button
-              icon={X} // Đảm bảo bạn đã import { X } từ lucide-icons
+              icon={X}
               chromeless
               circular
               onPress={onClose}
@@ -229,7 +234,7 @@ export const ConversationInfoContent = ({
             <QuickActionButton icon={Bell} label="Thông báo" />
             {isGroup && (
               <>
-                <QuickActionButton icon={UserPlus} label="Thêm thành viên" color="$blue10" onPress={onAddMember} />
+                <QuickActionButton icon={UserPlus} label="Thêm thành viên" isDisabled={!(isAdmin ?? false) && !(roomData.allowAddMember ?? false)} color="$blue10" onPress={onAddMember} />
                 <QuickActionButton icon={ShieldCheck} label="Quản lý" color="$green10" onPress={onManageGroup} />
               </>
             )}
@@ -242,19 +247,32 @@ export const ConversationInfoContent = ({
         {/* --- LIST ITEMS --- */}
         <YStack p="$2">
           {isGroup && (
-            <ListItem
-              backgroundColor="transparent" // Màu nền lúc bình thường (hơi đậm hoặc tùy bạn chọn)
-              hoverStyle={{
-                backgroundColor: "$blue2", // Khi hover vào thì mất nền (hoặc đổi sang màu nhạt hơn)
-                cursor: "pointer"
-              }}
-              pressTheme
-              title="Thành viên nhóm"
-              subTitle={`${memberCount} thành viên`}
-              iconAfter={ChevronRight}
-              borderRadius="$4"
-              onPress={() => { }}
-            />
+            <>
+              <ListItem
+                backgroundColor="transparent"
+                hoverStyle={{
+                  backgroundColor: "$blue2",
+                  cursor: "pointer"
+                }}
+                pressTheme
+                title="Thành viên nhóm"
+                iconAfter={ChevronRight}
+                borderRadius="$4"
+                onPress={onViewMembers}
+              />
+              <ListItem
+                backgroundColor="transparent"
+                hoverStyle={{
+                  backgroundColor: "$blue2",
+                  cursor: "pointer"
+                }}
+                pressTheme
+                title="Duyệt thành viên"
+                iconAfter={ChevronRight}
+                borderRadius="$4"
+                onPress={onApproveMembers}
+              />
+            </>
           )}
 
           {/* KHO MEDIA */}
@@ -324,40 +342,47 @@ const QuickActionButton = ({
   icon: Icon,
   label,
   color,
-  onPress
+  onPress,
+  isDisabled,
 }: {
   icon: any,
   label: string,
   color?: string,
-  onPress?: () => void
-}) => (
-  <YStack
-    alignItems="center"
-    justifyContent="center"
-    space="$1.5"
-    width={75}
-  >
-    <Circle
-      size={42}
-      backgroundColor="$backgroundStrong" // Bắt buộc có màu nền để hiện trên Native
-      hoverStyle={{ backgroundColor: '$backgroundHover', scale: 1.05 }}
-      pressStyle={{ scale: 0.9 }}
-      onPress={onPress}
+  onPress?: () => void,
+  isDisabled?: boolean,
+}) => {
+
+  return (
+    <YStack
       alignItems="center"
       justifyContent="center"
+      space="$1.5"
+      width={75}
+      opacity={isDisabled ? 0.4 : 1}
+      pointerEvents={isDisabled ? 'none' : 'auto'}
     >
-      <Icon size={20} color={color || '$color'} />
-    </Circle>
+      <Circle
+        size={42}
+        backgroundColor="$backgroundStrong"
+        hoverStyle={isDisabled ? {} : { backgroundColor: '$backgroundHover', scale: 1.05 }}
+        pressStyle={isDisabled ? {} : { scale: 0.9 }}
+        onPress={isDisabled ? undefined : onPress}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Icon size={20} color={color || '$color'} />
+      </Circle>
 
-    <Text
-      fontSize={11}
-      textAlign="center"
-      color="$color11"
-      numberOfLines={2}
-      lineHeight={13}
-      width="100%"
-    >
-      {label}
-    </Text>
-  </YStack>
-)
+      <Text
+        fontSize={11}
+        textAlign="center"
+        color="$color11"
+        numberOfLines={2}
+        lineHeight={13}
+        width="100%"
+      >
+        {label}
+      </Text>
+    </YStack>
+  )
+}

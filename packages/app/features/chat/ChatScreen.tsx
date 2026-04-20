@@ -67,6 +67,8 @@ import { MessageItem } from '@my/ui/src/MessageItem';
 import { ConversationInfoContent } from '@my/ui/src/ConversationInfoContent';
 import { GroupManagementContent } from '@my/ui/src/GroupManagementContent';
 import { AddMemberContent } from '@my/ui/src/group/AddMemberDialog';
+import { MemberManagementContent } from '@my/ui/src/group/MemberManagementContent';
+import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
 
 
 
@@ -149,7 +151,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
   // Show infor screen
   const [showInfo, setShowInfo] = useState(false)
-  const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD'>('INFO');
+  const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD' | 'MEMBERS' | 'APPROVED'>('INFO');
   const handleCloseInfo = () => {
     setShowInfo(false);
     setTimeout(() => setInfoView('INFO'), 300); // Đợi đóng xong rồi mới reset để tránh bị giật giao diện
@@ -927,7 +929,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                         .reverse()
                         .map((m) => m.content)
                         .join('\n')
-                      setMessage(text)
                       setSelectionMode(false)
                       setSelectedIds(new Set())
                       openForwardDialog(selectedMessages)
@@ -1139,7 +1140,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               </XStack>
             )}
             {
-              (roomData?.roomType == 'GROUP' && !isAdmin && !roomData?.allowSendMessage) ?
+              (roomData?.roomType == 'GROUP' && !isAdmin && !isViceAdmin && !roomData?.allowSendMessage) ?
                 <XStack
                   alignItems="center"
                   justifyContent="center"
@@ -1186,6 +1187,10 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onClose={() => setShowInfo(false)}
                 onManageGroup={() => setInfoView('MANAGEMENT')}
                 onAddMember={() => setInfoView('ADD')}
+                onViewMembers={() => setInfoView('MEMBERS')}
+                onApproveMembers={() => setInfoView('APPROVED')}
+                isAdmin={isAdmin}
+
               />
             ) : infoView === 'MANAGEMENT' ? (
               <GroupManagementContent
@@ -1193,9 +1198,23 @@ export function ChatScreen({ roomId, insets }: Props) {
                 isAdmin={isAdmin}
                 onClose={() => setInfoView('INFO')}
               />
-            ) : (
+            ) : infoView === 'ADD' ? (
               <AddMemberContent
                 roomId={roomData?.id}
+                onClose={() => setInfoView('INFO')}
+              />
+            ) : infoView === 'MEMBERS' ? (
+              <MemberManagementContent
+                roomId={roomData?.id}
+                currentUserId={myInfo?.id}
+                isAdmin={isAdmin}
+                onClose={() => setInfoView('INFO')}
+              />
+            ) : (
+              <ApproveMembersContent
+                roomId={roomData?.id}
+                currentUserId={myInfo?.id}
+                isAdmin={isAdmin}
                 onClose={() => setInfoView('INFO')}
               />
             )}
@@ -1219,6 +1238,8 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onClose={() => setShowInfo(false)}
                     onManageGroup={() => setInfoView('MANAGEMENT')}
                     onAddMember={() => setInfoView('ADD')}
+                    onViewMembers={() => setInfoView('MEMBERS')}
+                    onApproveMembers={() => setInfoView('APPROVED')}
                   />
                 ) : infoView === 'MANAGEMENT' ? (
                   <GroupManagementContent
@@ -1226,12 +1247,25 @@ export function ChatScreen({ roomId, insets }: Props) {
                     isAdmin={isAdmin}
                     onClose={() => setInfoView('INFO')}
                   />
-                ) : (
+                ) : infoView === 'ADD' ? (
                   <AddMemberContent
                     roomId={roomData?.id}
                     onClose={() => setInfoView('INFO')}
                   />
-                )}
+                ) : infoView === 'MEMBERS' ? (
+                  <MemberManagementContent
+                    roomId={roomData?.id}
+                    currentUserId={myInfo?.id}
+                    isAdmin={isAdmin}
+                    onClose={() => setInfoView('INFO')}
+                  />
+                ) : (
+                  <ApproveMembersContent
+                    roomId={roomData?.id}
+                    currentUserId={myInfo?.id}
+                    isAdmin={isAdmin}
+                    onClose={() => setInfoView('INFO')}
+                  />)}
               </Provider>
             </Sheet.Frame>
           </Sheet>

@@ -5,6 +5,7 @@ import {
   GroupAcceptRequestResponse,
   RoomMemberResponse,
   LeaveCheckResponse,
+  GroupPendingRequestResponse,
 } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { RoomStatus } from '@my/ui'
@@ -49,7 +50,7 @@ export const roomApi = baseApi.injectEndpoints({
         params: { accepted },
       }),
 
-      invalidatesTags: ['Rooms'],
+      invalidatesTags: (result, error, arg) => [{ type: 'RoomMember', id: arg.groupId }, 'Rooms'],
     }),
 
     // Tạo nhóm
@@ -79,6 +80,9 @@ export const roomApi = baseApi.injectEndpoints({
         url: `/rooms/${data.roomId}/members`,
         method: 'GET',
       }),
+      providesTags: (result, error, arg) => [
+        { type: 'RoomMember', id: arg.roomId }, // Tag cụ thể cho phòng này
+      ],
     }),
 
     // Cập nhật vai trò thành viên
@@ -88,7 +92,7 @@ export const roomApi = baseApi.injectEndpoints({
     >({
       query: (data) => ({
         url: `/rooms/${data.roomId}/members/${data.memberId}`,
-        method: 'POST',
+        method: 'PATCH',
         data: data.request,
       }),
     }),
@@ -135,6 +139,7 @@ export const roomApi = baseApi.injectEndpoints({
         method: 'POST',
         data: { targetUserIds },
       }),
+      invalidatesTags: (result, error, arg) => [{ type: 'RoomMember', id: arg.roomId }],
     }),
 
     // Thông tin phòng, bao gồm các settings của phòng
@@ -152,6 +157,25 @@ export const roomApi = baseApi.injectEndpoints({
         method: 'PATCH',
       }),
       invalidatesTags: ['Rooms'],
+    }),
+    getPendingRequest: builder.query<PageResponse<GroupPendingRequestResponse>, { roomId: string }>(
+      {
+        query: ({ roomId }) => ({
+          url: `/rooms/${roomId}/pending-requests`,
+          method: 'GET',
+        }),
+        // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
+      }
+    ),
+    approveMember: builder.mutation<void, { roomId: string; userId: string; accept: boolean }>({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}/pending-requests/${data.userId}`,
+        method: 'PATCH',
+        params: {
+          accept: data.accept,
+        },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'RoomMember', id: arg.roomId }],
     }),
   }),
   overrideExisting: true,
@@ -173,4 +197,6 @@ export const {
   useGetRoomMetadataQuery,
   useMarkAsReadMutation,
   useAddMembersMutation,
+  useGetPendingRequestQuery,
+  useApproveMemberMutation,
 } = roomApi

@@ -157,17 +157,30 @@ export default function ChatInbox() {
 
     const handleMemberRemoved = (roomId: string) => {
       dispatch(
-        roomApi.util.updateQueryData(
-          'getJoinedRooms',
-          { status: 'ACTIVE' },
-          (draft) => {
-            const index = draft.items?.findIndex((r) => r.id === roomId)
-
-            if (index !== undefined && index !== -1) {
-              draft.items.splice(index, 1)
-            }
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === roomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items.splice(index, 1);
           }
-        )
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'PENDING' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === roomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items.splice(index, 1);
+          }
+        })
+      );
+    };
+    const handleNewMember = (member: RoomMemberResponse) => {
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMembers', { roomId: member.roomId }, (draft) => {
+          if (draft) {
+            draft.items.unshift(member);
+          }
+        })
       );
     }
 
@@ -176,12 +189,16 @@ export default function ChatInbox() {
     socket.on('new_room', handleNewRoom)
     socket.on('room_disband', handleGroupDisband)
     socket.on('member_removed', handleMemberRemoved)
+    socket.on('new_member', handleNewMember)
+
     return () => {
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('new_room', handleNewRoom)
       socket.off('room_disband', handleGroupDisband)
       socket.off('member_removed', handleMemberRemoved)
+      socket.off('new_member', handleNewMember)
+
     }
   }, [dispatch, isSocketReady, status])
 
