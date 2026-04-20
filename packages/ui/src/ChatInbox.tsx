@@ -1,16 +1,17 @@
-import { useRouter } from 'solito/navigation'
+import { usePathname } from 'solito/navigation'
 import { ScrollView, Spinner, Text, YStack, XStack } from '@my/ui'
 import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
 import { userApi } from 'app/services/userApi'
-import { MessageResponse, RoomResponse } from 'app/types/Response'
+import { MessageResponse, RoomMemberResponse, RoomResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { formatPreviewMessage } from 'app/utils/chatHelper'
-
+import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
+import { useRouter } from 'solito/navigation'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -40,14 +41,14 @@ function TabButton({
 }
 
 export default function ChatInbox() {
-  const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
 
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
-
+  const router = useRouter()
+  const pathname = usePathname()
   const { data, isLoading, isError } = useGetJoinedRoomsQuery(
     { status },
     {
@@ -156,6 +157,11 @@ export default function ChatInbox() {
     }
 
     const handleMemberRemoved = (roomId: string) => {
+      // Kiểm tra linh hoạt hơn
+      console.log('Current Path:', pathname, 'Target Room:', roomId);
+      if (pathname?.includes(`/chat/${roomId}`)) {
+        router.replace("/chat")
+      }
       dispatch(
         roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
           const index = draft.items?.findIndex((r) => r.id === roomId);
@@ -173,6 +179,7 @@ export default function ChatInbox() {
           }
         })
       );
+
     };
     const handleNewMember = (member: RoomMemberResponse) => {
       dispatch(
@@ -182,6 +189,15 @@ export default function ChatInbox() {
           }
         })
       );
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendList', { roomId: member.roomId }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === member.id);
+          if (index !== -1 && index !== undefined) {
+            draft.items[index].inRoom = true
+          }
+        })
+      );
+
     }
 
     socket.on('receive_message', handleReceiveMessage)

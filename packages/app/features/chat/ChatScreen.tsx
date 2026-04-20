@@ -1240,6 +1240,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onAddMember={() => setInfoView('ADD')}
                     onViewMembers={() => setInfoView('MEMBERS')}
                     onApproveMembers={() => setInfoView('APPROVED')}
+                    isAdmin={isAdmin}
                   />
                 ) : infoView === 'MANAGEMENT' ? (
                   <GroupManagementContent
