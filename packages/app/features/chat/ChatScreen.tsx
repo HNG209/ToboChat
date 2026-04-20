@@ -222,6 +222,8 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
   const isAdmin: boolean | undefined = myInfo?.role == 'ADMIN'
+  const isViceAdmin: boolean | undefined = myInfo?.role == 'VICE_ADMIN'
+  const isMember: boolean | undefined = myInfo?.role == 'MEMBER'
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
 
@@ -1186,7 +1188,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             ) : (
               <GroupManagementContent
                 roomData={roomData}
-                isAdmin // Kiểm tra quyền Admin
+                isAdmin={isAdmin} // Kiểm tra quyền Admin
                 onClose={() => setInfoView('INFO')} // Quay lại trang Info
               />
             )}

@@ -11,8 +11,9 @@ import {
   Circle,
   Label,
   styled,
+  Tooltip,
 } from 'tamagui';
-import { Check, X } from '@tamagui/lucide-icons';
+import { Check, Info, X } from '@tamagui/lucide-icons';
 import { StyledFlatList } from './StyledFlatList';
 import { useGetMyFriendListQuery } from 'app/services/contactApi';
 import { roomApi, useCreateGroupMutation } from 'app/services/roomApi';
@@ -199,6 +200,40 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
                         <Text fontSize="$3">
                           {friend.name}
                         </Text>
+
+                        {!friend.allowAutoAddToGroup && (
+                          <XStack alignItems="center" space="$1.5">
+                            <Text fontSize="$2" color="gray">Gửi yêu cầu</Text>
+
+                            <Tooltip placement="top">
+                              <Tooltip.Trigger>
+                                <Info size={14} color="gray" />
+                              </Tooltip.Trigger>
+
+                              <Tooltip.Content
+                                enterStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
+                                exitStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
+                                scale={1}
+                                x={0}
+                                y={0}
+                                opacity={1}
+                                animation={[
+                                  'quick',
+                                  { opacity: { overshootClamping: true } },
+                                ]}
+                                p="$2"
+                                borderRadius="$3"
+                                backgroundColor="$background"
+                                elevation="$2"
+                              >
+                                <Tooltip.Arrow />
+                                <Text fontSize="$2" color="$color">
+                                  Người dùng này đang tắt tự động thêm vào nhóm
+                                </Text>
+                              </Tooltip.Content>
+                            </Tooltip>
+                          </XStack>
+                        )}
                       </XStack>
 
                       {/* Nút Check mark / Trạng thái chọn */}

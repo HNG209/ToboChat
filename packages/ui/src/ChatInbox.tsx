@@ -140,7 +140,22 @@ export default function ChatInbox() {
     }
 
     const handleGroupDisband = (roomId: string) => {
-      console.log("okokok", roomId);
+      dispatch(
+        roomApi.util.updateQueryData(
+          'getJoinedRooms',
+          { status: 'ACTIVE' },
+          (draft) => {
+            const index = draft.items?.findIndex((r) => r.id === roomId)
+
+            if (index !== undefined && index !== -1) {
+              draft.items.splice(index, 1)
+            }
+          }
+        )
+      );
+    }
+
+    const handleMemberRemoved = (roomId: string) => {
       dispatch(
         roomApi.util.updateQueryData(
           'getJoinedRooms',
@@ -160,11 +175,13 @@ export default function ChatInbox() {
     socket.on('message_revoked', handleMessageRevoked)
     socket.on('new_room', handleNewRoom)
     socket.on('room_disband', handleGroupDisband)
+    socket.on('member_removed', handleMemberRemoved)
     return () => {
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('new_room', handleNewRoom)
       socket.off('room_disband', handleGroupDisband)
+      socket.off('member_removed', handleMemberRemoved)
     }
   }, [dispatch, isSocketReady, status])
 

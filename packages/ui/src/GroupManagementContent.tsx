@@ -108,8 +108,6 @@ export const GroupManagementContent = ({
           { status: 'ACTIVE' },
           (draft) => {
             const index = draft.items?.findIndex((r) => r.id === roomData.id)
-            console.log('nah', index);
-
             if (index !== undefined && index !== -1) {
               draft.items.splice(index, 1)
             }

@@ -32,11 +32,15 @@ export interface UserResponse {
 }
 
 export interface RoomMemberResponse {
-    role: 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
-    roomName: string
-    status: 'ACTIVE' | 'PENDING'
-    roomType: 'DM' | 'GROUP'
-    addedBy?: string
+  id: string
+  role: 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
+  roomName: string
+  status: 'ACTIVE' | 'PENDING'
+  roomType: 'DM' | 'GROUP'
+  addedBy?: string
+
+  // Thông tin cá nhân
+  member?: UserResponse
 }
 
 export interface FriendRequestResponse {
@@ -82,6 +86,11 @@ export interface GroupAcceptRequestResponse {
   roomName: string
   avatarUrl: string
   inviter: UserResponse
+}
+
+export interface LeaveCheckResponse {
+  canLeave: boolean
+  reason?: string
 }
 
 export interface Attachment {

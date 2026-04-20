@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Avatar,
   Button,
@@ -25,9 +25,14 @@ import {
   Search,
   ArrowLeft
 } from "@tamagui/lucide-icons"
-import { Platform } from 'react-native'
+import { Alert, Platform } from 'react-native'
 import { RoomResponse } from "app/types/Response"
+import { roomApi, useCheckLeaveMutation, useLeaveGroupMutation } from 'app/services/roomApi'
 import { AddMemberDialog } from './group/AddMemberDialog'
+import { TransferAdminDialog } from './group/TransferAdminDialog'
+import { useRouter } from 'solito/navigation'
+import { AppDispatch } from 'app/store'
+import { useDispatch } from 'react-redux';
 
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
@@ -44,10 +49,70 @@ export const ConversationInfoContent = ({
   onAddMember,
   onManageGroup
 }: ConversationInfoProps) => {
+  const dispatch = useDispatch<AppDispatch>()
+  const router = useRouter();
+  const [checkLeave, { isLoading: isChecking }] = useCheckLeaveMutation()
+  const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
+  const [openTransferAdmin, setOpenTransferAdmin] = useState(false) // State cho Modal chuyển quyền
   const [openAddMember, setOpenAddMember] = React.useState(false)
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
   const memberCount = roomData?.memberCount || 0
+
+  const handleLeaveGroupPress = async () => {
+    if (!roomData) return;
+
+    try {
+      // 1. Check quyền rời nhóm
+      const res = await checkLeave({ roomId: roomData.id }).unwrap();
+
+      if (res.canLeave) {
+        // 2. Nếu là MEMBER -> Cho phép rời luôn, hiển thị confirm an toàn
+        const confirmMessage = 'Bạn có chắc chắn muốn rời khỏi nhóm này không?';
+
+        if (isWeb) {
+          if (window.confirm(confirmMessage)) {
+            await executeLeaveGroup();
+          }
+        } else {
+          Alert.alert('Rời nhóm', confirmMessage, [
+            { text: 'Huỷ', style: 'cancel' },
+            { text: 'Rời đi', style: 'destructive', onPress: executeLeaveGroup }
+          ]);
+        }
+      } else if (res.reason === "TRANSFER_REQUIRED") {
+        // 3. Nếu là ADMIN -> Mở modal chọn người kế nhiệm
+        setOpenTransferAdmin(true);
+      }
+    } catch (error) {
+      console.error("Lỗi khi check quyền rời nhóm:", error);
+      // Xử lý thông báo lỗi UI ở đây
+    }
+  }
+
+  const executeLeaveGroup = async () => {
+    if (!roomData) return
+    try {
+      await leaveGroup({ roomId: roomData?.id }).unwrap();
+      onClose(); // Đóng sidebar/panel thông tin sau khi rời thành công
+      dispatch(
+        roomApi.util.updateQueryData(
+          'getJoinedRooms',
+          { status: 'ACTIVE' },
+          (draft) => {
+            const index = draft.items?.findIndex((r) => r.id === roomData.id)
+            if (index !== undefined && index !== -1) {
+              draft.items.splice(index, 1)
+            }
+          }
+        )
+      );
+
+      router.replace("/chat")
+    } catch (error) {
+      console.error("Lỗi khi rời nhóm:", error);
+    }
+  }
 
   // Sửa containerProps để đảm bảo luôn chiếm diện tích trên Native
   const containerStyle = !isWeb ? {
@@ -95,6 +160,29 @@ export const ConversationInfoContent = ({
         roomId={roomData?.id || ''}
         open={openAddMember}
         onOpenChange={() => setOpenAddMember(false)}
+      />
+
+      <TransferAdminDialog
+        roomId={roomData?.id || ''}
+        open={openTransferAdmin}
+        onOpenChange={setOpenTransferAdmin}
+        onSuccess={() => {
+          setOpenTransferAdmin(false);
+          dispatch(
+            roomApi.util.updateQueryData(
+              'getJoinedRooms',
+              { status: 'ACTIVE' },
+              (draft) => {
+                const index = draft.items?.findIndex((r) => r.id === roomData?.id)
+                if (index !== undefined && index !== -1) {
+                  draft.items.splice(index, 1)
+                }
+              }
+            )
+          );
+          router.replace("/chat")
+          onClose(); // Đóng trang info sau khi đã nhường quyền và rời nhóm
+        }}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -198,9 +286,13 @@ export const ConversationInfoContent = ({
                 size="$4"
                 backgroundColor="$red3"
                 hoverStyle={{ backgroundColor: '$red4' }}
-                onPress={onLeaveGroup}
+                onPress={handleLeaveGroupPress}
+                disabled={isChecking || isLeaving}
+                opacity={isChecking || isLeaving ? 0.5 : 1}
               >
-                <Text color="$red10" fontWeight="700" fontSize="$3">Rời nhóm</Text>
+                <Text color="$red10" fontWeight="700" fontSize="$3">
+                  {isChecking || isLeaving ? 'Đang xử lý...' : 'Rời nhóm'}
+                </Text>
               </Button>
             </YStack>
           )}

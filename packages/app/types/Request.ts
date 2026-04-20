@@ -58,3 +58,8 @@ export interface RoomUpdateRequest {
   allowUpdateMetadata?: boolean
   approveMember?: boolean
 }
+
+// chỉ được update thành vice admin hoặc member
+export interface MemberUpdateRequest {
+  memberRole: 'VICE_ADMIN' | 'MEMBER'
+}

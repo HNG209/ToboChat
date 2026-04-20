@@ -4,10 +4,11 @@ import {
   RoomResponse,
   GroupAcceptRequestResponse,
   RoomMemberResponse,
+  LeaveCheckResponse,
 } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { RoomStatus } from '@my/ui'
-import { RoomCreateRequest, RoomUpdateRequest } from 'app/types/Request'
+import { MemberUpdateRequest, RoomCreateRequest, RoomUpdateRequest } from 'app/types/Request'
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -52,6 +53,7 @@ export const roomApi = baseApi.injectEndpoints({
       invalidatesTags: ['Rooms'],
     }),
 
+    // Tạo nhóm
     createGroup: builder.mutation<RoomResponse, RoomCreateRequest>({
       query: (data) => ({
         url: '/rooms',
@@ -60,6 +62,7 @@ export const roomApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Cập nhật setting của nhóm
     updateRoomSettings: builder.mutation<void, { roomId: string; request: RoomUpdateRequest }>({
       query: (data) => ({
         url: `/rooms/${data.roomId}`,
@@ -71,6 +74,54 @@ export const roomApi = baseApi.injectEndpoints({
       // invalidatesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
+    // Danh sách thành viên nhóm
+    getRoomMembers: builder.query<PageResponse<RoomMemberResponse>, { roomId: string }>({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}/members`,
+        method: 'GET',
+      }),
+    }),
+
+    // Cập nhật vai trò thành viên
+    updateMember: builder.mutation<
+      void,
+      { roomId: string; memberId: string; request: MemberUpdateRequest }
+    >({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}/members/${data.memberId}`,
+        method: 'POST',
+        data: data.request,
+      }),
+    }),
+
+    // Kiểm tra có thể rời nhóm
+    checkLeave: builder.mutation<LeaveCheckResponse, { roomId: string }>({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}/leave-check`,
+        method: 'POST',
+      }),
+    }),
+
+    // Rời nhóm
+    leaveGroup: builder.mutation<void, { roomId: string; newAdminId?: string }>({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}/members/me`,
+        method: 'DELETE',
+        params: {
+          newAdminId: data.newAdminId || null,
+        },
+      }),
+    }),
+
+    // Xoá thành viên khỏi nhóm
+    removeMember: builder.mutation<void, { roomId: string; memberId: string }>({
+      query: (data) => ({
+        url: `/rooms/${data.roomId}/members/${data.memberId}`,
+        method: 'DELETE',
+      }),
+    }),
+
+    // Giải tán nhóm
     disbandGroup: builder.mutation<void, { roomId: string }>({
       query: (data) => ({
         url: `/rooms/${data.roomId}`,
@@ -78,6 +129,7 @@ export const roomApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Thêm thành viên khi đã có nhóm
     addMembers: builder.mutation<void, { roomId: string; targetUserIds: string[] }>({
       query: ({ roomId, targetUserIds }) => ({
         url: `/rooms/${roomId}/members`,
@@ -86,6 +138,7 @@ export const roomApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Thông tin phòng, bao gồm các settings của phòng
     getRoomMetadata: builder.query<RoomResponse, { roomId: string }>({
       query: ({ roomId }) => ({
         url: `/rooms/${roomId}`,
@@ -110,6 +163,11 @@ export const {
   useGetMyInfoQuery,
   useCreateGroupMutation,
   useDisbandGroupMutation,
+  useGetRoomMembersQuery,
+  useUpdateMemberMutation,
+  useRemoveMemberMutation,
+  useCheckLeaveMutation,
+  useLeaveGroupMutation,
   useUpdateRoomSettingsMutation,
   useRespondGroupInviteMutation,
   useGetGroupInvitesQuery,
