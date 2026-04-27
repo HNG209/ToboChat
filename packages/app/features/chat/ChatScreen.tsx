@@ -218,8 +218,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     {
       skip: !hasSession || !roomId,
       refetchOnMountOrArgChange: true,
-      // refetchOnFocus: true,
-      // refetchOnReconnect: true,
     }
   )
 
@@ -275,14 +273,14 @@ export function ChatScreen({ roomId, insets }: Props) {
   }, [data?.items])
 
   // Nudge slider lên một chút khi có tin nhắn mới và user đang ở cuối
-  useEffect(() => {
-    if (!flatListRef.current) return
-    if (!data?.items?.length) return
-    if (isUserAtBottomRef.current) {
-      justNudgedRef.current = true // Đánh dấu vừa nudge
-      flatListRef.current.scrollToOffset({ offset: 200, animated: false })
-    }
-  }, [data?.items?.length])
+  // useEffect(() => {
+  //   if (!flatListRef.current) return
+  //   if (!data?.items?.length) return
+  //   if (isUserAtBottomRef.current) {
+  //     justNudgedRef.current = true // Đánh dấu vừa nudge
+  //     flatListRef.current.scrollToOffset({ offset: 200, animated: false })
+  //   }
+  // }, [data?.items?.length])
 
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
