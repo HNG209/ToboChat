@@ -44,10 +44,18 @@ export const ChatScreenFooter = ({
   const dispatch = useDispatch<AppDispatch>()
 
   const onSend = () => {
-    if (!localMessage.trim() && drafts.length === 0) return
-    handleSendMessage(localMessage) // Gửi nội dung lên cha
-    setLocalMessage('') // Xóa input sau khi gửi
-  }
+    const trimmedMsg = localMessage.trim();
+
+    // Case 1: Có text (có thể kèm hoặc không kèm attachments)
+    if (trimmedMsg) {
+      handleSendMessage(trimmedMsg);
+      setLocalMessage('');
+    }
+    // Case 2: Không có text nhưng có drafts (chỉ gửi file)
+    else if (drafts.length > 0) {
+      handleSendMessage('');
+    }
+  };
 
   const handleSendMessage = async (content: string) => {
     const isStillUploading = drafts.some((d) => d.isUploading)
@@ -72,10 +80,12 @@ export const ChatScreenFooter = ({
         contentType: d.contentType,
         fileSize: d.fileSize,
       }))
-
-    if (!message.trim() && attachments.length === 0) return
-
-    const reply = replyTo
+    const isTextOnly = content.trim().length > 0 && attachments.length === 0;
+    const isTextWithAttachments = content.trim().length > 0 && attachments.length > 0;
+    const isAttachmentsOnly = content.trim().length === 0 && attachments.length > 0;
+    // Nếu chỉ gửi Attachment, bỏ qua replyTo.
+    const activeReply = (isTextOnly || isTextWithAttachments) ? replyTo : null;
+    if (!content.trim() && attachments.length === 0) return;
 
     const optimisticMessage: MessageResponse = {
       id: uuidv4(), // ID tạm thời cho optimistic update, sẽ được backend trả về ID thật sau khi gửi thành công
@@ -83,13 +93,13 @@ export const ChatScreenFooter = ({
       createdAt: new Date().toISOString(),
       self: true,
       roomId: roomId,
-      replyTo: reply || undefined,
+      replyTo: activeReply || undefined,
       attachments: attachments,
       // messageStatus: 'SENDING', // Trạng thái đang gửi
     }
 
     // Reset input và drafts
-    if (reply) setReplyTo(null)
+    if (activeReply) setReplyTo(null)
     setDrafts([])
 
     // 4. Optimistic Update (Cập nhật cache ngay lập tức)
@@ -107,7 +117,7 @@ export const ChatScreenFooter = ({
         roomId,
         content: message,
         messageType: 'USER',
-        replyTo: replyTo?.id,
+        replyTo: activeReply?.id,
         attachments,
       }).unwrap()
 
@@ -137,7 +147,7 @@ export const ChatScreenFooter = ({
       )
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error)
-      if (reply) setReplyTo(reply)
+      if (activeReply) setReplyTo(activeReply)
       patchResult.undo()
     }
   }
