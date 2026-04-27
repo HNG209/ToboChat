@@ -29,15 +29,9 @@ import {
   Phone,
   Video,
   Image as ImageIcon,
-  MoreHorizontal,
-  Check,
   Copy,
   Forward,
   Trash2,
-  X,
-  Download,
-  File,
-  FileText,
   Lock,
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
@@ -47,7 +41,6 @@ import {
   useLazyGetMessagesQuery,
   useForwardMessagesMutation,
   useRevokeMessageMutation,
-  useSendMessageMutation,
   useDeleteMessageMutation,
 } from 'app/services/chatApi'
 import { roomApi, useGetJoinedRoomsQuery, useGetMyInfoQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
@@ -58,7 +51,6 @@ import { AppDispatch, RootState, store } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
-import { useChatAttachment } from '../../hooks/useChatAttachment'
 import { MediaViewer } from 'app/media/MediaViewer'
 import { formatPreviewMessage } from 'app/utils/chatHelper';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader';
@@ -69,30 +61,6 @@ import { GroupManagementContent } from '@my/ui/src/GroupManagementContent';
 import { AddMemberContent } from '@my/ui/src/group/AddMemberDialog';
 import { MemberManagementContent } from '@my/ui/src/group/MemberManagementContent';
 import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
-
-
-
-
-
-function getDisplayNameForMessage(msg: MessageResponse, selfUserName?: string) {
-  if (msg.self) return selfUserName || 'Bạn'
-  return msg.user?.name || 'Người dùng'
-}
-
-function buildReplyEncodedContent(opts: {
-  replyName: string
-  replyText: string
-  messageText: string
-}) {
-  const replyName = (opts.replyName || '').replace(/\n/g, ' ').trim()
-  const replyText = (opts.replyText || '').replace(/\n/g, ' ').trim()
-  const messageText = (opts.messageText || '').trim()
-  return `[reply]\nname:${replyName}\ntext:${replyText}\n[/reply]\n${messageText}`
-}
-
-
-
-
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -114,9 +82,6 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [isSocketReady, setIsSocketReady] = useState(false)
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
   const selfUserId = useSelector((s: RootState) => s.auth.user?.id)
-  const selfUserName = useSelector(
-    (s: RootState) => (s as any).auth?.user?.name as string | undefined
-  )
   const nextCursorRef = useRef<string | undefined>(undefined)
   const prevCursorRef = useRef<string | undefined>(undefined)
   const flatListRef = useRef<any>(null)
@@ -127,7 +92,6 @@ export function ChatScreen({ roomId, insets }: Props) {
   const justNudgedRef = useRef(false)
   const loadMoreDirectionRef = useRef<'before' | 'after' | null>(null)
 
-  // Thêm state vào ChatScreen
   const [viewerVisible, setViewerVisible] = useState(false)
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [currentMediaList, setCurrentMediaList] = useState<any[]>([])
@@ -152,12 +116,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   // Show infor screen
   const [showInfo, setShowInfo] = useState(false)
   const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD' | 'MEMBERS' | 'APPROVED'>('INFO');
-  const handleCloseInfo = () => {
-    setShowInfo(false);
-    setTimeout(() => setInfoView('INFO'), 300); // Đợi đóng xong rồi mới reset để tránh bị giật giao diện
-  };
   const listBottomSpacer = isWeb ? 0 : composerHeight
-  const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
   // Android keyboard handling: don't rely on KeyboardAvoidingView only.
   // On some devices KAV can leave a "stuck" gap after dismiss; keyboard events are deterministic.
   useEffect(() => {
@@ -185,10 +144,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   }, [windowHeight])
 
-  // If Android is already resizing the window when the keyboard opens
-  // (because `softwareKeyboardLayoutMode: "resize"` is enabled), then adding
-  // manual padding creates a visible empty gap. Only apply padding as a fallback
-  // when the window height doesn't change.
   useEffect(() => {
     if (Platform.OS !== 'android') return
     if (androidKeyboardHeight === 0) {
@@ -205,8 +160,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     Platform.OS === 'android' && !isWindowResizedByKeyboard ? androidKeyboardHeight : 0
 
   const selectedCount = selectedIds.size
-  const replyName = replyTo ? getDisplayNameForMessage(replyTo, selfUserName) : ''
-  const replyTag = replyTo ? `@${replyName}` : ''
 
   // 1. API Hooks
   const { data, isLoading, isError, error } = useGetMessagesQuery(
@@ -243,7 +196,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       refetchOnMountOrArgChange: true,
     }
   )
-  const [sendMessage] = useSendMessageMutation()
   const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
   const [deleteMessage] = useDeleteMessageMutation()
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
@@ -271,16 +223,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       }, 100)
     }
   }, [data?.items])
-
-  // Nudge slider lên một chút khi có tin nhắn mới và user đang ở cuối
-  // useEffect(() => {
-  //   if (!flatListRef.current) return
-  //   if (!data?.items?.length) return
-  //   if (isUserAtBottomRef.current) {
-  //     justNudgedRef.current = true // Đánh dấu vừa nudge
-  //     flatListRef.current.scrollToOffset({ offset: 200, animated: false })
-  //   }
-  // }, [data?.items?.length])
 
   const normalizedMessages = useMemo(() => {
     const items = data?.items || []
@@ -358,7 +300,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       messageIds: forwardSourceMessages.map((message) => message.id),
     }).unwrap()
   }
-  // 2. Load More Logic
+
   const handleLoadMore = async (direction: 'before' | 'after') => {
     if (isFetchingMore || isJumpingToReplyRef.current) return
     loadMoreDirectionRef.current = direction
@@ -540,100 +482,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     hasJumpedToReplyRef.current = false
     setDirection('both')
   }
-  // 3. Send Message Logic
-  const handleSendMessage = async (content: string) => {
-    // 1. Kiểm tra trạng thái upload (Giữ nguyên logic của Đạt)
-    const isStillUploading = drafts.some((d) => d.isUploading)
-    const hasError = drafts.some((d) => (d as any).error)
-    const message = content;
-    if (isStillUploading) {
-      alert('Vui lòng đợi tệp tin đang được tải lên...')
-      return
-    }
-
-    if (hasError) {
-      alert('Có tệp tin bị lỗi upload, vui lòng xóa hoặc thử lại!')
-      return
-    }
-
-    // 2. Xử lý attachments (Giữ nguyên logic của Đạt)
-    const attachments: Attachment[] = drafts
-      .filter((d) => d.fileUrl && d.fileUrl.startsWith('http'))
-      .map((d) => ({
-        fileUrl: d.fileUrl,
-        fileName: d.fileName,
-        contentType: d.contentType,
-        fileSize: d.fileSize,
-      }))
-
-    if (!message.trim() && attachments.length === 0) return
-
-    const reply = replyTo
-
-    const optimisticMessage: MessageResponse = {
-      id: uuidv4(), // ID tạm thời cho optimistic update, sẽ được backend trả về ID thật sau khi gửi thành công
-      content: message,
-      createdAt: new Date().toISOString(),
-      self: true,
-      roomId: roomId,
-      replyTo: reply || undefined,
-      attachments: attachments,
-      // messageStatus: 'SENDING', // Trạng thái đang gửi
-    }
-
-    // Reset input và drafts
-    if (reply) setReplyTo(null)
-    setDrafts([])
-
-    // 4. Optimistic Update (Cập nhật cache ngay lập tức)
-    const patchResult = dispatch(
-      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-        if (!draft) return
-        if (!draft.items) draft.items = []
-        draft.items.unshift(optimisticMessage)
-      })
-    )
-
-    try {
-      // 1. Gửi tin nhắn
-      const result = await sendMessage({
-        roomId,
-        content: message,
-        messageType: 'USER',
-        replyTo: replyTo?.id,
-        attachments,
-      }).unwrap()
-
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-          if (!draft || !draft.items) return
-          const roomIndex = draft.items.findIndex((room) => room.id === roomId)
-          if (roomIndex !== -1) {
-            draft.items[roomIndex].latestMessage = result
-            const [updatedRoom] = draft.items.splice(roomIndex, 1)
-            draft.items.unshift(updatedRoom)
-          }
-        })
-      )
-
-      // cập nhật lại cache với ID thật và trạng thái đã gửi
-      dispatch(
-        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-          if (!draft || !draft.items) return
-          const msg = draft.items?.find((m) => m.id === optimisticMessage.id)
-          if (msg) {
-            msg.id = result.id // Cập nhật ID thật từ server
-            msg.createdAt = result.createdAt // Cập nhật timestamp chính xác từ server
-            msg.content = result.content
-          }
-        })
-      )
-    } catch (error) {
-      console.error('Lỗi khi gửi tin nhắn:', error)
-      if (reply) setReplyTo(reply)
-      patchResult.undo()
-    }
-  }
 
   // 4. Socket Connection & Listeners
   useEffect(() => {
@@ -752,10 +600,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 inverted={true}
                 keyExtractor={(item: MessageResponse) => item.id}
                 contentContainerStyle={{
-                  // FlatList is inverted, so paddingTop becomes the *bottom* spacing.
-                  // This prevents the newest message + avatar from being hidden under the composer.
                   paddingTop: listBottomSpacer + 13,
-                  // In inverted mode, paddingBottom becomes the *top* spacing.
                   paddingBottom: 20,
                 }}
                 onEndReached={() => {
@@ -820,7 +665,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                     </Text>
                   </YStack>
                 }
-                // TRẠNG THÁI LOADING CHO LOAD MORE TẠI ĐÂY
                 ListFooterComponent={
                   isFetchingMore && loadMoreDirectionRef.current === 'before' ? (
                     <XStack justifyContent="center" alignItems="center" py="$4">
@@ -865,7 +709,6 @@ export function ChatScreen({ roomId, insets }: Props) {
               />
             )}
 
-
             {selectionMode && (
               <XStack
                 px="$3"
@@ -876,7 +719,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                 alignItems="center"
                 width="100%"
                 justifyContent="space-between"
-                // --- THÊM RESPONSIVE TẠI ĐÂY ---
                 {...(Platform.OS !== 'web' && {
                   position: 'absolute',
                   bottom: 0,
@@ -887,7 +729,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                   paddingBottom: (insets?.bottom ?? 0) + 8,
                   minHeight: composerHeight || 60,
                 })}
-              // ----------------------------
               >
                 <XStack alignItems="center" space="$2" flex={1}>
                   <Text fontWeight="700">{selectedCount}</Text>
@@ -990,154 +831,8 @@ export function ChatScreen({ roomId, insets }: Props) {
               onConfirm={handleForwardConfirm}
             />
 
-            {/* --- FOOTER (INPUT) --- */}
-            {/* --- PHẦN NHÃN TRẢ LỜI TRÊN INPUT --- */}
-            {!selectionMode && replyTo && (() => {
-              const replyAttachments = replyTo.attachments || [];
-              const firstAt = replyAttachments[0];
-              const isImage = firstAt?.contentType?.startsWith('image/');
-              const isVideo = firstAt?.contentType?.startsWith('video/');
-              const isFile = firstAt && !isImage && !isVideo;
-
-              let displayLabel = replyTo.content || '';
-              if (isImage) displayLabel = '[Hình ảnh]';
-              if (isVideo) displayLabel = '[Video]';
-              if (isFile) displayLabel = `[File] ${firstAt.fileName}`;
-
-              return (
-                <XStack
-                  px="$3"
-                  py="$2"
-                  bg="$background"
-                  borderTopWidth={1}
-                  borderColor="$borderColor"
-                  alignItems="center"
-                  space="$2"
-                  animation="quick"
-                  enterStyle={{ opacity: 0, y: 10 }}
-                >
-                  {/* Vạch kẻ xanh bên trái */}
-                  <YStack width={3} height="80%" bg="$blue10" borderRadius="$1" />
-
-                  {/* Thumbnail nhỏ nếu là Media */}
-                  {(isImage || isVideo) && (
-                    <Image
-                      source={{ uri: firstAt.fileUrl }}
-                      width={36}
-                      height={36}
-                      borderRadius="$2"
-                      bg="$color5"
-                    />
-                  )}
-
-                  {/* Nội dung text */}
-                  <YStack flex={1} justifyContent="center">
-                    <Text fontWeight="700" fontSize="$3" color="$blue10" numberOfLines={1}>
-                      Đang trả lời: {replyTo.user?.name || 'Người dùng'}
-                    </Text>
-                    <Text fontSize="$2" color="$color10" numberOfLines={1}>
-                      {displayLabel}
-                    </Text>
-                  </YStack>
-
-                  {/* Nút Hủy (X) để tắt chế độ trả lời */}
-                  <Button
-                    size="$2"
-                    circular
-                    chromeless
-                    icon={X}
-                    onPress={() => setReplyTo(null)}
-                  />
-                </XStack>
-              );
-            })()}
-            {/* --- VÙNG HIỂN THỊ ẢNH ĐANG CHỜ (DRAFTS) --- */}
-            {drafts.length > 0 && (
-              <XStack px="$3" py="$2" space="$2" bg="$background">
-                <StyledFlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={drafts}
-                  keyExtractor={(item: any) => item.id}
-                  renderItem={({ item }: { item: any }) => {
-                    const isImage = item.contentType?.startsWith('image/')
-                    const isVideo = item.contentType?.startsWith('video/')
-
-                    return (
-                      <YStack
-                        width={70}
-                        height={70}
-                        marginRight="$2"
-                        borderRadius="$3"
-                        overflow="hidden"
-                        bg="$color5"
-                        position="relative"
-                      >
-                        <ZStack fullscreen>
-                          {/* 1. Hiển thị nội dung (Dùng localUri để hiện ảnh ngay lập tức) */}
-                          {isImage ? (
-                            <Image
-                              source={{ uri: item.localUri }}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                opacity: item.isUploading ? 0.5 : 1,
-                              }}
-                            />
-                          ) : (
-                            <YStack
-                              fullscreen
-                              alignItems="center"
-                              justifyContent="center"
-                              bg="$blue5"
-                              opacity={item.isUploading ? 0.5 : 1}
-                            >
-                              {isVideo ? (
-                                <Video size={20} color="$blue10" />
-                              ) : (
-                                <FileText size={20} color="$orange10" />
-                              )}
-                            </YStack>
-                          )}
-
-                          {/* 2. LỚP PHỦ LOADING (Chỉ hiện khi isUploading = true) */}
-                          {item.isUploading && (
-                            <YStack
-                              fullscreen
-                              alignItems="center"
-                              justifyContent="center"
-                              backgroundColor="rgba(0,0,0,0.2)"
-                            >
-                              <ActivityIndicator size="small" color="white" />
-                            </YStack>
-                          )}
-
-                          {/* 3. NÚT XÓA (Chỉ hiện khi không đang upload hoặc hiển thị ở góc) */}
-                          {!item.isUploading && (
-                            <XStack
-                              position="absolute"
-                              top={2}
-                              right={2}
-                              onPress={() => removeDraft(item.id)}
-                            >
-                              <Circle
-                                size={18}
-                                bg="rgba(0,0,0,0.5)"
-                                alignItems="center"
-                                justifyContent="center"
-                              >
-                                <X size={12} color="white" />
-                              </Circle>
-                            </XStack>
-                          )}
-                        </ZStack>
-                      </YStack>
-                    )
-                  }}
-                />
-              </XStack>
-            )}
             {
+              // Footer (đã refractor)
               (roomData?.roomType == 'GROUP' && !isAdmin && !isViceAdmin && !roomData?.allowSendMessage) ?
                 <XStack
                   alignItems="center"
@@ -1156,9 +851,11 @@ export function ChatScreen({ roomId, insets }: Props) {
                   </Text>
                 </XStack> :
                 <ChatScreenFooter
-                  drafts={drafts}
-                  handleSendMessage={handleSendMessage}
-                  handlePickFile={handlePickFile}
+                  roomId={roomId}
+                  status={status}
+                  selectionMode={selectionMode}
+                  replyTo={replyTo}
+                  setReplyTo={setReplyTo}
                   theme={theme}
                   isWeb={isWeb}
                   insets={insets}
