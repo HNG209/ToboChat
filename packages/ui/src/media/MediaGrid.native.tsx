@@ -1,5 +1,5 @@
 import React from 'react'
-import { Image } from 'react-native'
+import { Image, Pressable, View } from 'react-native'
 import { YStack, XStack, Text, ZStack } from 'tamagui'
 import { Play } from '@tamagui/lucide-icons'
 import { Video, ResizeMode } from 'expo-av'
@@ -7,9 +7,19 @@ import { Video, ResizeMode } from 'expo-av'
 export const MediaGrid = ({
   media,
   onPressMedia,
+  selectionMode,
+  isSelected,
+  onToggleSelect,
+  messageId,
+  onLongPress,
 }: {
   media: any[]
-  onPressMedia: (index: number) => void
+  onPressMedia?: (index: number) => void
+  selectionMode?: boolean
+  isSelected?: boolean
+  onToggleSelect?: (id: string) => void
+  messageId?: string
+  onLongPress?: () => void
 }) => {
   if (!media || media.length === 0) return null
 
@@ -27,72 +37,87 @@ export const MediaGrid = ({
     />
   )
 
-  if (media.length === 1) {
-    const item = media[0]
+  const handlePress = (index: number) => {
+    console.log("Hàm handlePress đang chạy...");
+    if (selectionMode && messageId) {
+      onToggleSelect?.(messageId)
+    } else if (!selectionMode && onPressMedia) {
+      onPressMedia(index)
+    }
+  }
+  const renderItem = (item: any, idx: number, width: any, height: number, isGrid: boolean) => {
     const isVideo = item.contentType?.startsWith('video/')
+    const isLastItem = isGrid && idx === displayLimit - 1 && remainingCount > 0
+
     return (
-      <YStack
-        width={300}
-        height={200}
-        backgroundColor="$color5"
-        onPress={() => onPressMedia(0)}
-        borderRadius={8}
-        overflow="hidden"
+      <Pressable
+        delayLongPress={200}
+        onLongPress={() => {
+          console.log("!!! KẾT QUẢ CUỐI CÙNG ĐÂY RỒI ĐẠT !!!");
+          onLongPress?.();
+        }}
+        onPress={() => handlePress(idx)}
+        // 2. KHÔNG DÙNG onStartShouldSetResponder ở đây
+        style={({ pressed }) => ({
+          flex: 1,
+          opacity: (selectionMode && isSelected) || pressed ? 0.6 : 1,
+          borderWidth: 0.5,
+          borderColor: 'white', // Thay cho $background để test
+        })}
       >
-        <ZStack fullscreen>
-          {isVideo ? (
-            <>
-              {renderVideoItem(item.fileUrl, false)}
-              <YStack fullscreen alignItems="center" justifyContent="center">
-                <Play size={40} color="white" />
+        <View style={{ flex: 1 }} pointerEvents="none">
+          {/* 1. Dùng Pressable như một cái Khung chứa (Container) */}
+          {/* 3. Dùng pointerEvents="none" để ép sự kiện không dừng lại ở ảnh/video */}
+          <YStack flex={1} pointerEvents="none">
+            {isVideo ? (
+              <YStack flex={1} backgroundColor="black" alignItems="center" justifyContent="center">
+                {renderVideoItem(item.fileUrl, isGrid)}
+                <Play size={isGrid ? 30 : 40} color="white" position="absolute" />
               </YStack>
-            </>
-          ) : (
-            <Image
-              source={{ uri: item.fileUrl }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-            />
+            ) : (
+              <Image
+                source={{ uri: item.fileUrl }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            )}
+          </YStack>
+
+          {/* 4. Phần overlay số lượng ảnh dư (+3) cũng phải chặn pointerEvents */}
+          {isLastItem && (
+            <YStack
+              position="absolute"
+              top={0} left={0} right={0} bottom={0}
+              backgroundColor="rgba(0,0,0,0.6)"
+              alignItems="center"
+              justifyContent="center"
+              pointerEvents="none"
+            >
+              <Text color="white" fontWeight="bold" fontSize="$6">
+                +{remainingCount}
+              </Text>
+            </YStack>
           )}
-        </ZStack>
+        </View>
+      </Pressable >
+
+    )
+  }
+
+  // TRƯỜNG HỢP 1 ẢNH
+  if (media.length === 1) {
+    return (
+      <YStack width={300} height={200} >
+        {renderItem(media[0], 0, 300, 200, false)}
       </YStack>
     )
   }
 
+  // TRƯỜNG HỢP NHIỀU ẢNH (GRID)
   return (
-    <XStack flexWrap="wrap" width={300} borderRadius={8} overflow="hidden">
-      {displayMedia.map((item, idx) => {
-        const isVideo = item.contentType?.startsWith('video/')
-        const isLastItem = idx === displayLimit - 1 && remainingCount > 0
-
-        return (
-          <YStack
-            key={item.fileUrl || idx}
-            width="50%"
-            height={150}
-            borderWidth={0.5}
-            borderColor="$background"
-            position="relative"
-            onPress={() => onPressMedia(idx)}
-          >
-            <ZStack fullscreen>
-              {isVideo ? (
-                <YStack fullscreen backgroundColor="black" alignItems="center" justifyContent="center">
-                  {renderVideoItem(item.fileUrl, true)}
-                  <Play size={30} color="white" position="absolute" style={{ zIndex: 5 }} />
-                </YStack>
-              ) : (
-                <Image source={{ uri: item.fileUrl }} style={{ width: '100%', height: '100%' }} />
-              )}
-              {isLastItem && (
-                <YStack fullscreen backgroundColor="rgba(0,0,0,0.6)" alignItems="center" justifyContent="center" zIndex={10}>
-                  <Text color="white" fontWeight="bold" fontSize="$6">+{remainingCount}</Text>
-                </YStack>
-              )}
-            </ZStack>
-          </YStack>
-        )
-      })}
+    <XStack flexWrap="wrap" width={300} >
+      {displayMedia.map((item, idx) => renderItem(item, idx, '50%', 150, true))}
     </XStack>
   )
+
 }

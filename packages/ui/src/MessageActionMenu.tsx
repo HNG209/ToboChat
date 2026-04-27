@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Platform, Pressable } from 'react-native'
-import { Button, Dialog, ListItem, Popover, Separator, Text, YStack, XStack } from '@my/ui'
+import {
+  Button,
+  Dialog,
+  ListItem,
+  Popover,
+  Separator,
+  Text,
+  YStack,
+  XStack
+} from 'tamagui'
 import {
   ArrowLeft,
   CheckSquare,
@@ -11,6 +19,7 @@ import {
   Trash2,
 } from '@tamagui/lucide-icons'
 import type { MessageResponse } from 'app/types/Response'
+import { Platform, Pressable, StyleSheet } from 'react-native'
 
 type Props = {
   message: MessageResponse
@@ -22,10 +31,13 @@ type Props = {
   onReply: (message: MessageResponse) => void
   onForward: (message: MessageResponse) => void
   onEnterMultiSelect: (message: MessageResponse) => void
-  onDeleteForMe: (message: MessageResponse) => void
+  onDelete: (message: MessageResponse) => void
+  onDeleteForMe: (message: MessageRespone) => void
   onRecall?: (message: MessageResponse) => void
   disabled?: boolean
   children: React.ReactNode
+  onTap?: () => void
+  triggerRef?: React.MutableRefObject<(() => void) | null>
 }
 
 export function MessageActionMenu({
@@ -38,10 +50,13 @@ export function MessageActionMenu({
   onReply,
   onForward,
   onEnterMultiSelect,
+  onDelete,
   onDeleteForMe,
   onRecall,
   disabled,
   children,
+  onTap,
+  triggerRef
 }: Props) {
   const isWeb = Platform.OS === 'web'
   const [open, setOpen] = useState(false)
@@ -52,7 +67,18 @@ export function MessageActionMenu({
   useEffect(() => {
     if (!open) setView('main')
   }, [open])
-
+  useEffect(() => {
+    if (triggerRef) {
+      triggerRef.current = () => {
+        if (!disabled) {
+          setOpen(true);
+        }
+      };
+    }
+    return () => {
+      if (triggerRef) triggerRef.current = null;
+    }
+  }, [disabled, triggerRef])
   useEffect(() => {
     return () => {
       if (hideHoverTimeoutRef.current) clearTimeout(hideHoverTimeoutRef.current)
@@ -77,7 +103,17 @@ export function MessageActionMenu({
     backgroundColor: 'white',
     borderWidth: 0,
     borderRadius: '$3',
-    pressStyle: { backgroundColor: '$backgroundHover' },
+    hoverStyle: {
+      backgroundColor: '$blue2', // Màu nền xanh nhạt khi hover
+      borderColor: '$blue8',      // Border xanh đậm hơn  
+      elevation: 2,               // Đổ bóng nhẹ
+    },
+    // Hiệu ứng khi nhấn (Mobile & Web)
+    pressStyle: {
+      backgroundColor: '$blue3',
+      scale: 0.96,               // Thu nhỏ nhẹ tạo cảm giác bấm nút
+      borderColor: '$blue10'
+    },
   } as const
 
   const tileWrapStyle = {
@@ -86,14 +122,14 @@ export function MessageActionMenu({
   } as const
 
   // --- GIAO DIỆN MOBILE ---
+
   if (!isWeb) {
-    // Tile component giữ nguyên như cũ của Đạt...
     const Tile = ({ title, icon, onPress, disabledTile }: any) => (
       <YStack {...(tileWrapStyle as any)}>
         <Button
           disabled={disabledTile}
           onPress={() => {
-            setOpen(false) // Đóng trước khi thực hiện action
+            setOpen(false)
             onPress()
           }}
           {...tileBaseStyle}
@@ -109,90 +145,101 @@ export function MessageActionMenu({
     )
 
     return (
-      <Dialog modal open={open} onOpenChange={setOpen}>
-        <Dialog.Trigger asChild>
-          <Pressable
-            onLongPress={() => setOpen(true)}
-            delayLongPress={250}
-            onPress={selectionMode ? () => onToggleSelected(message.id) : undefined}
-          >
+      <>
+        {/* Tách Dialog ra khỏi Trigger để kiểm soát hoàn toàn */}
+        <Dialog modal open={open} onOpenChange={setOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay
+              key="overlay"
+              animation="quick"
+              opacity={0.5}
+              backgroundColor="#000"
+              enterStyle={{ opacity: 0 }}
+              exitStyle={{ opacity: 0 }}
+            >
+              <Pressable style={{ flex: 1 }} onPress={() => setOpen(false)} />
+            </Dialog.Overlay>
+
+            <Dialog.Content
+              key="content"
+              bordered
+              elevate
+              animation="quick"
+              enterStyle={{ opacity: 0, scale: 0.9, y: 10 }}
+              exitStyle={{ opacity: 0, scale: 0.9, y: 10 }}
+              width="90%"
+              maxWidth={360}
+              padding="$2"
+              backgroundColor="$background"
+              onPress={(e) => e.stopPropagation()}
+            >
+              {view === 'main' ? (
+                <YStack paddingVertical="$1">
+                  <XStack flexWrap="wrap">
+                    <Tile title="Sao chép" icon={<Copy size={18} color="#3b82f6" />} onPress={() => onCopy(message)} />
+                    <Tile title="Trả lời" icon={<CornerUpLeft size={18} color="#10b981" />} onPress={() => onReply(message)} />
+                    <Tile title="Chuyển tiếp" icon={<Forward size={18} color="#6366f1" />} onPress={() => onForward(message)} />
+                    <Tile title="Chọn nhiều" icon={<CheckSquare size={18} color="#f59e0b" />} onPress={() => onEnterMultiSelect(message)} />
+                    {isMe ? (
+                      <YStack {...(tileWrapStyle as any)}>
+                        <Button
+                          onPress={() => setView('delete')}
+                          {...tileBaseStyle}
+                          height={72}
+                          padding="$2"
+                        >
+                          <YStack alignItems="center" justifyContent="center" space="$1">
+                            <Trash2 size={18} color="#ef4444" />
+                            <Text fontSize="$1" textAlign="center">Xóa</Text>
+                          </YStack>
+                        </Button>
+                      </YStack>
+                    ) : (
+                      <Tile title="Xóa phía tôi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe?.(message)} />
+                    )}
+                  </XStack>
+                </YStack>
+              ) : (
+                <YStack paddingVertical="$2">
+                  <XStack alignItems="center" space="$2" px="$2" mb="$2">
+                    <Button size="$2" circular chromeless icon={ArrowLeft} onPress={() => setView('main')} />
+                    <Text fontWeight="700">Xóa tin nhắn</Text>
+                  </XStack>
+                  <XStack flexWrap="wrap">
+                    <Tile title="Xóa phía mình" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe?.(message)} />
+                    {onRecall && (
+                      <Tile title="Thu hồi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onRecall(message)} />
+                    )}
+                  </XStack>
+                </YStack>
+              )}
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog>
+
+        <YStack
+          alignItems={isMe ? 'flex-end' : 'flex-start'}
+          width="100%"
+          // CỰC KỲ QUAN TRỌNG: Ép cái khung này không được bắt sự kiện
+          pointerEvents="box-none"
+        >
+          {/* Thêm một lớp bọc children và cũng cho nó box-none */}
+          <YStack width="100%" pointerEvents="box-none" alignItems={isMe ? 'flex-end' : 'flex-start'}>
             {children}
-          </Pressable>
-        </Dialog.Trigger>
+          </YStack>
 
-        <Dialog.Portal>
-          {/* CHIÊU 1: Bọc Overlay trong Pressable để ép sự kiện đóng */}
-          <Dialog.Overlay
-            key="overlay"
-            animation="quick"
-            opacity={0.5}
-            backgroundColor="#000"
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-          >
+          {/* Lớp xử lý chọn nhiều (Selection Mode) */}
+          {selectionMode && (
             <Pressable
-              style={{ flex: 1 }}
-              onPress={() => setOpen(false)}
+              onPress={() => onToggleSelected(message.id)}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                zIndex: 999,
+              }}
             />
-          </Dialog.Overlay>
-
-          <Dialog.Content
-            key="content"
-            bordered
-            elevate
-            animation="quick"
-            enterStyle={{ opacity: 0, scale: 0.9, y: 10 }}
-            exitStyle={{ opacity: 0, scale: 0.9, y: 10 }}
-            width="90%"
-            maxWidth={360}
-            padding="$2"
-            backgroundColor="$background"
-            // CHIÊU 2: Ngăn cú chạm vào Menu làm đóng Modal
-            onPress={(e) => e.stopPropagation()}
-          >
-            {view === 'main' ? (
-              <YStack paddingVertical="$1">
-                <XStack flexWrap="wrap">
-                  <Tile title="Sao chép" icon={<Copy size={18} color="#3b82f6" />} onPress={() => onCopy(message)} />
-                  <Tile title="Trả lời" icon={<CornerUpLeft size={18} color="#10b981" />} onPress={() => onReply(message)} />
-                  <Tile title="Chuyển tiếp" icon={<Forward size={18} color="#6366f1" />} onPress={() => onForward(message)} />
-                  <Tile title="Chọn nhiều" icon={<CheckSquare size={18} color="#f59e0b" />} onPress={() => onEnterMultiSelect(message)} />
-                  {isMe ? (
-                    <YStack {...(tileWrapStyle as any)}>
-                      <Button
-                        onPress={() => setView('delete')}
-                        {...tileBaseStyle}
-                        height={72}
-                        padding="$2"
-                      >
-                        <YStack alignItems="center" justifyContent="center" space="$1">
-                          <Trash2 size={18} color="#ef4444" />
-                          <Text fontSize="$1" textAlign="center">Xóa</Text>
-                        </YStack>
-                      </Button>
-                    </YStack>
-                  ) : (
-                    <Tile title="Xóa phía tôi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe(message)} />
-                  )}
-                </XStack>
-              </YStack>
-            ) : (
-              <YStack paddingVertical="$2">
-                <XStack alignItems="center" space="$2" px="$2" mb="$2">
-                  <Button size="$2" circular chromeless icon={ArrowLeft} onPress={() => setView('main')} />
-                  <Text fontWeight="700">Xóa tin nhắn</Text>
-                </XStack>
-                <XStack flexWrap="wrap">
-                  <Tile title="Xóa phía mình" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe(message)} />
-                  {onRecall && (
-                    <Tile title="Thu hồi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onRecall(message)} />
-                  )}
-                </XStack>
-              </YStack>
-            )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
+          )}
+        </YStack>
+      </>
     )
   }
 

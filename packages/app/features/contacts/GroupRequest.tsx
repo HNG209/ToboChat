@@ -1,32 +1,49 @@
 'use client'
-
-import React, { useState } from 'react'
 import { YStack, XStack, H3, Text, Select, ScrollView, Button } from 'tamagui'
-import { ChevronDown, ChevronLeft } from '@tamagui/lucide-icons'
 import { ContactHeader, UserCard } from '@my/ui'
-import { useRouter } from 'solito/navigation'
 // Import cái Type để mapping cho đúng logic của UserCard
 import { FriendRequestType } from '../../types/Request'
 import { Platform } from 'react-native'
+import { useGetGroupInvitesQuery, useRespondGroupInviteMutation } from 'app/services/roomApi'
+import { GroupAcceptRequestResponse, UserResponse } from 'app/types/Response'
+import { useDispatch } from 'react-redux'
+import { AppDispatch } from 'app/store'
+import { roomApi } from 'app/services/roomApi'
 
 export default function GroupRequestPage() {
-  const router = useRouter()
-  const [filter, setFilter] = useState('RECEIVED')
-
+  const { data, isLoading } = useGetGroupInvitesQuery() // Gọi API lấy lời mời nhóm ở đây, sau này sẽ dùng data này để render danh sách
+  const groupInvitesData = data?.items as GroupAcceptRequestResponse[] | undefined
   const isWeb = Platform.OS === 'web'
+  const dispatch = useDispatch<AppDispatch>()
+  const [respondGroupInvite] = useRespondGroupInviteMutation()
 
   const handleAction = async (action: string, id: string) => {
-    console.log(`Hành động: ${action} trên ID: ${id}`)
-    // Sau này gọi API xử lý lời mời nhóm ở đây
-  }
+    try {
+      const isAccept = action === 'join';
 
-  // Giả định dữ liệu mẫu để bạn thấy giao diện khi có item
-  const data = {
-    items: [
-      { id: 'inv1', name: 'Cộng đồng React Việt', inviter: 'Nguyễn Văn A' },
-      { id: 'inv2', name: 'Team Design UI/UX', inviter: 'Trần Thị B' },
-    ],
-  }
+      dispatch(
+        roomApi.util.updateQueryData('getGroupInvites', undefined, (draft) => {
+          const index = draft.items?.findIndex((r) => r.roomId === id);
+          if (index !== -1 && index !== undefined) {
+            draft.items.splice(index, 1);
+          }
+        })
+      );
+      const response = await respondGroupInvite({ groupId: id, accepted: isAccept }).unwrap();
+
+      if (isAccept && response && response.id) {
+        dispatch(
+          roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+            if (draft && draft.items) {
+              draft.items.unshift(response);
+            }
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Lỗi phản hồi lời mời nhóm:', error);
+    }
+  };
 
   return (
     <XStack
@@ -40,80 +57,37 @@ export default function GroupRequestPage() {
         {/* HEADER */}
         <ContactHeader
           title="Lời mời vào nhóm"
-          subtitle={`${data?.items?.length ?? 0} lời mời`}
+          subtitle={`${groupInvitesData?.length ?? 0} lời mời`}
           onBackPath="/contacts"
-          actionElement={
-            isWeb ? (
-              <Select value={filter} onValueChange={(val) => setFilter(val)}>
-                <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>
-                  <Select.Value placeholder="Chọn loại" />
-                </Select.Trigger>
-                <Select.Content zIndex={200000}>
-                  <Select.Viewport>
-                    <Select.Item index={0} value="RECEIVED">
-                      <Select.ItemText>Lời mời đã nhận</Select.ItemText>
-                    </Select.Item>
-                    <Select.Item index={1} value="SENT">
-                      <Select.ItemText>Yêu cầu đã gửi</Select.ItemText>
-                    </Select.Item>
-                  </Select.Viewport>
-                </Select.Content>
-              </Select>
-            ) : (
-              <XStack space="$2">
-                <Button
-                  size="$2"
-                  borderRadius="$4"
-                  themeInverse={filter === 'RECEIVED'}
-                  variant={filter === 'RECEIVED' ? undefined : 'outlined'}
-                  onPress={() => setFilter('RECEIVED')}
-                >
-                  Đã nhận
-                </Button>
-                <Button
-                  size="$2"
-                  borderRadius="$4"
-                  themeInverse={filter === 'SENT'}
-                  variant={filter === 'SENT' ? undefined : 'outlined'}
-                  onPress={() => setFilter('SENT')}
-                >
-                  Đã gửi
-                </Button>
-              </XStack>
-            )
-          }
         />
 
         {/* DANH SÁCH NỘI DUNG */}
         <YStack flex={1} padding="$2" borderWidth={1} borderColor="$borderColor" borderRadius="$6">
           <ScrollView flex={1}>
             <YStack gap="$3" padding="$2">
-              {data?.items?.map((item: any) => (
+              {groupInvitesData?.map((item: GroupAcceptRequestResponse) => (
                 <UserCard
-                  key={item.id}
+                  key={item.roomId}
                   isGroup={true} // Bật chế độ hiển thị Nhóm
                   // Hiển thị thông tin người mời cho sinh động
-                  description={
-                    filter === 'RECEIVED' ? `Người mời: ${item.inviter}` : 'Đang chờ duyệt'
-                  }
+                  description={`Người mời: ${item.inviter.name}`}
                   user={
                     {
-                      id: item.id,
-                      name: item.name,
+                      id: item.roomId,
+                      name: item.roomName,
                       avatarUrl: '',
-                    } as any
+                    } as UserResponse
                   }
                   // Mapping filter sang Type của UserCard để hiện đúng nút (Accept/Reject hoặc Cancel)
-                  type={filter === 'RECEIVED' ? FriendRequestType.PENDING : FriendRequestType.SENT}
-                  onAction={(action) => handleAction(action, item.id)}
+                  type={FriendRequestType.PENDING}
+                  onAction={(action) => handleAction(action, item.roomId)}
                 />
-              ))}
+              ))
+              }
 
-              {data?.items?.length === 0 && (
+              {groupInvitesData?.length === 0 && (
                 <Text color="$color10" textAlign="center" marginTop="$10">
-                  {filter === 'RECEIVED'
-                    ? 'Không có lời mời vào nhóm nào.'
-                    : 'Bạn chưa gửi yêu cầu gia nhập nhóm nào.'}
+                  Không có lời mời vào nhóm nào.
                 </Text>
               )}
             </YStack>

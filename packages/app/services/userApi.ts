@@ -40,13 +40,14 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ['UserSearch'],
     }),
 
-    updateProfile: builder.mutation<any, { name?: string; dateOfBirth?: string }>({
-      query: ({ name, dateOfBirth }) => ({
+    updateProfile: builder.mutation<any, { name?: string; dateOfBirth?: string; allowAutoAddToGroup?: boolean }>({
+      query: ({ name, dateOfBirth, allowAutoAddToGroup }) => ({
         url: '/users/me',
         method: 'PUT',
         data: {
           ...(name ? { name } : null),
           ...(dateOfBirth ? { dateOfBirth } : null),
+          allowAutoAddToGroup
         },
       }),
 

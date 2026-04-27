@@ -1,6 +1,6 @@
-import React from 'react'
-import { Platform, Linking } from 'react-native'
-import { XStack, YStack, Text, Avatar, Circle } from '@my/ui'
+import React, { useRef } from 'react'
+import { Platform, Linking, Pressable } from 'react-native'
+import { XStack, YStack, Text, Avatar, Circle, Image } from '@my/ui'
 import { Check, File, Download } from '@tamagui/lucide-icons'
 import { MessageActionMenu } from './MessageActionMenu'
 import { MediaGrid } from 'app/media/MediaGrid'
@@ -25,11 +25,13 @@ interface Props {
   onReply: (msg: MessageResponse) => void
   onForward: (msg: MessageResponse) => void
   onDelete: (id: string) => void
+  onDeleteForMe: (id: string) => void
   onRecall: (msg: MessageResponse) => void
   onCopy: (msg: MessageResponse) => void
   onOpenMedia: (media: any[], index: number) => void
   onPressReplyRef: (id: string) => void
   openViewer: (media: any[], index: number) => void
+  onEnterMultiSelect: (msg: MessageResponse) => void;
 }
 
 function canGroup(a?: MessageResponse, b?: MessageResponse, selfUserId?: string) {
@@ -71,11 +73,13 @@ export function MessageItem({
   onReply,
   onForward,
   onDelete,
+  onDeleteForMe,
   onRecall,
   onCopy,
   onOpenMedia,
   onPressReplyRef,
   openViewer,
+  onEnterMultiSelect
 }: Props) {
   const isMe = msg.self
 
@@ -87,6 +91,7 @@ export function MessageItem({
 
   const isSolo = !groupsWithNewer && !groupsWithOlder
   const isGroupStart = !groupsWithOlder && groupsWithNewer
+  const isGroupEnd = !groupsWithNewer || isSolo;
 
   const showAvatar = !isMe && (isSolo || isGroupStart)
 
@@ -114,12 +119,54 @@ export function MessageItem({
 
   const time = new Date(msg.createdAt)
   const timeString = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`
-
+  const messageFontStyle = isRevoked ? 'italic' : 'normal'
+  const messageColor = isRevoked ? '$color9' : '$color12'
   const isSelected = selectionMode && selected
-
+  const menuTriggerRef = useRef<(() => void) | null>(null)
+  const renderReplyPreview = () => {
+    if (!msg.replyTo || isRevoked) return null
+    const replyMsg = msg.replyTo
+    const firstAttachment = replyMsg.attachments?.[0]
+    const isReplyImage = firstAttachment?.contentType?.startsWith('image/')
+    const isReplyVideo = firstAttachment?.contentType?.startsWith('video/')
+    let subLabel = replyMsg.content || ''
+    if (isReplyImage) subLabel = '[Hình ảnh]'
+    if (isReplyVideo) subLabel = '[Video]'
+    if (firstAttachment && !isReplyImage && !isReplyVideo) subLabel = `[File] ${firstAttachment.fileName}`
+    return (
+      <XStack
+        mb="$2"
+        p="$2"
+        bg="$background"
+        borderRadius="$3"
+        borderLeftWidth={3}
+        borderLeftColor="$blue10"
+        space="$2"
+        alignItems="center"
+        onPress={(e) => {
+          e.stopPropagation()
+          if (selectionMode) onToggleSelect(msg.id)
+          else onPressReplyRef(replyMsg.id)
+        }}
+      >
+        {(isReplyImage || isReplyVideo) && (
+          <YStack width={35} height={35} borderRadius="$2" overflow="hidden" flexShrink={0}>
+            <Image source={{ uri: firstAttachment.fileUrl }} width="100%" height="100%" />
+          </YStack>
+        )}
+        <YStack flexShrink={1}>
+          <Text fontWeight="700" fontSize="$1" color="$blue10" numberOfLines={1}>
+            {replyMsg.user?.name || 'Người dùng'}
+          </Text>
+          <Text fontSize="$1" color="$color11" numberOfLines={1}>
+            {subLabel}
+          </Text>
+        </YStack>
+      </XStack>
+    )
+  }
   return (
     <XStack space="$2" mb="$2" justifyContent={isMe ? 'flex-end' : 'flex-start'}>
-
       {/* AVATAR */}
       {!isMe && (
         <YStack width={32} alignItems="center">
@@ -136,86 +183,104 @@ export function MessageItem({
         isMe={isMe}
         selectionMode={selectionMode}
         isSelected={isSelected}
-        onToggleSelected={() => onToggleSelect(msg.id)}
+        onToggleSelected={onToggleSelect}
         onReply={onReply}
         onForward={onForward}
-        onDelete={() => onDelete(msg.id)}
+        onDelete={onDelete}
+        onDeleteForMe={onDeleteForMe}
         onRecall={onRecall}
         onCopy={onCopy}
+        disabled={isRevoked}
+        onEnterMultiSelect={onEnterMultiSelect}
+        triggerRef={menuTriggerRef}
       >
         <YStack space="$2">
-
           {/* MEDIA */}
-          {media.length > 0 && (
+          {media.length > 0 ? (
             <YStack
               maxWidth={280}
               borderRadius="$4"
               overflow="hidden"
               bg={isMe ? '$blue3' : '$color2'}
-              onPress={() => onOpenMedia(media, 0)}
             >
-              <MediaGrid media={media} onPressMedia={onOpenMedia} />
-
+              <MediaGrid
+                media={media}
+                selectionMode={selectionMode}
+                isSelected={isSelected}
+                messageId={msg.id}
+                onToggleSelect={onToggleSelect}
+                onPressMedia={(index) => onOpenMedia(media, index)}
+                onLongPress={() => menuTriggerRef.current?.()}
+              />
               {messageText ? (
-                <YStack p="$2">
-                  <Text>{messageText}</Text>
-                </YStack>
-              ) : null}
-            </YStack>
-          )}
-
-          {/* TEXT */}
-          {messageText && media.length === 0 && (
-            <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4">
-
-              {/* reply preview */}
-              {msg.replyTo && (
-                <YStack
-                  mb="$2"
-                  p="$2"
-                  bg="$color4"
-                  borderRadius="$3"
-                  onPress={() => onPressReplyRef(msg.replyTo!.id)}
+                <Pressable
+                  onLongPress={() => menuTriggerRef.current?.()}
+                  delayLongPress={250}
                 >
-                  <Text fontWeight="700">{msg.replyTo.user?.name}</Text>
-                  <Text numberOfLines={1}>{msg.replyTo.content}</Text>
-                </YStack>
-              )}
-
-              <Text>{messageText}</Text>
-
-              <Text fontSize="$1" mt="$1">
-                {timeString}
-              </Text>
-            </YStack>
-          )}
-
-          {/* FILES */}
-          {files.length > 0 && (
-            <YStack space="$1">
-              {files.map((f, i) => (
-                <XStack
-                  key={i}
-                  p="$2"
-                  bg="$color3"
-                  borderRadius="$3"
-                  onPress={() => Linking.openURL(f.fileUrl)}
-                >
-                  <File size={18} />
-                  <YStack flex={1} ml="$2">
-                    <Text numberOfLines={1}>{f.fileName}</Text>
-                    <Text fontSize="$1">
-                      {(f.fileSize / 1024).toFixed(1)} KB
+                  <YStack p="$2">
+                    <Text color={messageColor} fontStyle={messageFontStyle}>
+                      {messageText}
                     </Text>
                   </YStack>
-                  <Download size={16} />
-                </XStack>
-              ))}
-
-              <Text fontSize="$1">{timeString}</Text>
+                </Pressable>
+              ) : null}
             </YStack>
-          )}
-
+          ) : null}
+          {/* TEXT ONLY */}
+          {messageText && media.length === 0 ? (
+            <Pressable
+              onPress={selectionMode ? () => onToggleSelect(msg.id) : undefined}
+              onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
+              delayLongPress={250}
+            >
+              <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4">
+                {msg.replyTo && renderReplyPreview()}
+                <Text color={messageColor} fontStyle={messageFontStyle}>{messageText}</Text>
+                {isGroupEnd && !isRevoked && (
+                  <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
+                    {timeString}
+                  </Text>
+                )}
+              </YStack>
+            </Pressable>
+          ) : null}
+          {/* FILES */}
+          {files.length > 0 ? (
+            <YStack space="$1">
+              {files.map((f, i) => (
+                <Pressable
+                  key={i}
+                  onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(f.fileUrl)}
+                  onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
+                  delayLongPress={250}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    menuTriggerRef.current?.()
+                  }}
+                >
+                  <XStack
+                    p="$2"
+                    bg="$color3"
+                    borderRadius="$3"
+                    opacity={selectionMode && isSelected ? 0.6 : 1}
+                    minWidth={250}
+                  >
+                    <File size={18} />
+                    <YStack flex={1} ml="$2">
+                      <Text numberOfLines={1}>{f.fileName}</Text>
+                      <Text fontSize="$1">{(f.fileSize / 1024).toFixed(1)} KB</Text>
+                    </YStack>
+                    <Download size={16} />
+                  </XStack>
+                </Pressable>
+              ))}
+              {isGroupEnd && !isRevoked && (
+                <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
+                  {timeString}
+                </Text>
+              )}
+            </YStack>
+          ) : null}
         </YStack>
       </MessageActionMenu>
 

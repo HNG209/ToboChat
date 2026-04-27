@@ -2,6 +2,7 @@ import { Attachment } from './Chat'
 
 // ===== Request =====
 export interface GetMyFriendsRequest {
+  roomId?: string
   cursor?: string
   limit?: number
 }
@@ -44,4 +45,21 @@ export interface SendMessageRequest {
   messageType: string
   replyTo?: string
   attachments: Attachment[]
+}
+
+export interface RoomCreateRequest {
+  roomName: string
+  memberIds: string[]
+}
+
+export interface RoomUpdateRequest {
+  allowAddMember?: boolean
+  allowSendMessage?: boolean
+  allowUpdateMetadata?: boolean
+  approveMember?: boolean
+}
+
+// chỉ được update thành vice admin hoặc member
+export interface MemberUpdateRequest {
+  memberRole: 'VICE_ADMIN' | 'MEMBER'
 }

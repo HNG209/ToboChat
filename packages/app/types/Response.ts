@@ -1,4 +1,5 @@
 import { FriendStatus, RoomType } from './Enums'
+import { UserResponse } from 'app/types/Response'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -17,6 +18,8 @@ export interface FriendResponse {
   name: string
   avatarUrl?: string
   createdAt: string
+  inRoom?: boolean
+  allowAutoAddToGroup: boolean
 }
 
 export interface UserResponse {
@@ -27,6 +30,20 @@ export interface UserResponse {
   createdAt: string
   friendStatus?: FriendStatus
   totalUnreadMessages: number
+  allowAutoAddToGroup?: boolean
+}
+
+export interface RoomMemberResponse {
+  roomId: string
+  id: string
+  role: 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
+  roomName: string
+  status: 'ACTIVE' | 'PENDING'
+  roomType: 'DM' | 'GROUP'
+  addedBy?: string
+
+  // Thông tin cá nhân
+  member?: UserResponse
 }
 
 export interface FriendRequestResponse {
@@ -43,6 +60,14 @@ export interface RoomResponse {
   roomType: RoomType
   latestMessage: MessageResponse
   createdAt: string
+
+  allowAddMember: boolean
+  allowSendMessage: boolean
+  allowUpdateMetadata: boolean
+  approveMember: boolean
+
+  memberCount: number
+  pendingCount: number
   unreadMessages: number
 }
 
@@ -59,9 +84,27 @@ export interface MessageResponse {
   attachments?: Attachment[]
 }
 
+export interface GroupAcceptRequestResponse {
+  roomId: string
+  roomName: string
+  avatarUrl: string
+  inviter: UserResponse
+}
+
+export interface LeaveCheckResponse {
+  canLeave: boolean
+  reason?: string
+}
+
 export interface Attachment {
   fileUrl: string
   fileName: string
   contentType: string
   fileSize: number
+}
+export interface GroupPendingRequestResponse {
+  roomId: string
+  roomName: string
+  user: UserResponse
+  requester: UserResponse
 }

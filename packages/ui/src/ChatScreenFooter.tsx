@@ -1,13 +1,12 @@
 import { Button, Input, XStack } from "tamagui"
 import { MoreHorizontal, Image as ImageIcon, SendHorizontal, Heart } from "@tamagui/lucide-icons"
 import { Platform } from "react-native"
+import { useState } from "react";
 
 type Props = {
-  message: string,
   isWeb: boolean,
-  setMessage: (msg: string) => void,
   drafts: { isUploading: boolean }[],
-  handleSendMessage: () => void,
+  handleSendMessage: (content: string) => void,
   handlePickFile: () => void,
   theme: 'light' | 'dark',
   insets?: { top: number; bottom: number; left: number; right: number },
@@ -15,7 +14,14 @@ type Props = {
   setComposerHeight: (height: number) => void,
 }
 
-export const ChatScreenFooter = ({ message, setMessage, drafts, handleSendMessage, handlePickFile, theme, isWeb, insets, composerHeight, setComposerHeight }: Props) => {
+export const ChatScreenFooter = ({ drafts, handleSendMessage, handlePickFile, theme, isWeb, insets, composerHeight, setComposerHeight }: Props) => {
+  const [localMessage, setLocalMessage] = useState('')
+
+  const onSend = () => {
+    if (!localMessage.trim() && drafts.length === 0) return
+    handleSendMessage(localMessage) // Gửi nội dung lên cha
+    setLocalMessage('') // Xóa input sau khi gửi
+  }
   return (
     <XStack
       px="$2"
@@ -51,18 +57,23 @@ export const ChatScreenFooter = ({ message, setMessage, drafts, handleSendMessag
         bg="$color3"
         borderWidth={0}
         placeholder="Nhập tin nhắn..."
-        value={message}
-        onChangeText={setMessage}
+        value={localMessage}
+        onChangeText={setLocalMessage}
+        onKeyPress={(e) => {
+          if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter') {
+            onSend()
+          }
+        }}
       />
 
-      {message.trim() || drafts.length > 0 ? (
+      {localMessage.trim() || drafts.length > 0 ? (
         <Button
           size="$4"
           circular
           bg={theme === 'dark' ? '$blue11' : '$blue10'}
           color="white"
           icon={<SendHorizontal size={20} />}
-          onPress={handleSendMessage}
+          onPress={onSend}
           // Chặn người dùng bấm gửi khi ảnh chưa upload xong lên S3
           disabled={drafts.some((d) => d.isUploading)}
           opacity={drafts.some((d) => d.isUploading) ? 0.5 : 1}

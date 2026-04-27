@@ -3,7 +3,7 @@ import ChangePasswordForm from '@my/ui/src/ChangePassworđForm'
 import { X } from '@tamagui/lucide-icons'
 import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'
-
+import { useGetProfileQuery, useUpdateProfileMutation } from 'app/services/userApi';
 type SettingsTab = 'general' | 'security' | null
 
 type FullSettingsDialogProps = {
@@ -37,7 +37,16 @@ export const FullSettingsDialog = ({
 
   const menuTextColor = theme === 'dark' ? 'white' : '$color'
   const activeMenuBackground = theme === 'dark' ? '$blue11' : '$blue10'
+  const { data: myProfile, isLoading } = useGetProfileQuery();
+  const [updateProfile] = useUpdateProfileMutation();
 
+  const handleUploadStatus = async (status: boolean) => {
+    try {
+      await updateProfile({ allowAutoAddToGroup: status })
+    } catch (err) {
+      console.log(err)
+    }
+  }
   return (
     <Dialog modal open={showFullSettings} onOpenChange={setShowFullSettings}>
       <Dialog.Portal>
@@ -126,6 +135,7 @@ export const FullSettingsDialog = ({
                 circular
                 icon={X} // Icon X từ lucide-icons bạn đã import
                 backgroundColor="transparent"
+
                 hoverStyle={{ backgroundColor: '$backgroundHover' }}
                 pressStyle={{ opacity: 0.5 }}
                 borderWidth={0}
@@ -173,12 +183,34 @@ export const FullSettingsDialog = ({
                         size="$3"
                         checked={theme === 'dark'}
                         onCheckedChange={(checked) => onThemeChange(checked ? 'dark' : 'light')}
-                        backgroundColor={theme === 'dark' ? '$blue11' : '$backgroundPress'}
+                        backgroundColor={theme === 'dark' ? "$blue10" : "$gray5"}
+                        borderColor={theme === 'dark' ? "$blue10" : "$gray7"}
                       >
-                        <Switch.Thumb animation="quick" />
+                        <Switch.Thumb animation="quick" backgroundColor="white" />
                       </Switch>
                     </XStack>
+                    <XStack
+                      backgroundColor="$backgroundHover"
+                      padding="$4"
+                      borderRadius="$4"
+                      justifyContent="space-between"
+                      alignItems="flex-start"
+                      space="$4"
+                    >
+                      <YStack flex={1} space="$1">
+                        <Text fontWeight="bold">Tự động thêm vào nhóm</Text>
 
+                      </YStack>
+                      <Switch
+                        size="$3"
+                        checked={myProfile?.allowAutoAddToGroup}
+                        onCheckedChange={(checked) => handleUploadStatus(checked)}
+                        backgroundColor={myProfile?.allowAutoAddToGroup ? "$blue10" : "$gray5"}
+                        borderColor={myProfile?.allowAutoAddToGroup ? "$blue10" : "$gray7"}
+                      >
+                        <Switch.Thumb animation="quick" backgroundColor="white" />
+                      </Switch>
+                    </XStack>
                     <XStack
                       backgroundColor="$backgroundHover"
                       padding="$4"
@@ -227,11 +259,10 @@ export const FullSettingsDialog = ({
                           size="$3"
                           checked={isTwoFactorAuth}
                           onCheckedChange={handleToggleMFA}
-                          backgroundColor={
-                            isTwoFactorAuth ? activeMenuBackground : '$backgroundPress'
-                          }
+                          backgroundColor={isTwoFactorAuth ? "$blue10" : "$gray5"}
+                          borderColor={isTwoFactorAuth ? "$blue10" : "$gray7"}
                         >
-                          <Switch.Thumb animation="quick" />
+                          <Switch.Thumb animation="quick" backgroundColor="white" />
                         </Switch>
                       </XStack>
                       <Button mt="$4" onPress={() => setShowChangePassword(true)}>

@@ -15,12 +15,14 @@ import {
   useCancelFriendRequestMutation,
   useRespondFriendRequestMutation,
 } from 'app/services/contactApi'
+import { CreateGroupDialog } from './CreateGroupDialog'
 
 export default function SearchHeader() {
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
   const userId = useSelector((s: RootState) => s.auth.user?.id)
   const { height: windowHeight } = useWindowDimensions()
   const [headerHeight, setHeaderHeight] = useState(0)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const router = useRouter()
 
   const [searchFocus, setSearchFocus] = useState(false)
@@ -102,6 +104,7 @@ export default function SearchHeader() {
           />
           <Button
             size="$2"
+            onPress={() => setIsCreateModalOpen(true)}
             circular
             backgroundColor="transparent"
             icon={<Users size={18} color="$color" />}
@@ -226,6 +229,9 @@ export default function SearchHeader() {
           )}
         </YStack>
       )}
+
+      {/* Modal tạo nhóm */}
+      <CreateGroupDialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} />
     </YStack>
   )
 }

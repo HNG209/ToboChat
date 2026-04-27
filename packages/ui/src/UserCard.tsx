@@ -1,11 +1,11 @@
-import React from 'react'
 import { Button, XStack, YStack, Text, Avatar } from 'tamagui'
 import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
-import { FriendResponse } from 'app/types/Response'
+import { FriendResponse, UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
-
+import { Platform } from 'react-native'
+import { useMedia } from 'tamagui'
 type Props = {
-  user: FriendResponse
+  user: UserResponse
   description?: string
   isGroup?: boolean
   requestId?: string
@@ -16,7 +16,12 @@ type Props = {
 export function UserCard({ user, description, isGroup = false, type, requestId, onAction }: Props) {
   const isPending = type === FriendRequestType.PENDING
   const isSent = type === FriendRequestType.SENT
-
+  const media = useMedia()
+  const buttonProps = {
+    size: "$3",
+    borderRadius: "$4",
+    variant: "outline" as const,
+  }
   return (
     <XStack
       width="100%"
@@ -61,14 +66,24 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
       {/* RIGHT: Các nút hành động */}
       <XStack gap="$2" alignItems="center">
         {isGroup ? (
-          <Button
-            size="$3"
-            variant="outline"
-            borderRadius="$4"
-            onPress={() => onAction?.('join', user.id)}
-          >
-            Vào nhóm
-          </Button>
+          <XStack gap="$2">
+            <Button
+              {...buttonProps}
+              theme="red"
+              icon={<X size={16} />}
+              onPress={() => onAction?.('cancel', user.id)}
+            >
+              {!media.sm && "Từ chối"}
+            </Button>
+            <Button
+              {...buttonProps}
+              theme="blue" // Thêm màu cho nổi bật nút chính
+              onPress={() => onAction?.('join', user.id)}
+              icon={media.sm ? <Check size={16} /> : undefined} // Hiện icon check nếu là mobile
+            >
+              {!media.sm && "Vào nhóm"}
+            </Button>
+          </XStack>
         ) : (
           <>
             {/* Trường hợp: Danh sách bạn bè bình thường */}
@@ -86,22 +101,19 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
             {isPending && (
               <XStack gap="$2">
                 <Button
-                  size="$3"
+                  {...buttonProps}
                   theme="blue"
-                  borderRadius="$4"
                   icon={<Check size={16} />}
                   onPress={() => onAction?.('accept', user.id)}
                 >
-                  Chấp nhận
+                  {!media.sm && "Chấp nhận"}
                 </Button>
                 <Button
-                  size="$3"
-                  variant="outline"
-                  borderRadius="$4"
+                  {...buttonProps}
                   icon={<X size={16} />}
                   onPress={() => onAction?.('reject', user.id)}
                 >
-                  Từ chối
+                  {!media.sm && "Từ chối"}
                 </Button>
               </XStack>
             )}
@@ -109,19 +121,17 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
             {/* Trường hợp: Lời mời ĐÃ GỬI (Sent) */}
             {isSent && (
               <Button
-                size="$3"
+                {...buttonProps}
                 theme="red"
-                variant="outline"
-                borderRadius="$4"
                 icon={<UserMinus size={16} />}
                 onPress={() => onAction?.('cancel', requestId || user.id)}
               >
-                Hủy yêu cầu
+                {!media.sm && "Hủy yêu cầu"}
               </Button>
             )}
           </>
         )}
       </XStack>
-    </XStack>
+    </XStack >
   )
 }

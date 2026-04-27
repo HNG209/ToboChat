@@ -64,7 +64,7 @@ export const MediaGrid = ({
   }
 
   return (
-    <XStack flexWrap="wrap" width={300} borderRadius={8} overflow="hidden">
+    <XStack flexWrap="wrap" width={300} borderRadius={8} overflow="hidden" borderColor={'$color5'}>
       {displayMedia.map((item, idx) => {
         const isVideo = item.contentType?.startsWith('video/')
         const isLastItem = idx === displayLimit - 1 && remainingCount > 0
@@ -75,7 +75,7 @@ export const MediaGrid = ({
             width="50%"
             height={150}
             borderWidth={0.5}
-            borderColor="$background"
+            borderColor="$color5"
             position="relative"
             onPress={() => onPressMedia(idx)}
             style={{ cursor: 'pointer' }}

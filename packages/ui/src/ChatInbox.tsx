@@ -1,16 +1,17 @@
-import { useRouter } from 'solito/navigation'
+import { usePathname } from 'solito/navigation'
 import { ScrollView, Spinner, Text, YStack, XStack } from '@my/ui'
 import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
 import { userApi } from 'app/services/userApi'
-import { MessageResponse } from 'app/types/Response'
+import { MessageResponse, RoomMemberResponse, RoomResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { formatPreviewMessage } from 'app/utils/chatHelper'
-
+import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
+import { useRouter } from 'solito/navigation'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -40,17 +41,14 @@ function TabButton({
 }
 
 export default function ChatInbox() {
-  const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
 
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
-
-  // =========================
-  // API: fetch rooms by status
-  // =========================
+  const router = useRouter()
+  const pathname = usePathname()
   const { data, isLoading, isError } = useGetJoinedRoomsQuery(
     { status },
     {
@@ -59,9 +57,6 @@ export default function ChatInbox() {
     }
   )
 
-  // =========================
-  // SOCKET INIT
-  // =========================
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
 
@@ -78,9 +73,6 @@ export default function ChatInbox() {
     return () => clearTimeout(timeoutId)
   }, [])
 
-  // =========================
-  // SOCKET MESSAGE HANDLER
-  // =========================
   useEffect(() => {
     if (!isSocketReady) return
 
@@ -137,17 +129,95 @@ export default function ChatInbox() {
       )
     }
 
+    const handleNewRoom = (newRoom: RoomResponse) => {
+      // Cập nhật cache rtk-query để thêm nhóm mới vào danh sách phòng
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          if (draft) {
+            draft.items.unshift(newRoom);
+          }
+        })
+      );
+    }
+
+    const handleGroupDisband = (roomId: string) => {
+      dispatch(
+        roomApi.util.updateQueryData(
+          'getJoinedRooms',
+          { status: 'ACTIVE' },
+          (draft) => {
+            const index = draft.items?.findIndex((r) => r.id === roomId)
+
+            if (index !== undefined && index !== -1) {
+              draft.items.splice(index, 1)
+            }
+          }
+        )
+      );
+    }
+
+    const handleMemberRemoved = (roomId: string) => {
+      // Kiểm tra linh hoạt hơn
+      console.log('Current Path:', pathname, 'Target Room:', roomId);
+      if (pathname?.includes(`/chat/${roomId}`)) {
+        router.replace("/chat")
+      }
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === roomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items.splice(index, 1);
+          }
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'PENDING' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === roomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items.splice(index, 1);
+          }
+        })
+      );
+
+    };
+    const handleNewMember = (member: RoomMemberResponse) => {
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMembers', { roomId: member.roomId }, (draft) => {
+          if (draft) {
+            draft.items.unshift(member);
+          }
+        })
+      );
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendList', { roomId: member.roomId }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === member.id);
+          if (index !== -1 && index !== undefined) {
+            draft.items[index].inRoom = true
+          }
+        })
+      );
+
+    }
+
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
+    socket.on('new_room', handleNewRoom)
+    socket.on('room_disband', handleGroupDisband)
+    socket.on('member_removed', handleMemberRemoved)
+    socket.on('new_member', handleNewMember)
+
     return () => {
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
+      socket.off('new_room', handleNewRoom)
+      socket.off('room_disband', handleGroupDisband)
+      socket.off('member_removed', handleMemberRemoved)
+      socket.off('new_member', handleNewMember)
+
     }
   }, [dispatch, isSocketReady, status])
 
-  // =========================
-  // OPEN ROOM
-  // =========================
   const handleRoomPress = (roomId: string, unreadCount: number) => {
     dispatch(
       roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
@@ -171,9 +241,6 @@ export default function ChatInbox() {
     router.push(`/chat/${roomId}`)
   }
 
-  // =========================
-  // LOADING / ERROR
-  // =========================
   if (!hasSession || isLoading) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
@@ -190,9 +257,6 @@ export default function ChatInbox() {
     )
   }
 
-  // =========================
-  // UI
-  // =========================
   return (
     <YStack flex={1} backgroundColor="$color2">
 
