@@ -102,8 +102,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     setActiveMediaIndex(index)
     setViewerVisible(true)
   }
-  // Revoke message
-  const [revokeMessage] = useRevokeMessageMutation()
   // Frontend-only message actions
   const isWeb = Platform.OS === 'web'
   const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(() => new Set())
@@ -197,7 +195,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   )
   const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
-  const [deleteMessage] = useDeleteMessageMutation()
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
 
@@ -344,117 +341,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       animated: true,
       viewPosition: 0.5, // Cố gắng đưa tin nhắn vào giữa màn hình
     })
-  }
-
-  const handleDeleteMessage = async (messageId: string) => {
-    let nextMessage: MessageResponse | null = null
-
-    // lấy snapshot trước
-    const currentMessages = chatApi.endpoints.getMessages.select({ roomId })(store.getState())
-
-    const items = currentMessages?.data?.items || []
-    const index = items.findIndex((m) => m.id === messageId)
-
-    if (index !== -1) {
-      nextMessage =
-        items[index + 1] ||
-        items[index - 1] ||
-        null
-    }
-
-    // update message list
-    dispatch(
-      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-        if (!draft.items) return
-        const idx = draft.items.findIndex((m) => m.id === messageId)
-        if (idx !== -1) {
-          draft.items.splice(idx, 1)
-        }
-      })
-    )
-
-    // update room list
-    dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        if (!draft?.items) return
-
-        const room = draft.items.find((r) => r.id === roomId)
-        if (!room) return
-
-        if (room.latestMessage?.id === messageId) {
-          room.latestMessage.content = formatPreviewMessage(nextMessage)
-        }
-      })
-    )
-
-    try {
-      await deleteMessage({ roomId, messageId }).unwrap()
-    } catch (error) {
-      console.error('Lỗi khi xoá tin nhắn:', error)
-
-      dispatch(chatApi.util.invalidateTags(['Messages']))
-      dispatch(roomApi.util.invalidateTags(['Rooms']))
-    }
-  }
-
-  const handleRevokeMessage = async (message: MessageResponse) => {
-    // Optimistic update để UI đổi ngay, không cần chờ API.
-    setLocallyDeletedIds((prev) => {
-      const next = new Set(prev)
-      next.delete(message.id)
-      return next
-    })
-
-    setLocallyRecalledIds((prev) => {
-      const next = new Set(prev)
-      next.add(message.id)
-      return next
-    })
-
-    dispatch(
-      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-        const msg = draft.items?.find((m) => m.id === message.id)
-        if (msg) {
-          ; (msg as any).messageStatus = 'REVOKED'
-          msg.replyTo = undefined
-          msg.attachments = []
-          msg.content = 'Tin nhắn đã được thu hồi'
-        }
-      })
-    )
-
-    dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        if (!draft?.items) return
-        const roomIndex = draft.items.findIndex((r) => r.id === roomId)
-        if (roomIndex !== -1) {
-          const msg = draft.items[roomIndex].latestMessage
-          if (msg && msg.id === message.id) {
-            msg.messageStatus = 'REVOKED'
-          }
-
-          // format lại nội dung nếu tin nhắn bị thu hồi
-          msg.content = formatPreviewMessage(msg)
-          msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
-        }
-      })
-    )
-
-    try {
-      await revokeMessage({
-        roomId,
-        messageId: message.id,
-      }).unwrap()
-    } catch (err) {
-      console.error('Thu hồi thất bại:', err)
-
-      // Rollback optimistic update nếu API lỗi.
-      setLocallyRecalledIds((prev) => {
-        const next = new Set(prev)
-        next.delete(message.id)
-        return next
-      })
-    }
   }
 
   const handlePressReply = async (replyMessageId: string) => {
@@ -682,24 +568,22 @@ export function ChatScreen({ roomId, insets }: Props) {
 
                 renderItem={({ item: msg, index }) => (
                   <MessageItem
+                    roomId={roomId}
+                    status={status}
                     msg={msg}
                     index={index}
                     items={data?.items || []}
                     theme={theme}
                     selfUserId={selfUserId}
                     selectionMode={selectionMode}
-                    selected={selectedIds.has(msg.id)} // Truyền boolean true/false
+                    selected={selectedIds.has(msg.id)}
                     locallyDeleted={locallyDeletedIds}
                     locallyRecalled={locallyRecalledIds}
 
-                    // Mapping các actions
-                    onToggleSelect={toggleSelected} // Chỉ truyền tên hàm
+                    onToggleSelect={toggleSelected}
                     onEnterMultiSelect={handleEnterMultiSelect}
                     onReply={setReplyTo}
                     onForward={(msg) => openForwardDialog([msg])}
-                    onDelete={(msg) => handleDeleteMessage(msg.id)}
-                    onDeleteForMe={(msg) => handleDeleteMessage(msg.id)}
-                    onRecall={handleRevokeMessage}
                     onCopy={(m) => copyText(m.content)}
                     onOpenMedia={openViewer}
                     onPressReplyRef={handlePressReply}

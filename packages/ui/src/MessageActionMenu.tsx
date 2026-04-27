@@ -31,9 +31,8 @@ type Props = {
   onReply: (message: MessageResponse) => void
   onForward: (message: MessageResponse) => void
   onEnterMultiSelect: (message: MessageResponse) => void
+  onRevoke: (message: MessageResponse) => void
   onDelete: (message: MessageResponse) => void
-  onDeleteForMe: (message: MessageRespone) => void
-  onRecall?: (message: MessageResponse) => void
   disabled?: boolean
   children: React.ReactNode
   onTap?: () => void
@@ -50,9 +49,8 @@ export function MessageActionMenu({
   onReply,
   onForward,
   onEnterMultiSelect,
+  onRevoke,
   onDelete,
-  onDeleteForMe,
-  onRecall,
   disabled,
   children,
   onTap,
@@ -195,7 +193,7 @@ export function MessageActionMenu({
                         </Button>
                       </YStack>
                     ) : (
-                      <Tile title="Xóa phía tôi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe?.(message)} />
+                      <Tile title="Xóa phía tôi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDelete?.(message)} />
                     )}
                   </XStack>
                 </YStack>
@@ -206,9 +204,9 @@ export function MessageActionMenu({
                     <Text fontWeight="700">Xóa tin nhắn</Text>
                   </XStack>
                   <XStack flexWrap="wrap">
-                    <Tile title="Xóa phía mình" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDeleteForMe?.(message)} />
-                    {onRecall && (
-                      <Tile title="Thu hồi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onRecall(message)} />
+                    <Tile title="Xóa phía mình" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onDelete?.(message)} />
+                    {onRevoke && (
+                      <Tile title="Thu hồi" icon={<Trash2 size={18} color="#ef4444" />} onPress={() => onRevoke(message)} />
                     )}
                   </XStack>
                 </YStack>
@@ -343,7 +341,7 @@ export function MessageActionMenu({
                   <ListItem
                     title="Xóa phía tôi"
                     icon={<Trash2 size={18} color="#ef4444" />}
-                    onPress={() => onDeleteForMe(message)}
+                    onPress={() => onDelete(message)}
                     {...tileBaseStyle}
                   />
                 </Popover.Close>
@@ -366,7 +364,7 @@ export function MessageActionMenu({
                 <ListItem
                   title="Xóa phía mình"
                   icon={<Trash2 size={16} color="#ef4444" />}
-                  onPress={() => onDeleteForMe(message)}
+                  onPress={() => onDelete(message)}
                   {...tileBaseStyle}
                 />
               </Popover.Close>
@@ -374,7 +372,7 @@ export function MessageActionMenu({
                 <ListItem
                   title="Thu hồi"
                   icon={<Trash2 size={16} color="#ef4444" />}
-                  onPress={() => onRecall?.(message)}
+                  onPress={() => onRevoke?.(message)}
                   {...tileBaseStyle}
                 />
               </Popover.Close>

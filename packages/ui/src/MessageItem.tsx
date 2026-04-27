@@ -5,14 +5,21 @@ import { Check, File, Download } from '@tamagui/lucide-icons'
 import { MessageActionMenu } from './MessageActionMenu'
 import { MediaGrid } from 'app/media/MediaGrid'
 import { MessageResponse } from 'app/types/Response'
+import { chatApi, useDeleteMessageMutation, useRevokeMessageMutation } from 'app/services/chatApi'
+import { useDispatch } from 'react-redux'
+import { AppDispatch, store } from 'app/store'
+import { roomApi } from 'app/services/roomApi'
+import { RoomStatus } from './ChatInbox'
+import { formatPreviewMessage } from 'app/utils/chatHelper';
 
 interface Props {
+  roomId: string
+  status: RoomStatus
   msg: MessageResponse
   index: number
   items: MessageResponse[]
 
   // state
-  theme: any
   selfUserId?: string
   selfUserName?: string
   selectionMode: boolean
@@ -24,13 +31,9 @@ interface Props {
   onToggleSelect: (id: string) => void
   onReply: (msg: MessageResponse) => void
   onForward: (msg: MessageResponse) => void
-  onDelete: (id: string) => void
-  onDeleteForMe: (id: string) => void
-  onRecall: (msg: MessageResponse) => void
   onCopy: (msg: MessageResponse) => void
   onOpenMedia: (media: any[], index: number) => void
   onPressReplyRef: (id: string) => void
-  openViewer: (media: any[], index: number) => void
   onEnterMultiSelect: (msg: MessageResponse) => void;
 }
 
@@ -41,46 +44,29 @@ function canGroup(a?: MessageResponse, b?: MessageResponse, selfUserId?: string)
   return aKey === bKey
 }
 
-function parseReplyEncodedContent(content: string) {
-  if (!content?.startsWith('[reply]\n')) return null
-  const end = content.indexOf('\n[/reply]\n')
-  if (end === -1) return null
-
-  const header = content.slice('[reply]\n'.length, end)
-  const messageText = content.slice(end + '\n[/reply]\n'.length)
-
-  const nameLine = header.split('\n').find(l => l.startsWith('name:'))
-  const textLine = header.split('\n').find(l => l.startsWith('text:'))
-
-  return {
-    replyName: nameLine?.replace('name:', '').trim() || '',
-    replyText: textLine?.replace('text:', '').trim() || '',
-    messageText: messageText.trimStart(),
-  }
-}
-
+// Đọc kĩ lại code, người ta hiển thị được cái reply rồi còn format làm gì?
 export function MessageItem({
+  roomId,
+  status,
   msg,
   index,
   items,
-  theme,
   selfUserId,
   selectionMode,
   selected,
   locallyDeleted,
-  locallyRecalled,
   onToggleSelect,
   onReply,
   onForward,
-  onDelete,
-  onDeleteForMe,
-  onRecall,
   onCopy,
   onOpenMedia,
   onPressReplyRef,
-  openViewer,
   onEnterMultiSelect
 }: Props) {
+  const dispatch = useDispatch<AppDispatch>()
+  const [deleteMessage] = useDeleteMessageMutation()
+  const [revokeMessage] = useRevokeMessageMutation()
+
   const isMe = msg.self
 
   const newerMsg = items[index - 1]
@@ -96,12 +82,6 @@ export function MessageItem({
   const showAvatar = !isMe && (isSolo || isGroupStart)
 
   const isRevoked = msg.messageStatus === 'REVOKED'
-  const isDead = isRevoked || locallyDeleted.has(msg.id)
-
-  const displayContent = isRevoked ? 'Tin nhắn đã được thu hồi' : msg.content
-  const parsedReply = isRevoked ? null : parseReplyEncodedContent(displayContent)
-
-  const messageText = parsedReply?.messageText ?? displayContent
 
   const media = isRevoked
     ? []
@@ -123,6 +103,7 @@ export function MessageItem({
   const messageColor = isRevoked ? '$color9' : '$color12'
   const isSelected = selectionMode && selected
   const menuTriggerRef = useRef<(() => void) | null>(null)
+
   const renderReplyPreview = () => {
     if (!msg.replyTo || isRevoked) return null
     const replyMsg = msg.replyTo
@@ -165,6 +146,97 @@ export function MessageItem({
       </XStack>
     )
   }
+
+  // Thu hồi tin nhắn
+  const handleRevokeMessage = async (message: MessageResponse) => {
+    dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        const msg = draft.items?.find((m) => m.id === message.id)
+        if (msg) {
+          ; (msg as any).messageStatus = 'REVOKED'
+          msg.replyTo = undefined
+          msg.attachments = []
+          msg.content = 'Tin nhắn đã được thu hồi'
+        }
+      })
+    )
+
+    dispatch(
+      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        if (!draft?.items) return
+        const roomIndex = draft.items.findIndex((r) => r.id === roomId)
+        if (roomIndex !== -1) {
+          const msg = draft.items[roomIndex].latestMessage
+          if (msg && msg.id === message.id) {
+            msg.messageStatus = 'REVOKED'
+          }
+
+          // format lại nội dung nếu tin nhắn bị thu hồi
+          msg.content = formatPreviewMessage(msg)
+          msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
+        }
+      })
+    )
+
+    try {
+      await revokeMessage({
+        roomId,
+        messageId: message.id,
+      }).unwrap()
+    } catch (err) {
+      console.error('Thu hồi thất bại:', err)
+    }
+  }
+
+  // Xoá ở phía tôi
+  const handleDeleteMessage = async (message: MessageResponse) => {
+    let nextMessage: MessageResponse | null = null
+
+    // lấy snapshot trước
+    const currentMessages = chatApi.endpoints.getMessages.select({ roomId })(store.getState())
+
+    const items = currentMessages?.data?.items || []
+    const index = items.findIndex((m) => m.id === message.id)
+
+    if (index !== -1) {
+      nextMessage =
+        items[index + 1] ||
+        items[index - 1] ||
+        null
+    }
+
+    // update message list
+    dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        if (!draft.items) return
+        const idx = draft.items.findIndex((m) => m.id === message.id)
+        if (idx !== -1) {
+          draft.items.splice(idx, 1)
+        }
+      })
+    )
+
+    // update room list
+    dispatch(
+      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        if (!draft?.items) return
+
+        const room = draft.items.find((r) => r.id === roomId)
+        if (!room) return
+
+        if (room.latestMessage?.id === message.id) {
+          room.latestMessage.content = formatPreviewMessage(nextMessage)
+        }
+      })
+    )
+
+    try {
+      await deleteMessage({ roomId, messageId: message.id }).unwrap()
+    } catch (error) {
+      console.error('Lỗi khi xoá tin nhắn:', error)
+    }
+  }
+
   return (
     <XStack space="$2" mb="$2" justifyContent={isMe ? 'flex-end' : 'flex-start'}>
       {/* AVATAR */}
@@ -186,9 +258,8 @@ export function MessageItem({
         onToggleSelected={onToggleSelect}
         onReply={onReply}
         onForward={onForward}
-        onDelete={onDelete}
-        onDeleteForMe={onDeleteForMe}
-        onRecall={onRecall}
+        onDelete={handleDeleteMessage}
+        onRevoke={handleRevokeMessage}
         onCopy={onCopy}
         disabled={isRevoked}
         onEnterMultiSelect={onEnterMultiSelect}
@@ -205,29 +276,26 @@ export function MessageItem({
             >
               <MediaGrid
                 media={media}
-                selectionMode={selectionMode}
-                isSelected={isSelected}
-                messageId={msg.id}
-                onToggleSelect={onToggleSelect}
                 onPressMedia={(index) => onOpenMedia(media, index)}
-                onLongPress={() => menuTriggerRef.current?.()}
               />
-              {messageText ? (
+              {msg.content ? (
                 <Pressable
                   onLongPress={() => menuTriggerRef.current?.()}
                   delayLongPress={250}
                 >
                   <YStack p="$2">
-                    <Text color={messageColor} fontStyle={messageFontStyle}>
-                      {messageText}
-                    </Text>
+                    {
+                      isRevoked ?
+                        <Text color={messageColor} fontStyle={messageFontStyle}>Tin nhắn đã được thu hồi</Text> :
+                        <Text color={messageColor} fontStyle={messageFontStyle}>{msg.content}</Text>
+                    }
                   </YStack>
                 </Pressable>
               ) : null}
             </YStack>
           ) : null}
           {/* TEXT ONLY */}
-          {messageText && media.length === 0 ? (
+          {media.length === 0 ? (
             <Pressable
               onPress={selectionMode ? () => onToggleSelect(msg.id) : undefined}
               onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
@@ -235,7 +303,11 @@ export function MessageItem({
             >
               <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4">
                 {msg.replyTo && renderReplyPreview()}
-                <Text color={messageColor} fontStyle={messageFontStyle}>{messageText}</Text>
+                {
+                  isRevoked ?
+                    <Text color={messageColor} fontStyle={messageFontStyle}>Tin nhắn đã được thu hồi</Text> :
+                    <Text color={messageColor} fontStyle={messageFontStyle}>{msg.content}</Text>
+                }
                 {isGroupEnd && !isRevoked && (
                   <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
                     {timeString}
