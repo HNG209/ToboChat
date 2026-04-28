@@ -19,6 +19,7 @@ import { ActivityIndicator } from 'react-native';
 import { useDispatch } from 'react-redux'
 import { Platform } from 'expo-modules-core'
 import { AppDispatch } from 'app/store'
+
 interface AddMemberContentProps {
   roomId: string;
   onClose: () => void; // Hàm để quay lại trang Info

@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from 'react'
 import {
   YStack, XStack, Text, Button, Avatar, ScrollView,
   Separator, Popover, Circle, Adapt, Sheet
@@ -8,25 +7,23 @@ import {
   roomApi,
   useGetRoomMembersQuery,
   useUpdateMemberMutation,
-  useRemoveMemberMutation
+  useRemoveMemberMutation,
+  useGetMyInfoQuery
 } from 'app/services/roomApi'
 import { ActivityIndicator, Alert } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { Platform } from 'expo-modules-core'
 import { AppDispatch } from 'app/store'
-import { getSocket } from 'app/utils/socket'
-import { RoomMemberResponse } from 'app/types/Response'
 
 interface MemberManagementContentProps {
   roomId: string
-  currentUserId: string
-  isAdmin: boolean
   onClose: () => void
 }
 
-export const MemberManagementContent = ({ roomId, currentUserId, isAdmin, onClose }: MemberManagementContentProps) => {
+export const MemberManagementContent = ({ roomId, onClose }: MemberManagementContentProps) => {
   const dispatch = useDispatch<AppDispatch>()
   const { data: membersData, isLoading } = useGetRoomMembersQuery({ roomId })
+  const { data: myInfo } = useGetMyInfoQuery({ roomId });
 
   const [updateMember] = useUpdateMemberMutation()
   const [removeMember] = useRemoveMemberMutation()
@@ -112,8 +109,8 @@ export const MemberManagementContent = ({ roomId, currentUserId, isAdmin, onClos
             membersData?.items?.map((item: any) => {
               const member = item.member
               const role = item.role
-              const isMe = member.id === currentUserId
-              const canManage = isAdmin && !isMe
+              const isMe = member.id === myInfo?.id
+              const canManage = myInfo?.permissions?.canApproveMember && !isMe
 
               return (
                 <XStack key={member.id} alignItems="center" p="$3" space="$3" borderRadius="$4" hoverStyle={{ backgroundColor: "$backgroundHover" }}>

@@ -40,8 +40,6 @@ import {
   useGetMessagesQuery,
   useLazyGetMessagesQuery,
   useForwardMessagesMutation,
-  useRevokeMessageMutation,
-  useDeleteMessageMutation,
 } from 'app/services/chatApi'
 import { roomApi, useGetJoinedRoomsQuery, useGetMyInfoQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
@@ -52,7 +50,6 @@ import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MediaViewer } from 'app/media/MediaViewer'
-import { formatPreviewMessage } from 'app/utils/chatHelper';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader';
 import { ChatScreenFooter } from '@my/ui/src/ChatScreenFooter';
 import { MessageItem } from '@my/ui/src/MessageItem';
@@ -71,6 +68,7 @@ interface Props {
   insets?: { top: number; bottom: number; left: number; right: number }
 }
 
+// roomId luôn phải có (khác undefined và null)
 export function ChatScreen({ roomId, insets }: Props) {
   const { height: windowHeight } = useWindowDimensions()
   const androidBaselineHeightRef = useRef(windowHeight)
@@ -173,9 +171,6 @@ export function ChatScreen({ roomId, insets }: Props) {
   )
 
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
-  const isAdmin: boolean | undefined = myInfo?.role == 'ADMIN'
-  const isViceAdmin: boolean | undefined = myInfo?.role == 'VICE_ADMIN'
-  const isMember: boolean | undefined = myInfo?.role == 'MEMBER'
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
 
@@ -573,7 +568,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                     msg={msg}
                     index={index}
                     items={data?.items || []}
-                    theme={theme}
                     selfUserId={selfUserId}
                     selectionMode={selectionMode}
                     selected={selectedIds.has(msg.id)}
@@ -587,7 +581,6 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onCopy={(m) => copyText(m.content)}
                     onOpenMedia={openViewer}
                     onPressReplyRef={handlePressReply}
-                    openViewer={openViewer}
                   />
                 )}
               />
@@ -717,7 +710,7 @@ export function ChatScreen({ roomId, insets }: Props) {
 
             {
               // Footer (đã refractor)
-              (roomData?.roomType == 'GROUP' && !isAdmin && !isViceAdmin && !roomData?.allowSendMessage) ?
+              !myInfo?.permissions?.canSendMessage ?
                 <XStack
                   alignItems="center"
                   justifyContent="center"
@@ -763,37 +756,32 @@ export function ChatScreen({ roomId, insets }: Props) {
             {infoView === 'INFO' ? (
               <ConversationInfoContent
                 roomData={roomData}
+                roomId={roomId}
                 onClose={() => setShowInfo(false)}
                 onManageGroup={() => setInfoView('MANAGEMENT')}
                 onAddMember={() => setInfoView('ADD')}
                 onViewMembers={() => setInfoView('MEMBERS')}
                 onApproveMembers={() => setInfoView('APPROVED')}
-                isAdmin={isAdmin}
-
               />
             ) : infoView === 'MANAGEMENT' ? (
               <GroupManagementContent
                 roomData={roomData}
-                isAdmin={isAdmin}
+                roomId={roomId}
                 onClose={() => setInfoView('INFO')}
               />
             ) : infoView === 'ADD' ? (
               <AddMemberContent
-                roomId={roomData?.id}
+                roomId={roomId}
                 onClose={() => setInfoView('INFO')}
               />
             ) : infoView === 'MEMBERS' ? (
               <MemberManagementContent
-                roomId={roomData?.id}
-                currentUserId={myInfo?.id}
-                isAdmin={isAdmin}
+                roomId={roomId}
                 onClose={() => setInfoView('INFO')}
               />
             ) : (
               <ApproveMembersContent
-                roomId={roomData?.id}
-                currentUserId={myInfo?.id}
-                isAdmin={isAdmin}
+                roomId={roomId}
                 onClose={() => setInfoView('INFO')}
               />
             )}
@@ -814,36 +802,32 @@ export function ChatScreen({ roomId, insets }: Props) {
                 {infoView === 'INFO' ? (
                   <ConversationInfoContent
                     roomData={roomData}
+                    roomId={roomId}
                     onClose={() => setShowInfo(false)}
                     onManageGroup={() => setInfoView('MANAGEMENT')}
                     onAddMember={() => setInfoView('ADD')}
                     onViewMembers={() => setInfoView('MEMBERS')}
                     onApproveMembers={() => setInfoView('APPROVED')}
-                    isAdmin={isAdmin}
                   />
                 ) : infoView === 'MANAGEMENT' ? (
                   <GroupManagementContent
                     roomData={roomData}
-                    isAdmin={isAdmin}
+                    roomId={roomId}
                     onClose={() => setInfoView('INFO')}
                   />
                 ) : infoView === 'ADD' ? (
                   <AddMemberContent
-                    roomId={roomData?.id}
+                    roomId={roomId}
                     onClose={() => setInfoView('INFO')}
                   />
                 ) : infoView === 'MEMBERS' ? (
                   <MemberManagementContent
-                    roomId={roomData?.id}
-                    currentUserId={myInfo?.id}
-                    isAdmin={isAdmin}
+                    roomId={roomId}
                     onClose={() => setInfoView('INFO')}
                   />
                 ) : (
                   <ApproveMembersContent
-                    roomId={roomData?.id}
-                    currentUserId={myInfo?.id}
-                    isAdmin={isAdmin}
+                    roomId={roomId}
                     onClose={() => setInfoView('INFO')}
                   />)}
               </Provider>

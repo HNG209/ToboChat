@@ -1,5 +1,4 @@
-import { FriendStatus, RoomType } from './Enums'
-import { UserResponse } from 'app/types/Response'
+import { FriendStatus, MemberRole, MessageStatus, RoomType } from './Enums'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -34,16 +33,27 @@ export interface UserResponse {
 }
 
 export interface RoomMemberResponse {
-  roomId: string
   id: string
-  role: 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
+  roomId: string
+  role: MemberRole
   roomName: string
-  status: 'ACTIVE' | 'PENDING'
-  roomType: 'DM' | 'GROUP'
+  roomType: RoomType
   addedBy?: string
 
   // Thông tin cá nhân
   member?: UserResponse
+
+  // Permissions trong phòng
+  permissions?: MemberPermissionsResponse
+}
+
+export interface MemberPermissionsResponse {
+  canUpdateRoomSettings: boolean
+  canAddMember: boolean
+  canSendMessage: boolean
+  canUpdateMetadata: boolean
+  canDisbandGroup: boolean
+  canApproveMember: boolean
 }
 
 export interface FriendRequestResponse {
@@ -79,7 +89,7 @@ export interface MessageResponse {
   content: string
   self: boolean
   createdAt: string
-  messageStatus?: 'SENT' | 'REVOKED'
+  messageStatus?: MessageStatus
   localStatus?: 'VISIBLE' | 'DELETED'
   attachments?: Attachment[]
 }
