@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { formatPreviewMessage } from 'app/utils/chatHelper'
 import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
-import { useRouter } from 'solito/navigation'
+import { useRouter, useParams } from 'solito/navigation'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -42,13 +42,16 @@ function TabButton({
 
 export default function ChatInbox() {
   const dispatch = useDispatch<AppDispatch>()
+  const activeRoomId = useSelector(
+    (state: RootState) => state.chat.activeRoomId
+  )
 
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
   const router = useRouter()
-  const pathname = usePathname()
+
   const { data, isLoading, isError } = useGetJoinedRoomsQuery(
     { status },
     {
@@ -157,9 +160,8 @@ export default function ChatInbox() {
     }
 
     const handleMemberRemoved = (roomId: string) => {
-      // Kiểm tra linh hoạt hơn
-      console.log('Current Path:', pathname, 'Target Room:', roomId);
-      if (pathname?.includes(`/chat/${roomId}`)) {
+      // TODO: thêm thông báo đã bị xoá khỏi nhóm
+      if (activeRoomId === roomId) {
         router.replace("/chat")
       }
       dispatch(
@@ -216,7 +218,7 @@ export default function ChatInbox() {
       socket.off('new_member', handleNewMember)
 
     }
-  }, [dispatch, isSocketReady, status])
+  }, [dispatch, isSocketReady, activeRoomId, status])
 
   const handleRoomPress = (roomId: string, unreadCount: number) => {
     dispatch(
