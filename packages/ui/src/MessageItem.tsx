@@ -1,5 +1,5 @@
-import React, { useRef } from 'react'
-import { Platform, Linking, Pressable } from 'react-native'
+import { useRef } from 'react'
+import { Linking, Pressable } from 'react-native'
 import { XStack, YStack, Text, Avatar, Circle, Image } from '@my/ui'
 import { Check, File, Download } from '@tamagui/lucide-icons'
 import { MessageActionMenu } from './MessageActionMenu'
@@ -39,22 +39,21 @@ interface Props {
 
 function canGroup(a?: MessageResponse, b?: MessageResponse, selfUserId?: string) {
   if (!a || !b) return false
-  const aKey = a.self ? selfUserId : a.user?.id
-  const bKey = b.self ? selfUserId : b.user?.id
+  const aKey = a.user?.id
+  const bKey = b.user?.id
   return aKey === bKey
 }
 
 // Đọc kĩ lại code, người ta hiển thị được cái reply rồi còn format làm gì?
 export function MessageItem({
   roomId,
+  selfUserId,
   status,
   msg,
   index,
   items,
-  selfUserId,
   selectionMode,
   selected,
-  locallyDeleted,
   onToggleSelect,
   onReply,
   onForward,
@@ -67,7 +66,7 @@ export function MessageItem({
   const [deleteMessage] = useDeleteMessageMutation()
   const [revokeMessage] = useRevokeMessageMutation()
 
-  const isMe = msg.self
+  const isMe = msg.user?.id === selfUserId
 
   const newerMsg = items[index - 1]
   const olderMsg = items[index + 1]
@@ -132,7 +131,7 @@ export function MessageItem({
       >
         {(isReplyImage || isReplyVideo) && (
           <YStack width={35} height={35} borderRadius="$2" overflow="hidden" flexShrink={0}>
-            <Image source={{ uri: firstAttachment.fileUrl }} width="100%" height="100%" />
+            <Image source={{ uri: firstAttachment?.fileUrl }} width="100%" height="100%" />
           </YStack>
         )}
         <YStack flexShrink={1}>
@@ -325,10 +324,10 @@ export function MessageItem({
                   onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(f.fileUrl)}
                   onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
                   delayLongPress={250}
-                  onContextMenu={(e) => {
-                    e.preventDefault()
-                    menuTriggerRef.current?.()
-                  }}
+                  // onContextMenu={(e) => {
+                  //   e.preventDefault()
+                  //   menuTriggerRef.current?.()
+                  // }}
                 >
                   <XStack
                     p="$2"

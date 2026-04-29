@@ -40,9 +40,9 @@ export interface RespondFriendRequestRequest {
 }
 
 export interface SendMessageRequest {
+  tempId: string
   roomId: string
   content: string
-  messageType: string
   replyTo?: string
   attachments: Attachment[]
 }

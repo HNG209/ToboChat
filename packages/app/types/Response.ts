@@ -83,11 +83,12 @@ export interface RoomResponse {
 
 export interface MessageResponse {
   id: string
+  tempId: string
   roomId: string
   user?: UserResponse
   replyTo?: MessageResponse
   content: string
-  self: boolean
+  // self: boolean
   createdAt: string
   messageStatus?: MessageStatus
   localStatus?: 'VISIBLE' | 'DELETED'

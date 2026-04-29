@@ -8,9 +8,10 @@ import { AppDispatch } from "app/store";
 import { useDispatch } from 'react-redux'
 import { chatApi, useSendMessageMutation } from 'app/services/chatApi'
 import { useChatAttachment } from 'app/hooks/useChatAttachment'
-import { roomApi } from "app/services/roomApi";
+import { roomApi, useGetMyInfoQuery } from "app/services/roomApi";
 import { RoomStatus } from "./ChatInbox";
 import { StyledFlatList } from "./StyledFlatList";
+import { useGetProfileQuery } from "app/services/userApi";
 
 type Props = {
   roomId: string,
@@ -39,6 +40,7 @@ export const ChatScreenFooter = ({
 }: Props) => {
   const { drafts, setDrafts, handlePickFile, removeDraft } = useChatAttachment(roomId)
   const [sendMessage] = useSendMessageMutation()
+  const { data: myProfile } = useGetProfileQuery();
 
   const [localMessage, setLocalMessage] = useState('')
   const dispatch = useDispatch<AppDispatch>()
@@ -87,14 +89,17 @@ export const ChatScreenFooter = ({
     const activeReply = (isTextOnly || isTextWithAttachments) ? replyTo : null;
     if (!content.trim() && attachments.length === 0) return;
 
+    const tempId = uuidv4()
+
     const optimisticMessage: MessageResponse = {
-      id: uuidv4(), // ID tạm thời cho optimistic update, sẽ được backend trả về ID thật sau khi gửi thành công
+      id: tempId, // ID tạm thời cho optimistic update, sẽ được backend trả về ID thật sau khi gửi thành công
+      tempId,
       content: message,
       createdAt: new Date().toISOString(),
-      self: true,
       roomId: roomId,
       replyTo: activeReply || undefined,
       attachments: attachments,
+      user: myProfile
       // messageStatus: 'SENDING', // Trạng thái đang gửi
     }
 
@@ -115,8 +120,8 @@ export const ChatScreenFooter = ({
       // 1. Gửi tin nhắn
       const result = await sendMessage({
         roomId,
+        tempId,
         content: message,
-        messageType: 'USER',
         replyTo: activeReply?.id,
         attachments,
       }).unwrap()
@@ -137,7 +142,9 @@ export const ChatScreenFooter = ({
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           if (!draft || !draft.items) return
+
           const msg = draft.items?.find((m) => m.id === optimisticMessage.id)
+
           if (msg) {
             msg.id = result.id // Cập nhật ID thật từ server
             msg.createdAt = result.createdAt // Cập nhật timestamp chính xác từ server

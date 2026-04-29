@@ -381,11 +381,21 @@ export function ChatScreen({ roomId, insets }: Props) {
     const socket = getSocket()
     if (!socket) return
 
+    socket.emit('join_room', roomId)
+
     const handleReceiveMessage = (message: MessageResponse) => {
       if (message.roomId !== roomId) return
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           if (!draft.items) draft.items = []
+
+          // Kiểm tra nếu có tin nhăn optimistic đang chờ cập nhật lúc gửi
+          const optimistic = draft.items.find(
+            (m) => m.tempId && m.tempId === message.tempId
+          )
+
+          // Nếu có thì đợi cho handleSendMessage bên footer xử lý
+          if (optimistic) return;
           draft.items.unshift(message)
         })
       )
@@ -435,6 +445,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     return () => {
+      socket.emit('leave_room', roomId)
       socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
@@ -661,7 +672,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     disabled={selectedCount === 0}
                     onPress={() => {
                       const mine = (normalizedMessages || []).filter(
-                        (m) => selectedIds.has(m.id) && m.self
+                        (m) => selectedIds.has(m.id) && m?.user?.id === myInfo?.id
                       )
                       if (mine.length > 0) {
                         setLocallyRecalledIds((prev) => {

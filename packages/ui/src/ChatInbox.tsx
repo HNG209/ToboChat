@@ -111,6 +111,35 @@ export default function ChatInbox() {
       )
     }
 
+    const handleInboxUpdated = (payload: any) => {
+      const newMsg: MessageResponse = payload.message || payload
+      const targetRoomId = newMsg.roomId || payload.roomId
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          if (!draft?.items) return
+
+          const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
+
+          if (roomIndex !== -1) {
+            draft.items[roomIndex].latestMessage = newMsg
+            draft.items[roomIndex].unreadMessages =
+              (draft.items[roomIndex].unreadMessages || 0) + 1
+
+            const [updatedRoom] = draft.items.splice(roomIndex, 1)
+            draft.items.unshift(updatedRoom)
+          }
+        })
+      )
+
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.totalUnreadMessages = (draft.totalUnreadMessages || 0) + 1
+        })
+      )
+    }
+
     const handleMessageRevoked = (payload: any) => {
       const revokedMsgId = payload.messageId
       const targetRoomId = payload.roomId
@@ -202,7 +231,7 @@ export default function ChatInbox() {
 
     }
 
-    socket.on('receive_message', handleReceiveMessage)
+    socket.on('inbox_updated', handleInboxUpdated)
     socket.on('message_revoked', handleMessageRevoked)
     socket.on('new_room', handleNewRoom)
     socket.on('room_disband', handleGroupDisband)
@@ -210,7 +239,7 @@ export default function ChatInbox() {
     socket.on('new_member', handleNewMember)
 
     return () => {
-      socket.off('receive_message', handleReceiveMessage)
+      socket.off('inbox_updated', handleInboxUpdated)
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('new_room', handleNewRoom)
       socket.off('room_disband', handleGroupDisband)
