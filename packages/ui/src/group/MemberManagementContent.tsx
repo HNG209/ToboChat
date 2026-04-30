@@ -48,12 +48,10 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
   // 2. Xử lý Xóa thành viên
   const handleRemove = (memberId: string, memberName: string) => {
     const title = "Xóa thành viên";
-    const message = `Bạn có chắc muốn mời ${memberName} ra khỏi nhóm?`;
+    const message = `Bạn có chắc muốn xoá ${memberName} ra khỏi nhóm?`;
 
     const executeRemove = async () => {
       try {
-        await removeMember({ roomId, memberId }).unwrap();
-
         dispatch(
           roomApi.util.updateQueryData('getRoomMembers', { roomId }, (draft) => {
             if (draft?.items) {
@@ -61,7 +59,7 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
             }
           })
         );
-
+        
         dispatch(
           roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
             const room = draft.items?.find((r) => r.id === roomId);
@@ -70,7 +68,8 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
             }
           })
         );
-
+        
+        await removeMember({ roomId, memberId }).unwrap();
       } catch (e) {
         console.error("Lỗi xóa:", e);
       }

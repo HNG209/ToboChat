@@ -32,7 +32,7 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
   const {
     data: friendsData,
     isLoading: friendsLoading,
-  } = useGetMyFriendListQuery({ roomId }); // lấy từ cache do ChatScreen đã gọi
+  } = useGetMyFriendListQuery({ roomId }, { refetchOnMountOrArgChange: true });
 
   const [addMembers, { isLoading: isAddingMembers }] = useAddMembersMutation();
 

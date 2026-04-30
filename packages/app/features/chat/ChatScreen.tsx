@@ -447,11 +447,23 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
     }
 
+    const handleMemberRemoved = async (memberId: string) => {
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMembers', { roomId }, (draft) => {
+          if (draft?.items) {
+            draft.items = draft.items.filter((i: any) => i.member.id !== memberId);
+          }
+        })
+      );
+    }
+
+    socket.on('member_removed', handleMemberRemoved)
     socket.on('delete_message', handleMessageDeleted)
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     return () => {
       socket.emit('leave_room', roomId)
+      socket.off('member_removed', handleMemberRemoved)
       socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
