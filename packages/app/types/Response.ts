@@ -1,4 +1,4 @@
-import { FriendStatus, MemberRole, MessageStatus, RoomType } from './Enums'
+import { FriendStatus, MemberRole, MemberStatus, MessageStatus, RoomType } from './Enums'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -17,8 +17,10 @@ export interface FriendResponse {
   name: string
   avatarUrl?: string
   createdAt: string
-  inRoom?: boolean
   allowAutoAddToGroup: boolean
+
+  // Trạng thái trong phòng
+  memberStatus?: MemberStatus
 }
 
 export interface UserResponse {

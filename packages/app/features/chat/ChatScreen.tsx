@@ -41,7 +41,7 @@ import {
   useLazyGetMessagesQuery,
   useForwardMessagesMutation,
 } from 'app/services/chatApi'
-import { roomApi, useGetJoinedRoomsQuery, useGetMyInfoQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
+import { roomApi, useGetJoinedRoomsQuery, useGetMyInfoQuery, useGetRoomMembersQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { Provider, useDispatch, useSelector } from 'react-redux'
 import { Attachment, MessageResponse } from 'app/types/Response'
@@ -58,6 +58,7 @@ import { GroupManagementContent } from '@my/ui/src/GroupManagementContent';
 import { AddMemberContent } from '@my/ui/src/group/AddMemberDialog';
 import { MemberManagementContent } from '@my/ui/src/group/MemberManagementContent';
 import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
+import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -157,7 +158,7 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   const selectedCount = selectedIds.size
 
-  // 1. API Hooks
+  // fetch messages
   const { data, isLoading, isError, error } = useGetMessagesQuery(
     {
       roomId,
@@ -170,7 +171,12 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   )
 
+  // fetch thông tin của tôi trong phòng
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
+  // fetch danh sách thành viên trong phòng
+  useGetRoomMembersQuery({ roomId }, { refetchOnMountOrArgChange: true })
+  // fetch danh sách bạn bè đã có trong phòng
+  useGetMyFriendListQuery({ limit: 20, roomId }, { refetchOnMountOrArgChange: true });
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
 
@@ -441,11 +447,26 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
     }
 
+    // const handleUpdateNewMembers = async (memberIds: string[]) => {
+    //   dispatch(
+    //     contactApi.util.updateQueryData('getMyFriendList', { roomId }, (draft) => {
+    //       memberIds.forEach(memberId => {
+    //         const index = draft.items?.findIndex((r) => r.id === memberId);
+    //         if (index !== -1 && index !== undefined) {
+    //           draft.items[index].inRoom = true
+    //         }
+    //       })
+    //     })
+    //   );
+    // }
+
+    // socket.on('new_members', handleUpdateNewMembers);
     socket.on('delete_message', handleMessageDeleted)
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     return () => {
       socket.emit('leave_room', roomId)
+      // socket.off('new_members', handleUpdateNewMembers);
       socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
@@ -486,7 +507,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 <Text color="red">Lỗi khi tải tin nhắn!</Text>
               </XStack>
             ) : (
-              <StyledFlatList
+              <StyledFlatList<MessageResponse>
                 ref={flatListRef}
                 data={data?.items || []}
                 inverted={true}
