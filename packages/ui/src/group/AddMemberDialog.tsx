@@ -13,11 +13,10 @@ import {
 } from 'tamagui';
 import { Check, ArrowLeft, Info, UserPlus } from '@tamagui/lucide-icons';
 import { StyledFlatList } from '../StyledFlatList';
-import { useGetMyFriendListQuery } from 'app/services/contactApi';
+import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
 import { roomApi, useAddMembersMutation } from 'app/services/roomApi';
 import { ActivityIndicator } from 'react-native';
 import { useDispatch } from 'react-redux'
-import { Platform } from 'expo-modules-core'
 import { AppDispatch } from 'app/store'
 import { FriendResponse } from 'app/types/Response';
 
@@ -33,7 +32,7 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
   const {
     data: friendsData,
     isLoading: friendsLoading,
-  } = useGetMyFriendListQuery({ limit: 20, roomId }); // lấy từ cache do ChatScreen đã gọi
+  } = useGetMyFriendListQuery({ roomId }); // lấy từ cache do ChatScreen đã gọi
 
   const [addMembers, { isLoading: isAddingMembers }] = useAddMembersMutation();
 
@@ -52,18 +51,30 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
     }
 
     try {
+      const result = await addMembers({ roomId, targetUserIds: selectedMembers }).unwrap();
+      const addedCount: number = result.filter(r => r.memberStatus === 'ADDED').length;
+
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendList', { roomId }, (draft) => {
+          result.forEach(person => {
+            const index = draft.items?.findIndex((r) => r.id === person.id);
+            console.log(index);
+            if (index !== -1 && index !== undefined) {
+              draft.items[index].memberStatus = person.memberStatus;
+            }
+          })
+        })
+      );
+
       // Cập nhật memberCount cho chính mình thấy ngay trên UI
       dispatch(
         roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
           const room = draft.items?.find((r) => r.id === roomId);
           if (room) {
-            room.memberCount = (room.memberCount || 0) + selectedMembers.length;
+            room.memberCount = (room.memberCount || 0) + addedCount;
           }
         })
       );
-      await addMembers({ roomId, targetUserIds: selectedMembers }).unwrap();
-
-
 
       onClose();
     } catch (error) {

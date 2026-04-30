@@ -188,7 +188,8 @@ export default function ChatInbox() {
       );
     }
 
-    const handleMemberRemoved = (roomId: string) => {
+    // Self remove: người bị đá khỏi phòng
+    const handleSelfRemoved = (roomId: string) => {
       // TODO: thêm thông báo đã bị xoá khỏi nhóm
       if (activeRoomId === roomId) {
         router.replace("/chat")
@@ -220,14 +221,14 @@ export default function ChatInbox() {
           }
         })
       );
-      dispatch(
-        contactApi.util.updateQueryData('getMyFriendList', { roomId: member.roomId }, (draft) => {
-          const index = draft.items?.findIndex((r) => r.id === member.id);
-          if (index !== -1 && index !== undefined) {
-            draft.items[index].inRoom = true
-          }
-        })
-      );
+      // dispatch(
+      //   contactApi.util.updateQueryData('getMyFriendList', { roomId: member.roomId }, (draft) => {
+      //     const index = draft.items?.findIndex((r) => r.id === member.id);
+      //     if (index !== -1 && index !== undefined) {
+      //       draft.items[index].inRoom = true
+      //     }
+      //   })
+      // );
 
     }
 
@@ -235,7 +236,7 @@ export default function ChatInbox() {
     socket.on('message_revoked', handleMessageRevoked)
     socket.on('new_room', handleNewRoom)
     socket.on('room_disband', handleGroupDisband)
-    socket.on('member_removed', handleMemberRemoved)
+    socket.on('self_removed', handleSelfRemoved)
     socket.on('new_member', handleNewMember)
 
     return () => {
@@ -243,9 +244,8 @@ export default function ChatInbox() {
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('new_room', handleNewRoom)
       socket.off('room_disband', handleGroupDisband)
-      socket.off('member_removed', handleMemberRemoved)
+      socket.off('self_removed', handleSelfRemoved)
       socket.off('new_member', handleNewMember)
-
     }
   }, [dispatch, isSocketReady, activeRoomId, status])
 

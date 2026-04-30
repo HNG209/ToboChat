@@ -447,26 +447,11 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
     }
 
-    // const handleUpdateNewMembers = async (memberIds: string[]) => {
-    //   dispatch(
-    //     contactApi.util.updateQueryData('getMyFriendList', { roomId }, (draft) => {
-    //       memberIds.forEach(memberId => {
-    //         const index = draft.items?.findIndex((r) => r.id === memberId);
-    //         if (index !== -1 && index !== undefined) {
-    //           draft.items[index].inRoom = true
-    //         }
-    //       })
-    //     })
-    //   );
-    // }
-
-    // socket.on('new_members', handleUpdateNewMembers);
     socket.on('delete_message', handleMessageDeleted)
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     return () => {
       socket.emit('leave_room', roomId)
-      // socket.off('new_members', handleUpdateNewMembers);
       socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
