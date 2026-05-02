@@ -98,13 +98,13 @@ export const ZaloSidebar = () => {
           const derivedFileUrl =
             typeof presignedUrl === 'string'
               ? (() => {
-                  try {
-                    const u = new URL(presignedUrl)
-                    return `${u.origin}${u.pathname}`
-                  } catch {
-                    return presignedUrl.split('?')[0]
-                  }
-                })()
+                try {
+                  const u = new URL(presignedUrl)
+                  return `${u.origin}${u.pathname}`
+                } catch {
+                  return presignedUrl.split('?')[0]
+                }
+              })()
               : undefined
 
           const fileUrl =
@@ -340,22 +340,22 @@ export const ZaloSidebar = () => {
               icon={<MessageSquare size={28} color={isChat ? activeIconColor : inactiveIconColor} />}
             />
             {(profileData?.totalUnreadMessages ?? 0) > 0 && (
-            <Circle
-              size={25}
-              backgroundColor="$red10"
-              position="absolute"
-              top={-2}
-              right={-2}
-              borderWidth={2}
-              borderColor="$background" // Tạo viền để tách biệt với icon
-              animation="bouncy"
-              enterStyle={{ opacity: 0, scale: 0 }}
-            >
-              <Text color="white" fontSize={9} fontWeight="bold">
-                {profileData!.totalUnreadMessages > 99 ? '99+' : profileData!.totalUnreadMessages}
-              </Text>
-            </Circle>
-          )}
+              <Circle
+                size={25}
+                backgroundColor="$red10"
+                position="absolute"
+                top={-2}
+                right={-2}
+                borderWidth={2}
+                borderColor="$background" // Tạo viền để tách biệt với icon
+                animation="bouncy"
+                enterStyle={{ opacity: 0, scale: 0 }}
+              >
+                <Text color="white" fontSize={9} fontWeight="bold">
+                  {profileData!.totalUnreadMessages > 99 ? '99+' : profileData!.totalUnreadMessages}
+                </Text>
+              </Circle>
+            )}
           </View>
 
           <Button

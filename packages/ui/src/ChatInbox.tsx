@@ -10,7 +10,6 @@ import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { formatPreviewMessage } from 'app/utils/chatHelper'
-import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
 import { useRouter, useParams } from 'solito/navigation'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
@@ -56,7 +55,6 @@ export default function ChatInbox() {
     { status },
     {
       skip: !hasSession,
-      refetchOnMountOrArgChange: true,
     }
   )
 
@@ -82,35 +80,6 @@ export default function ChatInbox() {
     const socket = getSocket()
     if (!socket) return
 
-    const handleReceiveMessage = (payload: any) => {
-      const newMsg: MessageResponse = payload.message || payload
-      const targetRoomId = newMsg.roomId || payload.roomId
-
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-          if (!draft?.items) return
-
-          const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
-
-          if (roomIndex !== -1) {
-            draft.items[roomIndex].latestMessage = newMsg
-            draft.items[roomIndex].unreadMessages =
-              (draft.items[roomIndex].unreadMessages || 0) + 1
-
-            const [updatedRoom] = draft.items.splice(roomIndex, 1)
-            draft.items.unshift(updatedRoom)
-          }
-        })
-      )
-
-      dispatch(
-        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
-          if (!draft) return
-          draft.totalUnreadMessages = (draft.totalUnreadMessages || 0) + 1
-        })
-      )
-    }
-
     const handleInboxUpdated = (payload: any) => {
       const newMsg: MessageResponse = payload.message || payload
       const targetRoomId = newMsg.roomId || payload.roomId
@@ -123,11 +92,26 @@ export default function ChatInbox() {
 
           if (roomIndex !== -1) {
             draft.items[roomIndex].latestMessage = newMsg
-            draft.items[roomIndex].unreadMessages =
-              (draft.items[roomIndex].unreadMessages || 0) + 1
+            // draft.items[roomIndex].unreadMessages =
+            //   (draft.items[roomIndex].unreadMessages || 0) + 1
 
             const [updatedRoom] = draft.items.splice(roomIndex, 1)
             draft.items.unshift(updatedRoom)
+          }
+        })
+      )
+    }
+
+    const handleUnreadUpdate = (roomId: string) => {
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          if (!draft?.items) return
+
+          const roomIndex = draft.items.findIndex((r) => r.id === roomId)
+
+          if (roomIndex !== -1) {
+            draft.items[roomIndex].unreadMessages =
+              (draft.items[roomIndex].unreadMessages || 0) + 1
           }
         })
       )
@@ -221,18 +205,10 @@ export default function ChatInbox() {
           }
         })
       );
-      // dispatch(
-      //   contactApi.util.updateQueryData('getMyFriendList', { roomId: member.roomId }, (draft) => {
-      //     const index = draft.items?.findIndex((r) => r.id === member.id);
-      //     if (index !== -1 && index !== undefined) {
-      //       draft.items[index].inRoom = true
-      //     }
-      //   })
-      // );
-
     }
 
     socket.on('inbox_updated', handleInboxUpdated)
+    socket.on('unread_updated', handleUnreadUpdate)
     socket.on('message_revoked', handleMessageRevoked)
     socket.on('new_room', handleNewRoom)
     socket.on('room_disband', handleGroupDisband)
@@ -241,6 +217,7 @@ export default function ChatInbox() {
 
     return () => {
       socket.off('inbox_updated', handleInboxUpdated)
+      socket.off('unread_updated', handleUnreadUpdate)
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('new_room', handleNewRoom)
       socket.off('room_disband', handleGroupDisband)

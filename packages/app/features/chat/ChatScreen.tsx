@@ -192,7 +192,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     { status },
     {
       skip: !hasSession,
-      refetchOnMountOrArgChange: true,
     }
   )
   const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
