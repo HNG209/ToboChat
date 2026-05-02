@@ -152,14 +152,6 @@ export const roomApi = baseApi.injectEndpoints({
       // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
-    markAsRead: builder.mutation<ApiResponse<void>, string>({
-      query: (roomId) => ({
-        url: `/rooms/${roomId}/read`,
-        method: 'PATCH',
-      }),
-      invalidatesTags: ['Rooms'],
-    }),
-
     getPendingRequest: builder.query<PageResponse<GroupPendingRequestResponse>, { roomId: string }>(
       {
         query: ({ roomId }) => ({
@@ -198,7 +190,6 @@ export const {
   useRespondGroupInviteMutation,
   useGetGroupInvitesQuery,
   useGetRoomMetadataQuery,
-  useMarkAsReadMutation,
   useAddMembersMutation,
   useGetPendingRequestQuery,
   useApproveMemberMutation,
