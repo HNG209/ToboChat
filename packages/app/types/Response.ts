@@ -1,4 +1,4 @@
-import { FriendStatus, MemberRole, MemberStatus, MessageStatus, RoomType } from './Enums'
+import { FriendStatus, MemberRole, MemberStatus, MessageStatus, MessageType, RoomType, SystemAction } from './Enums'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -90,11 +90,14 @@ export interface MessageResponse {
   user?: UserResponse
   replyTo?: MessageResponse
   content: string
-  // self: boolean
   createdAt: string
   messageStatus?: MessageStatus
-  localStatus?: 'VISIBLE' | 'DELETED'
   attachments?: Attachment[]
+
+  // Tin nhắn hệ thống
+  messageType: MessageType
+  action?: SystemAction
+  metadata?: Record<string, string>
 }
 
 export interface GroupAcceptRequestResponse {

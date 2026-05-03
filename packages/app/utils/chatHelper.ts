@@ -28,3 +28,22 @@ export const formatPreviewMessage = (message: MessageResponse | null) => {
   if (message.messageStatus === 'REVOKED') return 'Tin nhắn đã được thu hồi'
   return content
 }
+
+export const getSystemMessageText = (msg: MessageResponse) => {
+  const actorName = msg.user?.name || 'Ai đó'
+  const meta = msg.metadata || {}
+
+  switch (msg.action) {
+    case 'ROOM_CREATED':
+      return `${actorName} đã tạo nhóm này.`
+    case 'ROOM_NAME_CHANGED':
+      return `${actorName} đã đổi tên nhóm thành "${meta.newRoomName || 'tên mới'}".`
+    case 'MEMBER_ADDED':
+      return `${actorName} đã thêm thành viên mới vào nhóm.`
+    case 'MEMBER_LEFT':
+      return `${actorName} đã rời nhóm.`
+    default:
+      // Fallback nếu không nhận diện được action
+      return msg.content || `${actorName} đã cập nhật nhóm.`
+  }
+}

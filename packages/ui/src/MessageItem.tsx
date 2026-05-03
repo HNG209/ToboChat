@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux'
 import { AppDispatch, store } from 'app/store'
 import { roomApi } from 'app/services/roomApi'
 import { RoomStatus } from './ChatInbox'
-import { formatPreviewMessage } from 'app/utils/chatHelper';
+import { formatPreviewMessage, getSystemMessageText } from 'app/utils/chatHelper';
 
 interface Props {
   roomId: string
@@ -44,7 +44,6 @@ function canGroup(a?: MessageResponse, b?: MessageResponse, selfUserId?: string)
   return aKey === bKey
 }
 
-// Đọc kĩ lại code, người ta hiển thị được cái reply rồi còn format làm gì?
 export function MessageItem({
   roomId,
   selfUserId,
@@ -65,6 +64,19 @@ export function MessageItem({
   const dispatch = useDispatch<AppDispatch>()
   const [deleteMessage] = useDeleteMessageMutation()
   const [revokeMessage] = useRevokeMessageMutation()
+
+  // Xử lý tin nhắn hệ thống
+  if (msg.messageType === 'SYSTEM') {
+    return (
+      <YStack alignItems="center" my="$3" width="100%">
+        <XStack bg="$color4" px="$3" py="$1.5" borderRadius="$10" maxWidth="80%">
+          <Text fontSize="$2" color="$color11" textAlign="center" fontWeight="500">
+            {getSystemMessageText(msg)}
+          </Text>
+        </XStack>
+      </YStack>
+    )
+  }
 
   const isMe = msg.user?.id === selfUserId
 
@@ -324,10 +336,6 @@ export function MessageItem({
                   onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(f.fileUrl)}
                   onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
                   delayLongPress={250}
-                  // onContextMenu={(e) => {
-                  //   e.preventDefault()
-                  //   menuTriggerRef.current?.()
-                  // }}
                 >
                   <XStack
                     p="$2"
