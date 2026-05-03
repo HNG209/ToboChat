@@ -28,7 +28,7 @@ export const chatApi = baseApi.injectEndpoints({
           params: {
             cursor: params.cursor ?? undefined,
             limit: params.limit || 20,
-            direction: params.direction || 'before',
+            direction: params.direction,
           },
         }
       },
@@ -46,7 +46,6 @@ export const chatApi = baseApi.injectEndpoints({
         )
       },
 
-      // Optional: merge tự động
       merge: (currentCache, newData, { arg }) => {
         if (!currentCache.items) {
           currentCache.items = []
@@ -74,6 +73,33 @@ export const chatApi = baseApi.injectEndpoints({
           // Tin cũ → xuống cuối, chỉ cập nhật nextCursor
           currentCache.items.push(...newItems)
           currentCache.nextCursor = newData.nextCursor
+        }
+
+        // currentCache.items.sort((a, b) => {
+        //   if (a.createdAt < b.createdAt) return 1
+        //   if (a.createdAt > b.createdAt) return -1
+        //   return 0
+        // })
+
+        const MAX_MESSAGES = 300
+
+        if (currentCache.items.length > MAX_MESSAGES) {
+          if (arg.direction === 'before') {
+            // Trường hợp 1: Đang cuộn lên xem tin CŨ -> Mảng phình to ở phía đuôi.
+            // Giải pháp: Cắt bỏ phần đầu (những tin MỚI NHẤT)
+            currentCache.items = currentCache.items.slice(-MAX_MESSAGES)
+
+            // Cập nhật lại prevCursor
+            // để làm mốc (cursor) nếu user muốn cuộn xuống lại.
+            currentCache.prevCursor = `MSG#${currentCache.items[0].id}`
+          } else {
+            // Trường hợp 2: Đang cuộn xuống xem tin MỚI (hoặc có tin real-time) -> Mảng phình to ở phía đầu.
+            // Giải pháp: Cắt bỏ phần đuôi (những tin CŨ NHẤT)
+            currentCache.items = currentCache.items.slice(0, MAX_MESSAGES)
+
+            // Cập nhật lại nextCursor dựa vào tin nhắn "cũ nhất" còn sót lại
+            currentCache.nextCursor = `MSG#${currentCache.items[currentCache.items.length - 1].id}`
+          }
         }
       },
 

@@ -109,7 +109,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [replyTo, setReplyTo] = useState<MessageResponse | null>(null)
   const isClosingViewerRef = useRef(false)
-  const [direction, setDirection] = useState<'before' | 'after' | 'both'>('before')
+  const [direction, setDirection] = useState<'before' | 'after' | 'both' | undefined>(undefined)
   // Show infor screen
   const [showInfo, setShowInfo] = useState(false)
   const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD' | 'MEMBERS' | 'APPROVED'>('INFO');
@@ -159,7 +159,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const selectedCount = selectedIds.size
 
   // fetch messages
-  const { data, isLoading, isError, error } = useGetMessagesQuery(
+  const { data, isLoading, isFetching: isFetchingInitial, isError, error } = useGetMessagesQuery(
     {
       roomId,
       cursor: replyCursorRef.current,
@@ -369,6 +369,19 @@ export function ChatScreen({ roomId, insets }: Props) {
     setDirection('both')
   }
 
+
+  useEffect(() => {
+    return () => {
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          draft.items = [];
+          draft.nextCursor = undefined;
+          draft.prevCursor = undefined;
+        })
+      );
+    };
+  }, [roomId, dispatch]);
+
   // 4. Socket Connection & Listeners
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
@@ -566,12 +579,17 @@ export function ChatScreen({ roomId, insets }: Props) {
                     justifyContent="center"
                     alignItems="center"
                     py="$10"
-                    // Vì Flatlist inverted, component rỗng cũng bị lộn ngược, cần scaleY: -1 để chữ đứng thẳng lại
                     transform={[{ scaleY: -1 }]}
                   >
-                    <Text color="$color10" fontSize="$4">
-                      Chưa có tin nhắn nào. Hãy gửi lời chào!
-                    </Text>
+                    {isFetchingInitial ? (
+                      // Nếu đang gọi API lấy tin nhắn thì hiện trạng thái loading
+                      <ActivityIndicator size="large" color="#888" />
+                    ) : (
+                      // Nếu gọi API xong rồi mà vẫn rỗng thì mới hiện chữ
+                      <Text color="$color10" fontSize="$4">
+                        Chưa có tin nhắn nào. Hãy gửi lời chào!
+                      </Text>
+                    )}
                   </YStack>
                 }
                 ListFooterComponent={

@@ -178,6 +178,7 @@ export default function ChatInbox() {
       if (activeRoomId === roomId) {
         router.replace("/chat")
       }
+
       dispatch(
         roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
           const index = draft.items?.findIndex((r) => r.id === roomId);
