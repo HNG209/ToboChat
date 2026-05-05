@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux'
 import { AppDispatch, store } from 'app/store'
 import { roomApi } from 'app/services/roomApi'
 import { RoomStatus } from './ChatInbox'
-import { formatPreviewMessage, getSystemMessageText } from 'app/utils/chatHelper';
+import { formatPreviewMessage, formatSystemMessage } from 'app/utils/chatHelper';
 
 interface Props {
   roomId: string
@@ -71,7 +71,7 @@ export function MessageItem({
       <YStack alignItems="center" my="$3" width="100%">
         <XStack bg="$color4" px="$3" py="$1.5" borderRadius="$10" maxWidth="80%">
           <Text fontSize="$2" color="$color11" textAlign="center" fontWeight="500">
-            {getSystemMessageText(msg)}
+            {formatSystemMessage(msg, selfUserId)}
           </Text>
         </XStack>
       </YStack>

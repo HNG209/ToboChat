@@ -1,4 +1,4 @@
-import { MessageResponse } from 'app/types/Response'
+import { MessageResponse, UserResponse } from 'app/types/Response'
 
 export const generateDirectRoomId = (myId: string, otherUserId: string) => {
   const ids = [myId, otherUserId].sort()
@@ -29,19 +29,23 @@ export const formatPreviewMessage = (message: MessageResponse | null) => {
   return content
 }
 
-export const getSystemMessageText = (msg: MessageResponse) => {
+export const formatSystemMessage = (msg: MessageResponse, selfUserId?: string) => {
   const actorName = msg.user?.name || 'Ai đó'
   const meta = msg.metadata || {}
 
   switch (msg.action) {
     case 'ROOM_CREATED':
-      return `${actorName} đã tạo nhóm này.`
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã tạo nhóm này.`
     case 'ROOM_NAME_CHANGED':
-      return `${actorName} đã đổi tên nhóm thành "${meta.newRoomName || 'tên mới'}".`
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã đổi tên nhóm thành "${meta.newRoomName || 'tên mới'}".`
     case 'MEMBER_ADDED':
-      return `${actorName} đã thêm thành viên mới vào nhóm.`
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã thêm ${meta?.newMemberId === selfUserId ? 'bạn' : meta?.newMemberName || '1 thành viên'} vào nhóm.`
     case 'MEMBER_LEFT':
-      return `${actorName} đã rời nhóm.`
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã rời nhóm.`
+    case 'MEMBER_REMOVED':
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã xóa ${meta?.removedMemberId === selfUserId ? 'bạn' : meta?.removedMemberName || '1 thành viên'} khỏi nhóm.`
+    case 'GROUP_INVITE_ACCEPTED':
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã chấp nhận lời mời tham gia nhóm.`
     default:
       // Fallback nếu không nhận diện được action
       return msg.content || `${actorName} đã cập nhật nhóm.`
