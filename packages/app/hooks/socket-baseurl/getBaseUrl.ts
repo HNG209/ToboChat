@@ -1,3 +1,3 @@
 export const getBaseUrl = () => {
-  return 'http://localhost:8085' // Next.js sẽ chỉ đọc file này
+  return process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8085' // Next.js sẽ chỉ đọc file này
 }
