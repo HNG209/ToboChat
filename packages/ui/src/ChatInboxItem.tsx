@@ -41,7 +41,6 @@ export const ChatInboxItem = ({
   selected,
   unreadCount,
 }: Props) => {
-  console.log('avatarUrl', avatarUrl)
   return (
     <ListItem
       pressTheme

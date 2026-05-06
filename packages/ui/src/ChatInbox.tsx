@@ -10,8 +10,7 @@ import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { formatPreviewMessage } from 'app/utils/chatHelper'
-import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
-import { useRouter } from 'solito/navigation'
+import { useRouter, useParams } from 'solito/navigation'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -42,18 +41,20 @@ function TabButton({
 
 export default function ChatInbox() {
   const dispatch = useDispatch<AppDispatch>()
+  const activeRoomId = useSelector(
+    (state: RootState) => state.chat.activeRoomId
+  )
 
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
 
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
   const router = useRouter()
-  const pathname = usePathname()
+
   const { data, isLoading, isError } = useGetJoinedRoomsQuery(
     { status },
     {
       skip: !hasSession,
-      refetchOnMountOrArgChange: true,
     }
   )
 
@@ -79,7 +80,7 @@ export default function ChatInbox() {
     const socket = getSocket()
     if (!socket) return
 
-    const handleReceiveMessage = (payload: any) => {
+    const handleInboxUpdated = (payload: any) => {
       const newMsg: MessageResponse = payload.message || payload
       const targetRoomId = newMsg.roomId || payload.roomId
 
@@ -91,11 +92,26 @@ export default function ChatInbox() {
 
           if (roomIndex !== -1) {
             draft.items[roomIndex].latestMessage = newMsg
-            draft.items[roomIndex].unreadMessages =
-              (draft.items[roomIndex].unreadMessages || 0) + 1
+            // draft.items[roomIndex].unreadMessages =
+            //   (draft.items[roomIndex].unreadMessages || 0) + 1
 
             const [updatedRoom] = draft.items.splice(roomIndex, 1)
             draft.items.unshift(updatedRoom)
+          }
+        })
+      )
+    }
+
+    const handleUnreadUpdate = (roomId: string) => {
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          if (!draft?.items) return
+
+          const roomIndex = draft.items.findIndex((r) => r.id === roomId)
+
+          if (roomIndex !== -1) {
+            draft.items[roomIndex].unreadMessages =
+              (draft.items[roomIndex].unreadMessages || 0) + 1
           }
         })
       )
@@ -156,12 +172,13 @@ export default function ChatInbox() {
       );
     }
 
-    const handleMemberRemoved = (roomId: string) => {
-      // Kiểm tra linh hoạt hơn
-      console.log('Current Path:', pathname, 'Target Room:', roomId);
-      if (pathname?.includes(`/chat/${roomId}`)) {
+    // Self remove: người bị đá khỏi phòng
+    const handleSelfRemoved = (roomId: string) => {
+      // TODO: thêm thông báo đã bị xoá khỏi nhóm
+      if (activeRoomId === roomId) {
         router.replace("/chat")
       }
+
       dispatch(
         roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
           const index = draft.items?.findIndex((r) => r.id === roomId);
@@ -189,34 +206,26 @@ export default function ChatInbox() {
           }
         })
       );
-      dispatch(
-        contactApi.util.updateQueryData('getMyFriendList', { roomId: member.roomId }, (draft) => {
-          const index = draft.items?.findIndex((r) => r.id === member.id);
-          if (index !== -1 && index !== undefined) {
-            draft.items[index].inRoom = true
-          }
-        })
-      );
-
     }
 
-    socket.on('receive_message', handleReceiveMessage)
+    socket.on('inbox_updated', handleInboxUpdated)
+    socket.on('unread_updated', handleUnreadUpdate)
     socket.on('message_revoked', handleMessageRevoked)
     socket.on('new_room', handleNewRoom)
     socket.on('room_disband', handleGroupDisband)
-    socket.on('member_removed', handleMemberRemoved)
+    socket.on('self_removed', handleSelfRemoved)
     socket.on('new_member', handleNewMember)
 
     return () => {
-      socket.off('receive_message', handleReceiveMessage)
+      socket.off('inbox_updated', handleInboxUpdated)
+      socket.off('unread_updated', handleUnreadUpdate)
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('new_room', handleNewRoom)
       socket.off('room_disband', handleGroupDisband)
-      socket.off('member_removed', handleMemberRemoved)
+      socket.off('self_removed', handleSelfRemoved)
       socket.off('new_member', handleNewMember)
-
     }
-  }, [dispatch, isSocketReady, status])
+  }, [dispatch, isSocketReady, activeRoomId, status])
 
   const handleRoomPress = (roomId: string, unreadCount: number) => {
     dispatch(

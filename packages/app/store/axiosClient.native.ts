@@ -10,18 +10,19 @@ function normalizeApiUrl(url: string) {
 
 export const getApiBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl) return normalizeApiUrl(envUrl)
+  return envUrl;
+  // if (envUrl) return normalizeApiUrl(envUrl)
 
-  const extraUrl = (Constants.expoConfig as any)?.extra?.apiUrl as string | undefined
-  if (extraUrl) return normalizeApiUrl(extraUrl)
+  // const extraUrl = (Constants.expoConfig as any)?.extra?.apiUrl as string | undefined
+  // if (extraUrl) return normalizeApiUrl(extraUrl)
 
-  const portFromEnv = process.env.EXPO_PUBLIC_API_PORT
-  const portFromExtra = (Constants.expoConfig as any)?.extra?.apiPort
-  const apiPort = String(portFromEnv || portFromExtra || '8081')
+  // const portFromEnv = process.env.EXPO_PUBLIC_API_PORT
+  // const portFromExtra = (Constants.expoConfig as any)?.extra?.apiPort
+  // const apiPort = String(portFromEnv || portFromExtra || '8081')
 
-  const hostUri = Constants.expoConfig?.hostUri
-  const host = hostUri?.split(':')[0]
-  return host ? `http://${host}:${apiPort}/api` : `http://localhost:${apiPort}/api`
+  // const hostUri = Constants.expoConfig?.hostUri
+  // const host = hostUri?.split(':')[0]
+  // return host ? `http://${host}:${apiPort}/api` : `http://localhost:${apiPort}/api`
 }
 
 let clientInstance: any = null

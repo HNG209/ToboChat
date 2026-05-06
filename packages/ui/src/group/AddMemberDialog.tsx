@@ -13,12 +13,13 @@ import {
 } from 'tamagui';
 import { Check, ArrowLeft, Info, UserPlus } from '@tamagui/lucide-icons';
 import { StyledFlatList } from '../StyledFlatList';
-import { useGetMyFriendListQuery } from 'app/services/contactApi';
+import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
 import { roomApi, useAddMembersMutation } from 'app/services/roomApi';
 import { ActivityIndicator } from 'react-native';
 import { useDispatch } from 'react-redux'
-import { Platform } from 'expo-modules-core'
 import { AppDispatch } from 'app/store'
+import { FriendResponse } from 'app/types/Response';
+
 interface AddMemberContentProps {
   roomId: string;
   onClose: () => void; // Hàm để quay lại trang Info
@@ -31,7 +32,7 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
   const {
     data: friendsData,
     isLoading: friendsLoading,
-  } = useGetMyFriendListQuery({ limit: 20, roomId });
+  } = useGetMyFriendListQuery({ roomId }, { refetchOnMountOrArgChange: true });
 
   const [addMembers, { isLoading: isAddingMembers }] = useAddMembersMutation();
 
@@ -50,18 +51,30 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
     }
 
     try {
+      const result = await addMembers({ roomId, targetUserIds: selectedMembers }).unwrap();
+      const addedCount: number = result.filter(r => r.memberStatus === 'ADDED').length;
+
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendList', { roomId }, (draft) => {
+          result.forEach(person => {
+            const index = draft.items?.findIndex((r) => r.id === person.id);
+            console.log(index);
+            if (index !== -1 && index !== undefined) {
+              draft.items[index].memberStatus = person.memberStatus;
+            }
+          })
+        })
+      );
+
       // Cập nhật memberCount cho chính mình thấy ngay trên UI
       dispatch(
         roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
           const room = draft.items?.find((r) => r.id === roomId);
           if (room) {
-            room.memberCount = (room.memberCount || 0) + selectedMembers.length;
+            room.memberCount = (room.memberCount || 0) + addedCount;
           }
         })
       );
-      await addMembers({ roomId, targetUserIds: selectedMembers }).unwrap();
-
-
 
       onClose();
     } catch (error) {
@@ -92,7 +105,7 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
 
       {/* --- DANH SÁCH --- */}
       <YStack flex={1} p="$2">
-        <StyledFlatList
+        <StyledFlatList<FriendResponse>
           data={friendsData?.items || []}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
@@ -110,8 +123,37 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
           }
           contentContainerStyle={{ gap: 4 }}
           renderItem={({ item: friend }) => {
+            const status = friend.memberStatus;
+
+            const isSelectable = status === 'NOT_IN_GROUP';
             const isSelected = selectedMembers.includes(friend.id);
-            const isAlreadyInGroup = friend.inRoom;
+
+            const renderStatus = () => {
+              switch (status) {
+                case 'ADDED':
+                  return <Text fontSize="$1" color="$green10">Đã là thành viên</Text>;
+
+                case 'SENT':
+                  return <Text fontSize="$1" color="$blue10">Đã gửi lời mời</Text>;
+
+                case 'PENDING':
+                  return <Text fontSize="$1" color="$blue10">Đang chờ duyệt</Text>;
+
+                case 'NOT_IN_GROUP':
+                  if (!friend.allowAutoAddToGroup) {
+                    return (
+                      <XStack alignItems="center" space="$1">
+                        <Text fontSize="$1" color="$blue10">Cần gửi yêu cầu</Text>
+                        <Info size={12} color="$blue10" />
+                      </XStack>
+                    );
+                  }
+                  return null;
+
+                default:
+                  return null;
+              }
+            };
 
             return (
               <XStack
@@ -119,32 +161,28 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
                 justifyContent="space-between"
                 p="$3"
                 borderRadius="$4"
-                onPress={() => toggleMember(friend.id, isAlreadyInGroup)}
+                onPress={() => isSelectable && toggleMember(friend.id)}
                 backgroundColor={isSelected ? '$blue2' : 'transparent'}
-                opacity={isAlreadyInGroup ? 0.6 : 1}
-                pressStyle={isAlreadyInGroup ? undefined : { backgroundColor: '$backgroundHover' }}
+                opacity={isSelectable ? 1 : 0.6}
+                pressStyle={isSelectable ? { backgroundColor: '$backgroundHover' } : undefined}
               >
                 <XStack alignItems="center" space="$3">
                   <Avatar circular size="$4">
                     <Avatar.Image src={friend.avatarUrl} />
                     <Avatar.Fallback backgroundColor="$blue5" />
                   </Avatar>
+
                   <YStack>
                     <Text fontSize="$3" fontWeight={isSelected ? '600' : '500'}>
                       {friend.name}
                     </Text>
-                    {isAlreadyInGroup ? (
-                      <Text fontSize="$1" color="$green10">Đã là thành viên</Text>
-                    ) : !friend.allowAutoAddToGroup && (
-                      <XStack alignItems="center" space="$1">
-                        <Text fontSize="$1" color="$gray10">Cần gửi yêu cầu</Text>
-                        <Info size={12} color="$gray10" />
-                      </XStack>
-                    )}
+
+                    {renderStatus()}
                   </YStack>
                 </XStack>
 
-                {!isAlreadyInGroup && (
+                {/* Chỉ cho chọn khi NOT_IN_GROUP */}
+                {isSelectable && (
                   <Circle
                     size={22}
                     borderWidth={2}

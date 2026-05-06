@@ -6,6 +6,7 @@ import {
   RoomMemberResponse,
   LeaveCheckResponse,
   GroupPendingRequestResponse,
+  FriendResponse,
 } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { RoomStatus } from '@my/ui'
@@ -133,7 +134,7 @@ export const roomApi = baseApi.injectEndpoints({
     }),
 
     // Thêm thành viên khi đã có nhóm
-    addMembers: builder.mutation<void, { roomId: string; targetUserIds: string[] }>({
+    addMembers: builder.mutation<FriendResponse[], { roomId: string; targetUserIds: string[] }>({
       query: ({ roomId, targetUserIds }) => ({
         url: `/rooms/${roomId}/members`,
         method: 'POST',
@@ -151,13 +152,6 @@ export const roomApi = baseApi.injectEndpoints({
       // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
-    markAsRead: builder.mutation<ApiResponse<void>, string>({
-      query: (roomId) => ({
-        url: `/rooms/${roomId}/read`,
-        method: 'PATCH',
-      }),
-      invalidatesTags: ['Rooms'],
-    }),
     getPendingRequest: builder.query<PageResponse<GroupPendingRequestResponse>, { roomId: string }>(
       {
         query: ({ roomId }) => ({
@@ -167,6 +161,7 @@ export const roomApi = baseApi.injectEndpoints({
         // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
       }
     ),
+
     approveMember: builder.mutation<void, { roomId: string; userId: string; accept: boolean }>({
       query: (data) => ({
         url: `/rooms/${data.roomId}/pending-requests/${data.userId}`,
@@ -195,7 +190,6 @@ export const {
   useRespondGroupInviteMutation,
   useGetGroupInvitesQuery,
   useGetRoomMetadataQuery,
-  useMarkAsReadMutation,
   useAddMembersMutation,
   useGetPendingRequestQuery,
   useApproveMemberMutation,

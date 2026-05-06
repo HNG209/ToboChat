@@ -1,5 +1,4 @@
-import { FriendStatus, RoomType } from './Enums'
-import { UserResponse } from 'app/types/Response'
+import { FriendStatus, MemberRole, MemberStatus, MessageStatus, MessageType, RoomType, SystemAction } from './Enums'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -18,8 +17,10 @@ export interface FriendResponse {
   name: string
   avatarUrl?: string
   createdAt: string
-  inRoom?: boolean
   allowAutoAddToGroup: boolean
+
+  // Trạng thái trong phòng
+  memberStatus?: MemberStatus
 }
 
 export interface UserResponse {
@@ -34,16 +35,27 @@ export interface UserResponse {
 }
 
 export interface RoomMemberResponse {
-  roomId: string
   id: string
-  role: 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
+  roomId: string
+  role: MemberRole
   roomName: string
-  status: 'ACTIVE' | 'PENDING'
-  roomType: 'DM' | 'GROUP'
+  roomType: RoomType
   addedBy?: string
 
   // Thông tin cá nhân
   member?: UserResponse
+
+  // Permissions trong phòng
+  permissions?: MemberPermissionsResponse
+}
+
+export interface MemberPermissionsResponse {
+  canUpdateRoomSettings: boolean
+  canAddMember: boolean
+  canSendMessage: boolean
+  canUpdateMetadata: boolean
+  canDisbandGroup: boolean
+  canApproveMember: boolean
 }
 
 export interface FriendRequestResponse {
@@ -73,15 +85,19 @@ export interface RoomResponse {
 
 export interface MessageResponse {
   id: string
+  tempId: string
   roomId: string
   user?: UserResponse
   replyTo?: MessageResponse
   content: string
-  self: boolean
   createdAt: string
-  messageStatus?: 'SENT' | 'REVOKED'
-  localStatus?: 'VISIBLE' | 'DELETED'
+  messageStatus?: MessageStatus
   attachments?: Attachment[]
+
+  // Tin nhắn hệ thống
+  messageType: MessageType
+  action?: SystemAction
+  metadata?: Record<string, string>
 }
 
 export interface GroupAcceptRequestResponse {

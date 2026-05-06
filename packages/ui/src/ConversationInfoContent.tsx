@@ -26,8 +26,8 @@ import {
   ArrowLeft
 } from "@tamagui/lucide-icons"
 import { Alert, Platform } from 'react-native'
-import { RoomResponse } from "app/types/Response"
-import { roomApi, useCheckLeaveMutation, useLeaveGroupMutation } from 'app/services/roomApi'
+import { RoomMemberResponse, RoomResponse } from "app/types/Response"
+import { roomApi, useCheckLeaveMutation, useGetMyInfoQuery, useLeaveGroupMutation } from 'app/services/roomApi'
 import { TransferAdminDialog } from './group/TransferAdminDialog'
 import { useRouter } from 'solito/navigation'
 import { AppDispatch } from 'app/store'
@@ -35,39 +35,39 @@ import { useDispatch } from 'react-redux';
 
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
+  roomId: string
   onClose: () => void
   onLeaveGroup?: () => void
   onAddMember?: () => void
   onManageGroup?: () => void
   onViewMembers: () => void
   onApproveMembers: () => void,
-  isAdmin: boolean
 }
 
 export const ConversationInfoContent = ({
   roomData,
+  roomId,
   onClose,
   onLeaveGroup,
   onAddMember,
   onManageGroup,
   onViewMembers,
   onApproveMembers,
-  isAdmin,
 }: ConversationInfoProps) => {
   const dispatch = useDispatch<AppDispatch>()
   const router = useRouter();
   const [checkLeave, { isLoading: isChecking }] = useCheckLeaveMutation()
   const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
+  const { data: myInfo } = useGetMyInfoQuery({ roomId });
+
   const [openTransferAdmin, setOpenTransferAdmin] = useState(false) // State cho Modal chuyển quyền
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
-  const memberCount = roomData?.memberCount || 0
-  const handleLeaveGroupPress = async () => {
-    if (!roomData) return;
 
+  const handleLeaveGroupPress = async () => {
     try {
       // 1. Check quyền rời nhóm
-      const res = await checkLeave({ roomId: roomData.id }).unwrap();
+      const res = await checkLeave({ roomId }).unwrap();
 
       if (res.canLeave) {
         // 2. Nếu là MEMBER -> Cho phép rời luôn, hiển thị confirm an toàn
@@ -94,16 +94,15 @@ export const ConversationInfoContent = ({
   }
 
   const executeLeaveGroup = async () => {
-    if (!roomData) return
     try {
-      await leaveGroup({ roomId: roomData?.id }).unwrap();
+      await leaveGroup({ roomId }).unwrap();
       onClose(); // Đóng sidebar/panel thông tin sau khi rời thành công
       dispatch(
         roomApi.util.updateQueryData(
           'getJoinedRooms',
           { status: 'ACTIVE' },
           (draft) => {
-            const index = draft.items?.findIndex((r) => r.id === roomData.id)
+            const index = draft.items?.findIndex((r) => r.id === roomId)
             if (index !== undefined && index !== -1) {
               draft.items.splice(index, 1)
             }
@@ -186,7 +185,7 @@ export const ConversationInfoContent = ({
 
 
       <TransferAdminDialog
-        roomId={roomData?.id || ''}
+        roomId={roomId}
         open={openTransferAdmin}
         onOpenChange={setOpenTransferAdmin}
         onSuccess={() => {
@@ -234,7 +233,7 @@ export const ConversationInfoContent = ({
             <QuickActionButton icon={Bell} label="Thông báo" />
             {isGroup && (
               <>
-                <QuickActionButton icon={UserPlus} label="Thêm thành viên" isDisabled={!(isAdmin ?? false) && !(roomData.allowAddMember ?? false)} color="$blue10" onPress={onAddMember} />
+                <QuickActionButton icon={UserPlus} label="Thêm thành viên" isDisabled={!myInfo?.permissions?.canAddMember} color="$blue10" onPress={onAddMember} />
                 <QuickActionButton icon={ShieldCheck} label="Quản lý" color="$green10" onPress={onManageGroup} />
               </>
             )}

@@ -3,13 +3,6 @@ import {
   YStack, XStack, Text, Button, Avatar, ScrollView, Circle
 } from 'tamagui'
 import { ArrowLeft, Check, X, UserPlus } from '@tamagui/lucide-icons'
-// import {
-//   roomApi,
-//   // Giả định các hook này tồn tại trong roomApi của bạn
-//   useGetPendingMembersQuery,
-//   useApproveMemberMutation,
-//   useRejectMemberMutation
-// } from 'app/services/roomApi'
 import { ActivityIndicator } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { AppDispatch } from 'app/store'

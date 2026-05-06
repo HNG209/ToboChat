@@ -11,8 +11,8 @@ import {
   Label,
 } from "tamagui"
 import { ArrowLeft, ChevronRight } from "@tamagui/lucide-icons"
-import { RoomResponse } from "app/types/Response"
-import { roomApi, useDisbandGroupMutation, useUpdateRoomSettingsMutation } from 'app/services/roomApi'
+import { RoomMemberResponse, RoomResponse } from "app/types/Response"
+import { roomApi, useDisbandGroupMutation, useGetMyInfoQuery, useUpdateRoomSettingsMutation } from 'app/services/roomApi'
 import { RoomUpdateRequest } from 'app/types/Request'
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from 'app/store'
@@ -20,19 +20,19 @@ import { useRouter } from 'solito/navigation'
 
 type GroupManagementProps = {
   roomData: RoomResponse | undefined
-  isAdmin: boolean
+  roomId: string
   onClose: () => void
 }
 
 const SettingRow = ({
   label,
   value,
-  isAdmin,
+  disabled,
   onToggle
 }: {
   label: string,
   value: boolean,
-  isAdmin: boolean,
+  disabled: boolean,
   onToggle: (val: boolean) => void
 }) => {
   // Giữ local state để UI phản hồi ngay lập tức (Optimistic Update)
@@ -54,10 +54,10 @@ const SettingRow = ({
         size="$3"
         checked={checked}
         onCheckedChange={handleCheckedChange}
-        disabled={!isAdmin}
+        disabled={disabled}
         backgroundColor={checked ? "$blue10" : "$gray5"}
         borderColor={checked ? "$blue10" : "$gray7"}
-        opacity={!isAdmin ? 0.5 : 1}
+        opacity={disabled ? 0.5 : 1}
       >
         <Switch.Thumb animation="quick" backgroundColor="white" />
       </Switch>
@@ -67,29 +67,28 @@ const SettingRow = ({
 
 export const GroupManagementContent = ({
   roomData,
-  isAdmin,
+  roomId,
   onClose,
 }: GroupManagementProps) => {
   const [updateRoomSettings] = useUpdateRoomSettingsMutation();
+  const { data: myInfo } = useGetMyInfoQuery({ roomId });
   const [disbandGroup] = useDisbandGroupMutation();
   const dispatch = useDispatch<AppDispatch>()
   const router = useRouter()
 
-
   // 2. Viết hàm xử lý chung cho tất cả các Switch
   const handleToggleSetting = async (settingKey: keyof RoomUpdateRequest, newValue: boolean) => {
-    if (!roomData?.id) return;
     const patchResult = dispatch(
       roomApi.util.updateQueryData(
         'getRoomMetadata',
-        { roomId: roomData.id },
+        { roomId },
         (draft) => {
           (draft as any)[settingKey] = newValue;
         }
       )
     );
     try {
-      await updateRoomSettings({ roomId: roomData.id, request: { [settingKey]: newValue } })
+      await updateRoomSettings({ roomId, request: { [settingKey]: newValue } })
     } catch (error) {
       patchResult.undo();
       console.error(`Lỗi khi cập nhật ${settingKey}:`, error);
@@ -98,8 +97,7 @@ export const GroupManagementContent = ({
 
   const handleDisbandGroup = async () => {
     try {
-      if (!roomData) return;
-      await disbandGroup({ roomId: roomData.id }).unwrap();
+      await disbandGroup({ roomId }).unwrap();
 
       // xoa cache
       dispatch(
@@ -107,7 +105,7 @@ export const GroupManagementContent = ({
           'getJoinedRooms',
           { status: 'ACTIVE' },
           (draft) => {
-            const index = draft.items?.findIndex((r) => r.id === roomData.id)
+            const index = draft.items?.findIndex((r) => r.id === roomId)
             if (index !== undefined && index !== -1) {
               draft.items.splice(index, 1)
             }
@@ -139,7 +137,7 @@ export const GroupManagementContent = ({
         />
         <Text fontWeight="700" fontSize="$5">Quản lý nhóm</Text>
         {
-          !isAdmin &&
+          !myInfo?.permissions?.canUpdateRoomSettings &&
           <Text fontWeight="500" fontSize="$2">(Chỉ xem)</Text>
         }
       </XStack>
@@ -150,7 +148,7 @@ export const GroupManagementContent = ({
           <SettingRow
             label="Cho phép thêm thành viên vào nhóm"
             value={roomData?.allowAddMember ?? true}
-            isAdmin={isAdmin}
+            disabled={!myInfo?.permissions?.canUpdateRoomSettings}
             onToggle={(val) => handleToggleSetting('allowAddMember', val)}
           />
           <Separator opacity={0.5} />
@@ -158,7 +156,7 @@ export const GroupManagementContent = ({
           <SettingRow
             label="Cho phép thành viên gửi tin nhắn"
             value={roomData?.allowSendMessage ?? true}
-            isAdmin={isAdmin}
+            disabled={!myInfo?.permissions?.canUpdateRoomSettings}
             onToggle={(val) => handleToggleSetting('allowSendMessage', val)}
           />
           <Separator opacity={0.5} />
@@ -166,7 +164,7 @@ export const GroupManagementContent = ({
           <SettingRow
             label="Cho phép chỉnh sửa thông tin phòng"
             value={roomData?.allowUpdateMetadata ?? true}
-            isAdmin={isAdmin}
+            disabled={!myInfo?.permissions?.canUpdateRoomSettings}
             onToggle={(val) => handleToggleSetting('allowUpdateMetadata', val)}
           />
           <Separator opacity={0.5} />
@@ -174,33 +172,13 @@ export const GroupManagementContent = ({
           <SettingRow
             label="Phê duyệt khi vào phòng"
             value={roomData?.approveMember ?? false}
-            isAdmin={isAdmin}
+            disabled={!myInfo?.permissions?.canUpdateRoomSettings}
             onToggle={(val) => handleToggleSetting('approveMember', val)}
           />
 
           <Separator opacity={0.5} />
 
-          {
-            isAdmin &&
-            <YStack mt="$4" p="$2">
-              <Text fontSize="$3" color="$color10" px="$3" pb="$2">Quyền hạn khác</Text>
-              <ListItem
-                title="Quản lý phó nhóm"
-                iconAfter={ChevronRight}
-                pressTheme={isAdmin}
-                disabled={!isAdmin}
-                opacity={!isAdmin ? 0.5 : 1}
-                borderRadius="$4"
-                backgroundColor="transparent"
-                hoverStyle={{
-                  backgroundColor: "$blue2",
-                  cursor: "pointer"
-                }}
-              />
-            </YStack>
-          }
-
-          {isAdmin && (
+          {myInfo?.permissions?.canDisbandGroup && (
             <YStack p="$4">
               <Button
                 theme="red"
