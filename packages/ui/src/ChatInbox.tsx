@@ -40,6 +40,16 @@ function TabButton({
   )
 }
 
+type InboxUpdatedPayload = {
+  message: MessageResponse
+  inboxStatus: RoomStatus
+}
+
+type NewRoomPayload = {
+  room: RoomResponse
+  inboxStatus: RoomStatus
+}
+
 export default function ChatInbox() {
   const dispatch = useDispatch<AppDispatch>()
   const activeRoomId = useSelector(
@@ -82,18 +92,15 @@ export default function ChatInbox() {
     const socket = getSocket()
     if (!socket) return
 
-    const handleInboxUpdated = (payload: any) => {
-      const newMsg: MessageResponse = payload.message || payload
-      const targetRoomId = newMsg.roomId || payload.roomId
-
+    const handleInboxUpdated = (payload: InboxUpdatedPayload) => {
       dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        roomApi.util.updateQueryData('getJoinedRooms', { status: payload.inboxStatus }, (draft) => {
           if (!draft?.items) return
 
-          const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
+          const roomIndex = draft.items.findIndex((r) => r.id === payload.message.roomId)
 
           if (roomIndex !== -1) {
-            draft.items[roomIndex].latestMessage = newMsg
+            draft.items[roomIndex].latestMessage = payload.message
 
             const [updatedRoom] = draft.items.splice(roomIndex, 1)
             draft.items.unshift(updatedRoom)
@@ -145,12 +152,12 @@ export default function ChatInbox() {
       )
     }
 
-    const handleNewRoom = (newRoom: RoomResponse) => {
+    const handleNewRoom = (payload: NewRoomPayload) => {
       // Cập nhật cache rtk-query để thêm nhóm mới vào danh sách phòng
       dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+        roomApi.util.updateQueryData('getJoinedRooms', { status: payload.inboxStatus }, (draft) => {
           if (draft) {
-            draft.items.unshift(newRoom);
+            draft.items.unshift(payload.room);
           }
         })
       );
