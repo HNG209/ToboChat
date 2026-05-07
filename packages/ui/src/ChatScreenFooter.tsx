@@ -94,13 +94,11 @@ export const ChatScreenFooter = ({
 
     // Lưu lại replyTo cũ để revert nếu lỗi, sau đó xóa state ngay để tránh gửi lặp
     const currentReplyTo = replyTo;
-    if (replyTo) setReplyTo(null)
     setDrafts([])
 
-    // Biến cờ để đánh dấu tin nhắn đầu tiên trong chuỗi (chỉ tin này mới mang theo Reply)
-    let firstMessageSent = false;
 
-    const sendSingleMessage = async (messageContent: string, messageAttachments: Attachment[], useReply: boolean) => {
+
+    const sendSingleMessage = async (messageContent: string, messageAttachments: Attachment[]) => {
       const tempId = uuidv4()
       const optimisticMessage: MessageResponse = {
         id: tempId,
@@ -108,7 +106,10 @@ export const ChatScreenFooter = ({
         content: messageContent,
         createdAt: new Date().toISOString(),
         roomId: roomId,
-        replyTo: useReply ? currentReplyTo || undefined : undefined,
+        replyTo:
+          messageContent.trim().length > 0
+            ? currentReplyTo || undefined
+            : undefined,
         attachments: messageAttachments,
         user: myProfile,
         messageType: 'USER',
@@ -126,10 +127,18 @@ export const ChatScreenFooter = ({
           roomId,
           tempId,
           content: messageContent,
-          replyTo: useReply ? currentReplyTo?.id : undefined,
+          replyTo:
+            messageContent.trim().length > 0
+              ? currentReplyTo?.id
+              : undefined,
           attachments: messageAttachments,
         }).unwrap()
-
+        if (
+          messageContent.trim().length > 0 &&
+          currentReplyTo
+        ) {
+          setReplyTo(null)
+        }
         dispatch(
           roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
             if (!draft?.items) return
@@ -159,25 +168,19 @@ export const ChatScreenFooter = ({
       }
     }
 
-    // Hàm wrap để quản lý việc chỉ gửi Reply cho tin đầu tiên
-    const executeSend = async (msgContent: string, msgAttachments: Attachment[]) => {
-      const shouldReply = !firstMessageSent;
-      await sendSingleMessage(msgContent, msgAttachments, shouldReply);
-      firstMessageSent = true;
-    };
 
     // --- BẮT ĐẦU LOGIC GỬI THEO THỨ TỰ ---
 
-    // Trường hợp đặc biệt: Text + đúng 1 Media (không có file đi kèm) -> Gộp chung
+    // Trường hợp đặc biệt: Text + đúng 1 Media (không có file  đi kèm) -> Gộp chung
     const hasOnlyOneMedia = totalAttachments === 1 && isMediaType(attachments[0].contentType);
     if (hasText && hasOnlyOneMedia) {
-      await executeSend(content, attachments);
+      await sendSingleMessage(content, attachments);
       return;
     }
 
     // Nếu có Text (và không rơi vào case gộp ở trên), gửi Text riêng trước
     if (hasText) {
-      await executeSend(content, []);
+      await sendSingleMessage(content, []);
     }
 
     let mediaQueue: Attachment[] = [];
@@ -191,17 +194,17 @@ export const ChatScreenFooter = ({
         // Nếu gặp FILE: đóng vai trò là vách ngăn
         // 1. Giải phóng (gửi) nhóm Media đang chờ trước đó
         if (mediaQueue.length > 0) {
-          await executeSend('', mediaQueue);
+          await sendSingleMessage('', mediaQueue);
           mediaQueue = [];
         }
         // 2. Gửi file hiện tại ngay lập tức (luôn tách riêng)
-        await executeSend('', [item]);
+        await sendSingleMessage('', [item]);
       }
     }
 
     // Gửi nốt nhóm Media còn sót lại sau vòng lặp (nếu có)
     if (mediaQueue.length > 0) {
-      await executeSend('', mediaQueue);
+      await sendSingleMessage('', mediaQueue);
     }
   }
 
