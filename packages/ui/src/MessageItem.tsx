@@ -100,13 +100,9 @@ export function MessageItem({
       a.contentType?.startsWith('image/') ||
       a.contentType?.startsWith('video/')
     )
-
-  const files = isRevoked
-    ? []
-    : (msg.attachments || []).filter(a =>
-      !a.contentType?.startsWith('image/') &&
-      !a.contentType?.startsWith('video/')
-    )
+  const file = !isRevoked && msg.attachments && msg.attachments.length > 0
+    ? msg.attachments.find(a => !a.contentType?.startsWith('image/') && !a.contentType?.startsWith('video/'))
+    : null
 
   const time = new Date(msg.createdAt)
   const timeString = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`
@@ -306,7 +302,7 @@ export function MessageItem({
             </YStack>
           ) : null}
           {/* TEXT ONLY */}
-          {media.length === 0 ? (
+          {(media.length === 0 && !file) ? (
             <Pressable
               onPress={selectionMode ? () => onToggleSelect(msg.id) : undefined}
               onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
@@ -328,31 +324,42 @@ export function MessageItem({
             </Pressable>
           ) : null}
           {/* FILES */}
-          {files.length > 0 ? (
+          {file ? (
             <YStack space="$1">
-              {files.map((f, i) => (
-                <Pressable
-                  key={i}
-                  onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(f.fileUrl)}
-                  onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
-                  delayLongPress={250}
+              <Pressable
+                onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(file.fileUrl)}
+                onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
+                delayLongPress={250}
+              >
+                <XStack
+                  p="$2.5"
+                  bg="$color3"
+                  borderRadius="$3"
+                  hoverStyle={{ bg: '$color4' }} // Thêm hiệu ứng hover nếu dùng trên web/tablet
+                  opacity={selectionMode && isSelected ? 0.6 : 1}
+                  minWidth={220}
+                  maxWidth={280}
+                  alignItems="center"
+                  borderWidth={1}
+                  borderColor="$color4"
                 >
-                  <XStack
-                    p="$2"
-                    bg="$color3"
-                    borderRadius="$3"
-                    opacity={selectionMode && isSelected ? 0.6 : 1}
-                    minWidth={250}
-                  >
-                    <File size={18} />
-                    <YStack flex={1} ml="$2">
-                      <Text numberOfLines={1}>{f.fileName}</Text>
-                      <Text fontSize="$1">{(f.fileSize / 1024).toFixed(1)} KB</Text>
-                    </YStack>
-                    <Download size={16} />
-                  </XStack>
-                </Pressable>
-              ))}
+                  <Circle size={35} bg="$color5" alignItems="center" justifyContent="center">
+                    <File size={18} color="$color11" />
+                  </Circle>
+
+                  <YStack flex={1} ml="$3">
+                    <Text numberOfLines={1} fontWeight="600" fontSize="$3">
+                      {file.fileName}
+                    </Text>
+                    <Text fontSize="$1" color="$color10">
+                      {(file.fileSize / 1024).toFixed(1)} KB
+                    </Text>
+                  </YStack>
+
+                  <Download size={18} color="$color10" />
+                </XStack>
+              </Pressable>
+
               {isGroupEnd && !isRevoked && (
                 <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
                   {timeString}

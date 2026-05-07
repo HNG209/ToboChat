@@ -1,6 +1,7 @@
 import { useColorScheme } from 'react-native'
 import {
   CustomToast,
+  PortalProvider,
   TamaguiProvider,
   type TamaguiProviderProps,
   ToastProvider,
@@ -47,24 +48,26 @@ export function Provider({ children }) {
       <TamaguiProvider config={config} defaultTheme={theme}>
         {/* Component Theme này sẽ áp các token màu $background, $color... theo theme hiện tại */}
         <I18nextProvider i18n={i18n}>
-          <Theme name={theme}>
-            {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
-            <YStack flex={1} backgroundColor="$background">
-              <ReduxProvider store={store}>
-                <AuthProvider>
-                  <ToastProvider
-                    swipeDirection="horizontal"
-                    duration={6000}
-                    native={[]}
+          <PortalProvider shouldAddRootHost>
+            <Theme name={theme}>
+              {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
+              <YStack flex={1} backgroundColor="$background">
+                <ReduxProvider store={store}>
+                  <AuthProvider>
+                    <ToastProvider
+                      swipeDirection="horizontal"
+                      duration={6000}
+                      native={[]}
                     // native={isWeb ? [] : ['mobile']}
-                  >
-                    {children}
-                    <CustomToast />
-                  </ToastProvider>
-                </AuthProvider>
-              </ReduxProvider>
-            </YStack>
-          </Theme>
+                    >
+                      {children}
+                      <CustomToast />
+                    </ToastProvider>
+                  </AuthProvider>
+                </ReduxProvider>
+              </YStack>
+            </Theme>
+          </PortalProvider>
         </I18nextProvider>
       </TamaguiProvider>
     </ThemeContext.Provider>

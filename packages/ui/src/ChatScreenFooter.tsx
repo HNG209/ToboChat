@@ -12,6 +12,7 @@ import { roomApi, useGetMyInfoQuery } from "app/services/roomApi";
 import { RoomStatus } from "./ChatInbox";
 import { StyledFlatList } from "./StyledFlatList";
 import { useGetProfileQuery } from "app/services/userApi";
+import ChatEmojiPicker from "./emoji/ChatEmojiPicker";
 
 type Props = {
   roomId: string,
@@ -58,22 +59,22 @@ export const ChatScreenFooter = ({
       handleSendMessage('');
     }
   };
-
+  const handleEmojiSelect = (emoji: string) => {
+    setLocalMessage((prev) => prev + emoji)
+  }
   const handleSendMessage = async (content: string) => {
     const isStillUploading = drafts.some((d) => d.isUploading)
     const hasError = drafts.some((d) => (d as any).error)
-    const message = content;
+
     if (isStillUploading) {
       alert('Vui lòng đợi tệp tin đang được tải lên...')
       return
     }
-
     if (hasError) {
       alert('Có tệp tin bị lỗi upload, vui lòng xóa hoặc thử lại!')
       return
     }
 
-    // 2. Xử lý attachments (Giữ nguyên logic của Đạt)
     const attachments: Attachment[] = drafts
       .filter((d) => d.fileUrl && d.fileUrl.startsWith('http'))
       .map((d) => ({
@@ -82,80 +83,125 @@ export const ChatScreenFooter = ({
         contentType: d.contentType,
         fileSize: d.fileSize,
       }))
-    const isTextOnly = content.trim().length > 0 && attachments.length === 0;
-    const isTextWithAttachments = content.trim().length > 0 && attachments.length > 0;
-    const isAttachmentsOnly = content.trim().length === 0 && attachments.length > 0;
-    // Nếu chỉ gửi Attachment, bỏ qua replyTo.
-    const activeReply = (isTextOnly || isTextWithAttachments) ? replyTo : null;
-    if (!content.trim() && attachments.length === 0) return;
 
-    const tempId = uuidv4()
+    const isMediaType = (contentType: string) =>
+      contentType?.startsWith('image/') || contentType?.startsWith('video/')
 
-    const optimisticMessage: MessageResponse = {
-      id: tempId, // ID tạm thời cho optimistic update, sẽ được backend trả về ID thật sau khi gửi thành công
-      tempId,
-      content: message,
-      createdAt: new Date().toISOString(),
-      roomId: roomId,
-      replyTo: activeReply || undefined,
-      attachments: attachments,
-      user: myProfile
-      // messageStatus: 'SENDING', // Trạng thái đang gửi
-    }
+    const hasText = content.trim().length > 0
+    const totalAttachments = attachments.length
 
-    // Reset input và drafts
-    if (activeReply) setReplyTo(null)
+    if (!hasText && totalAttachments === 0) return
+
+    // Lưu lại replyTo cũ để revert nếu lỗi, sau đó xóa state ngay để tránh gửi lặp
+    const currentReplyTo = replyTo;
+    if (replyTo) setReplyTo(null)
     setDrafts([])
 
-    // 4. Optimistic Update (Cập nhật cache ngay lập tức)
-    const patchResult = dispatch(
-      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-        if (!draft) return
-        if (!draft.items) draft.items = []
-        draft.items.unshift(optimisticMessage)
-      })
-    )
+    // Biến cờ để đánh dấu tin nhắn đầu tiên trong chuỗi (chỉ tin này mới mang theo Reply)
+    let firstMessageSent = false;
 
-    try {
-      // 1. Gửi tin nhắn
-      const result = await sendMessage({
-        roomId,
+    const sendSingleMessage = async (messageContent: string, messageAttachments: Attachment[], useReply: boolean) => {
+      const tempId = uuidv4()
+      const optimisticMessage: MessageResponse = {
+        id: tempId,
         tempId,
-        content: message,
-        replyTo: activeReply?.id,
-        attachments,
-      }).unwrap()
+        content: messageContent,
+        createdAt: new Date().toISOString(),
+        roomId: roomId,
+        replyTo: useReply ? currentReplyTo || undefined : undefined,
+        attachments: messageAttachments,
+        user: myProfile,
+        messageType: 'USER',
+      }
 
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-          if (!draft || !draft.items) return
-          const roomIndex = draft.items.findIndex((room) => room.id === roomId)
-          if (roomIndex !== -1) {
-            draft.items[roomIndex].latestMessage = result
-            const [updatedRoom] = draft.items.splice(roomIndex, 1)
-            draft.items.unshift(updatedRoom)
-          }
-        })
-      )
-
-      // cập nhật lại cache với ID thật và trạng thái đã gửi
-      dispatch(
+      const patchResult = dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-          if (!draft || !draft.items) return
-
-          const msg = draft.items?.find((m) => m.id === optimisticMessage.id)
-
-          if (msg) {
-            msg.id = result.id // Cập nhật ID thật từ server
-            msg.createdAt = result.createdAt // Cập nhật timestamp chính xác từ server
-            msg.content = result.content
-          }
+          if (!draft?.items) draft = { items: [] }
+          draft.items.unshift(optimisticMessage)
         })
       )
-    } catch (error) {
-      console.error('Lỗi khi gửi tin nhắn:', error)
-      if (activeReply) setReplyTo(activeReply)
-      patchResult.undo()
+
+      try {
+        const result = await sendMessage({
+          roomId,
+          tempId,
+          content: messageContent,
+          replyTo: useReply ? currentReplyTo?.id : undefined,
+          attachments: messageAttachments,
+        }).unwrap()
+
+        dispatch(
+          roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+            if (!draft?.items) return
+            const roomIndex = draft.items.findIndex((room) => room.id === roomId)
+            if (roomIndex !== -1) {
+              draft.items[roomIndex].latestMessage = result
+              const [updatedRoom] = draft.items.splice(roomIndex, 1)
+              draft.items.unshift(updatedRoom)
+            }
+          })
+        )
+
+        dispatch(
+          chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+            if (!draft?.items) return
+            const msg = draft.items.find((m) => m.id === optimisticMessage.id)
+            if (msg) {
+              msg.id = result.id
+              msg.createdAt = result.createdAt
+            }
+          })
+        )
+      } catch (error) {
+        console.error('Lỗi gửi:', error)
+        if (currentReplyTo) setReplyTo(currentReplyTo)
+        patchResult.undo()
+      }
+    }
+
+    // Hàm wrap để quản lý việc chỉ gửi Reply cho tin đầu tiên
+    const executeSend = async (msgContent: string, msgAttachments: Attachment[]) => {
+      const shouldReply = !firstMessageSent;
+      await sendSingleMessage(msgContent, msgAttachments, shouldReply);
+      firstMessageSent = true;
+    };
+
+    // --- BẮT ĐẦU LOGIC GỬI THEO THỨ TỰ ---
+
+    // Trường hợp đặc biệt: Text + đúng 1 Media (không có file đi kèm) -> Gộp chung
+    const hasOnlyOneMedia = totalAttachments === 1 && isMediaType(attachments[0].contentType);
+    if (hasText && hasOnlyOneMedia) {
+      await executeSend(content, attachments);
+      return;
+    }
+
+    // Nếu có Text (và không rơi vào case gộp ở trên), gửi Text riêng trước
+    if (hasText) {
+      await executeSend(content, []);
+    }
+
+    let mediaQueue: Attachment[] = [];
+
+    // Duyệt qua attachments để xử lý theo thứ tự người dùng đã chọn
+    for (const item of attachments) {
+      if (isMediaType(item.contentType)) {
+        // Nếu là Media, tạm thời đưa vào hàng chờ để gộp nhóm liên tục
+        mediaQueue.push(item);
+      } else {
+        // Nếu gặp FILE: đóng vai trò là vách ngăn
+        // 1. Giải phóng (gửi) nhóm Media đang chờ trước đó
+        if (mediaQueue.length > 0) {
+          await executeSend('', mediaQueue);
+          mediaQueue = [];
+        }
+        // 2. Gửi file hiện tại ngay lập tức (luôn tách riêng)
+        await executeSend('', [item]);
+      }
+    }
+
+    // Gửi nốt nhóm Media còn sót lại sau vòng lặp (nếu có)
+    if (mediaQueue.length > 0) {
+      await executeSend('', mediaQueue);
     }
   }
 
@@ -326,12 +372,16 @@ export const ChatScreenFooter = ({
         borderWidth={1}
         space="$2"
       >
-        <Button size="$3" circular chromeless icon={MoreHorizontal} />
+        <ChatEmojiPicker
+          onEmojiSelect={(emoji) => {
+            setLocalMessage((prev) => prev + emoji)
+          }}
+        />
         <Button
           size="$3"
           circular
           chromeless
-          icon={ImageIcon}
+          icon={<ImageIcon size={24} color="$color10" />}
           onPress={handlePickFile} // Gọi hàm từ Hook của bạn
         />
 
@@ -365,7 +415,7 @@ export const ChatScreenFooter = ({
             opacity={drafts.some((d) => d.isUploading) ? 0.5 : 1}
           />
         ) : (
-          <Button size="$3" circular chromeless icon={<Heart size={20} />} />
+          <Button size="$3" circular chromeless icon={<Heart size={24} color="$color10" />} />
         )}
       </XStack>
     </YStack>

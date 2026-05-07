@@ -2200,6 +2200,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@emoji-mart/data@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "@emoji-mart/data@npm:1.2.1"
+  checksum: 10/a9f50edaf354aadfede604fb26d80055a085e9160db2c924fd5e6afc27033cd5beb0006a9ee48240ce9c543e58e1bf1cf9ed83baba5db83a395154984b30bd91
+  languageName: node
+  linkType: hard
+
+"@emoji-mart/react@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "@emoji-mart/react@npm:1.1.1"
+  peerDependencies:
+    emoji-mart: ^5.2
+    react: ^16.8 || ^17 || ^18
+  checksum: 10/def4dddaa01ce88c396510d84d1878b881fe0f9c484a836a50e3db784a91ab98edf94816cff503b4d1cab7b00400a01c87e32d19dee2d950f64ef9243f79101e
+  languageName: node
+  linkType: hard
+
 "@emotion/hash@npm:^0.8.0":
   version: 0.8.0
   resolution: "@emotion/hash@npm:0.8.0"
@@ -12692,6 +12709,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"emoji-mart@npm:^5.6.0":
+  version: 5.6.0
+  resolution: "emoji-mart@npm:5.6.0"
+  checksum: 10/fbbd6ce6fe6bc30020a7de4bfd6375f3c00da9880a147fdbee37303d985856e5463a48a61177166ad056a355e0bd589df9c0866bd54f9c065d60a9efa80639dd
+  languageName: node
+  linkType: hard
+
+"emoji-picker-react@npm:^4.19.1":
+  version: 4.19.1
+  resolution: "emoji-picker-react@npm:4.19.1"
+  dependencies:
+    flairup: "npm:1.0.0"
+  peerDependencies:
+    react: ">=16"
+  checksum: 10/02e974d833131613e9bda6b5ae1510d6ebb08be0e5693140e86bc0e62835daaabf6e5bb5e0074f9096a62ffc374e69a962acbab2382e8ddffdcee8df42ea1413
+  languageName: node
+  linkType: hard
+
 "emoji-regex@npm:^8.0.0":
   version: 8.0.0
   resolution: "emoji-regex@npm:8.0.0"
@@ -14609,6 +14644,13 @@ __metadata:
   version: 1.0.13
   resolution: "find-value@npm:1.0.13"
   checksum: 10/afc34a8399c800de215924277302e896ebe32be0742fa53cb369fb7158d658759111bd88dd51ce5cfe2fe4dd64d1a53fd23ba495701b31030090348f6761e55e
+  languageName: node
+  linkType: hard
+
+"flairup@npm:1.0.0":
+  version: 1.0.0
+  resolution: "flairup@npm:1.0.0"
+  checksum: 10/9125711da6effe146fa748fda4c293027a142bde7cc9264d6e515a5845c79181d6fdb63bb1254a5c364006b333a1083d06ac6ead0c2e3c28024c977363e19571
   languageName: node
   linkType: hard
 
@@ -17293,6 +17335,8 @@ __metadata:
   dependencies:
     "@babel/runtime": "npm:^7.24.6"
     "@biomejs/biome": "npm:^1.9.3"
+    "@emoji-mart/data": "npm:^1.2.1"
+    "@emoji-mart/react": "npm:^1.1.1"
     "@react-native-community/cli": "npm:^20.1.1"
     "@tamagui/cli": "npm:^1.144.0"
     "@tamagui/react-native-svg": "npm:^1.144.0"
@@ -17300,6 +17344,8 @@ __metadata:
     antd: "npm:^6.3.3"
     aws-amplify: "npm:6.16.0"
     check-dependency-version-consistency: "npm:^4.1.0"
+    emoji-mart: "npm:^5.6.0"
+    emoji-picker-react: "npm:^4.19.1"
     expo: "npm:~54.0.31"
     expo-av: "npm:^16.0.8"
     expo-constants: "npm:^18.0.13"
