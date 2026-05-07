@@ -14,15 +14,47 @@ import { MemberUpdateRequest, RoomCreateRequest, RoomUpdateRequest } from 'app/t
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getJoinedRooms: builder.query<PageResponse<RoomResponse>, { status: RoomStatus }>({
+    getJoinedRooms: builder.query<
+      PageResponse<RoomResponse>,
+      { status: RoomStatus; cursor?: string; limit?: number }
+    >({
       // Lấy danh sách phòng của người dùng hiện tại
       query: (params) => ({
-        url: `/rooms?status=${params.status}`,
+        url: `/rooms`,
         method: 'GET',
         params: {
           status: params.status,
+          cursor: params.cursor,
+          limit: params.limit,
         },
       }),
+
+      serializeQueryArgs: ({ queryArgs, endpointName }) => {
+        // Tạo cache key chỉ dựa trên endpointName và status.
+        // Bỏ qua cursor, để tất cả các trang của cùng một status dùng chung 1 cache.
+        return `${endpointName}-${queryArgs.status}`
+      },
+
+      // Ép gọi lại API khi cursor thay đổi
+      forceRefetch({ currentArg, previousArg }) {
+        // Bắt buộc fetch lại khi người dùng yêu cầu một cursor mới
+        return currentArg?.cursor !== previousArg?.cursor && currentArg?.cursor !== undefined
+      },
+
+      merge: (currentCache, newData, { arg }) => {
+        if (!arg.cursor) {
+          return newData
+        }
+
+        if (!currentCache.items) {
+          currentCache.items = []
+        }
+
+        const existingIds = new Set(currentCache.items.map((i) => i.id))
+        const newItems = newData.items.filter((i) => !existingIds.has(i.id))
+        currentCache.items.push(...newItems)
+        currentCache.nextCursor = newData.nextCursor
+      },
       providesTags: ['Rooms'],
     }),
 

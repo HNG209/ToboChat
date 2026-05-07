@@ -756,7 +756,19 @@ export function ChatScreen({ roomId, insets }: Props) {
 
             {
               // Footer (đã refractor)
-              !myInfo?.permissions?.canSendMessage ?
+              myInfo?.permissions?.canSendMessage !== false ?
+                <ChatScreenFooter
+                  roomId={roomId}
+                  status={status}
+                  selectionMode={selectionMode}
+                  replyTo={replyTo}
+                  setReplyTo={setReplyTo}
+                  theme={theme}
+                  isWeb={isWeb}
+                  insets={insets}
+                  composerHeight={composerHeight}
+                  setComposerHeight={setComposerHeight}
+                /> :
                 <XStack
                   alignItems="center"
                   justifyContent="center"
@@ -772,19 +784,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   <Text fontSize="$3" color="$color11" fontWeight="500">
                     Quản trị viên đã tắt cho phép gửi tin nhắn
                   </Text>
-                </XStack> :
-                <ChatScreenFooter
-                  roomId={roomId}
-                  status={status}
-                  selectionMode={selectionMode}
-                  replyTo={replyTo}
-                  setReplyTo={setReplyTo}
-                  theme={theme}
-                  isWeb={isWeb}
-                  insets={insets}
-                  composerHeight={composerHeight}
-                  setComposerHeight={setComposerHeight}
-                />
+                </XStack>
             }
           </YStack>
 

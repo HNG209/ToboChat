@@ -1,4 +1,3 @@
-import { usePathname } from 'solito/navigation'
 import { ScrollView, Spinner, Text, YStack, XStack } from '@my/ui'
 import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
@@ -11,6 +10,8 @@ import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { formatPreviewMessage } from 'app/utils/chatHelper'
 import { useRouter, useParams } from 'solito/navigation'
+import { StyledFlatList } from './StyledFlatList'
+import { AlertTriangle, Inbox } from '@tamagui/lucide-icons'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -49,13 +50,14 @@ export default function ChatInbox() {
 
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
+  const [activeCursor, setActiveCursor] = useState<string | undefined>(undefined)
+  const [pendingCursor, setPendingCursor] = useState<string | undefined>(undefined)
   const router = useRouter()
 
   const { data, isLoading, isError } = useGetJoinedRoomsQuery(
-    { status },
-    {
-      skip: !hasSession,
-    }
+    { status, cursor: status === 'ACTIVE' ? activeCursor : pendingCursor },
+    { skip: !hasSession }
   )
 
   useEffect(() => {
@@ -92,8 +94,6 @@ export default function ChatInbox() {
 
           if (roomIndex !== -1) {
             draft.items[roomIndex].latestMessage = newMsg
-            // draft.items[roomIndex].unreadMessages =
-            //   (draft.items[roomIndex].unreadMessages || 0) + 1
 
             const [updatedRoom] = draft.items.splice(roomIndex, 1)
             draft.items.unshift(updatedRoom)
@@ -250,18 +250,36 @@ export default function ChatInbox() {
     router.push(`/chat/${roomId}`)
   }
 
-  if (!hasSession || isLoading) {
-    return (
-      <YStack flex={1} justifyContent="center" alignItems="center">
-        <Spinner size="large" color="$blue10" />
-      </YStack>
-    )
+  const handleFetchMore = () => {
+    if (isLoading || isFetchingMore || !data?.nextCursor) return
+
+    setIsFetchingMore(true)
+    if (status === 'ACTIVE') {
+      setActiveCursor(data.nextCursor)
+    } else {
+      setPendingCursor(data.nextCursor)
+    }
+
+    setTimeout(() => {
+      setIsFetchingMore(false)
+    }, 1000)
   }
 
   if (isError) {
     return (
-      <YStack flex={1} justifyContent="center" alignItems="center">
-        <Text>Error loading rooms</Text>
+      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor="$color2">
+        <AlertTriangle size={48} color="#FF6B6B" />
+        <Text fontSize={18} fontWeight="700" color="#FF6B6B" marginTop={12}>
+          Đã xảy ra lỗi!
+        </Text>
+        <Text color="$color10" marginTop={4}>
+          Không thể tải danh sách phòng.
+        </Text>
+        <Pressable onPress={() => window.location.reload()} style={{ marginTop: 20 }}>
+          <XStack backgroundColor="$blue10" paddingHorizontal={20} paddingVertical={10} borderRadius="$5">
+            <Text color="white" fontWeight="600">Thử lại</Text>
+          </XStack>
+        </Pressable>
       </YStack>
     )
   }
@@ -286,29 +304,43 @@ export default function ChatInbox() {
       </YStack>
 
       {/* ===== LIST ===== */}
-      <ScrollView>
-        <YStack>
-          {data?.items?.map((room) => (
-            <ChatInboxItem
-              key={room.id}
-              name={room.roomName}
-              avatarUrl={
-                room.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  room.roomName
-                )}&background=random`
-              }
-              latestMessage={room.latestMessage}
-              time={room?.latestMessage?.createdAt ?? undefined}
-              pinned={false}
-              onPress={() =>
-                handleRoomPress(room.id, room.unreadMessages || 0)
-              }
-              unreadCount={room.unreadMessages}
-            />
-          ))}
-        </YStack>
-      </ScrollView>
+      <StyledFlatList<RoomResponse>
+        data={data?.items || []}
+        keyExtractor={room => room.id}
+        renderItem={({ item: room }) => (
+          <ChatInboxItem
+            selected={activeRoomId === room.id}
+            key={room.id}
+            name={room.roomName}
+            avatarUrl={
+              room.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`
+            }
+            latestMessage={room.latestMessage}
+            time={room?.latestMessage?.createdAt ?? undefined}
+            pinned={false}
+            onPress={() => handleRoomPress(room.id, room.unreadMessages || 0)}
+            unreadCount={room.unreadMessages}
+          />
+        )}
+        ListEmptyComponent={
+          isLoading ? (
+            <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+              <Spinner size="large" color="$blue10" />
+            </YStack>
+          ) : (
+            <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+              <Inbox size={48} color="#A0AEC0" />
+              <Text fontSize={18} fontWeight="700" color="$color10" marginTop={12}>
+                Không có phòng nào
+              </Text>
+            </YStack>
+          )
+        }
+        onEndReached={handleFetchMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingMore ? <Spinner size="small" color="$blue10" /> : null}
+      />
     </YStack>
   )
 }
