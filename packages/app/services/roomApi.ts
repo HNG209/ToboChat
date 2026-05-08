@@ -181,7 +181,7 @@ export const roomApi = baseApi.injectEndpoints({
         url: `/rooms/${roomId}`,
         method: 'GET',
       }),
-      // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
+      providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
     getPendingRequest: builder.query<PageResponse<GroupPendingRequestResponse>, { roomId: string }>(
@@ -216,14 +216,29 @@ export const roomApi = baseApi.injectEndpoints({
         params: { contentType },
       }),
     }),
+    updateRoomName: builder.mutation<void, { roomId: string; roomName: string }>({
+      query: ({ roomId, roomName }) => ({
+        url: `/rooms/${roomId}/name`,
+        method: 'PATCH',
+        data: { roomName },
+      }),
+
+      invalidatesTags: (result, error, arg) => [
+        { type: 'RoomMetadata', id: arg.roomId },
+        { type: 'Rooms' }, // update list chat sidebar luôn
+      ],
+    }),
     updateRoomAvatar: builder.mutation<void, { roomId: string; avatarUrl: string }>({
       query: ({ roomId, avatarUrl }) => ({
         url: `/rooms/${roomId}/avatar`,
         method: 'PATCH',
-        data: {
-          avatarUrl,
-        },
+        data: { avatarUrl },
       }),
+
+      invalidatesTags: (result, error, arg) => [
+        { type: 'RoomMetadata', id: arg.roomId },
+        { type: 'Rooms' },
+      ],
     }),
   }),
   overrideExisting: true,
@@ -248,4 +263,5 @@ export const {
   useApproveMemberMutation,
   useGetGroupImageUploadUrlMutation,
   useUpdateRoomAvatarMutation,
+  useUpdateRoomNameMutation,
 } = roomApi

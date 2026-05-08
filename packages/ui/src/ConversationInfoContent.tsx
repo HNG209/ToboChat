@@ -10,7 +10,8 @@ import {
   XStack,
   YStack,
   Heading,
-  Theme
+  Theme,
+  Input
 } from "tamagui"
 import {
   Edit3,
@@ -36,7 +37,7 @@ import { useDispatch } from 'react-redux';
 import { View } from 'tamagui'
 import { Image } from 'tamagui'
 import { EditAvatar } from './EditAvatar'
-
+import { useUpdateRoomNameMutation } from 'app/services/roomApi'
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
   roomId: string
@@ -70,7 +71,9 @@ export const ConversationInfoContent = ({
   const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
   const [openEditAvatar, setOpenEditAvatar] = useState(false)
-
+  const [updateRoomName] = useUpdateRoomNameMutation()
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState(roomData?.roomName || '')
   const withCacheBuster = (url?: string) => {
     if (!url || !avatarCacheKey) return url
     return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
@@ -109,7 +112,29 @@ export const ConversationInfoContent = ({
       // Xử lý thông báo lỗi UI ở đây
     }
   }
+  const handleSaveName = async () => {
+    try {
+      if (!nameInput.trim()) return
 
+      await updateRoomName({
+        roomId,
+        roomName: nameInput.trim(),
+      }).unwrap()
+
+      // update cache RTK
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId }, (draft) => {
+          if (draft) {
+            draft.roomName = nameInput.trim()
+          }
+        })
+      )
+
+      setIsEditingName(false)
+    } catch (err) {
+      console.error(err)
+    }
+  }
   const executeLeaveGroup = async () => {
     try {
       await leaveGroup({ roomId }).unwrap();
@@ -268,11 +293,64 @@ export const ConversationInfoContent = ({
           </View>
           <YStack alignItems="center" space="$1">
             <XStack alignItems="center" justifyContent="center" space="$2" px="$5">
-              <Heading size="$7" textAlign="center" numberOfLines={2}>
-                {roomData?.roomName}
-              </Heading>
-              {isGroup && (
-                <Button size="$2" circular icon={Edit3} chromeless backgroundColor="$backgroundHover" />
+              {isEditingName ? (
+                <XStack
+                  alignItems="center"
+                  space="$2"
+                  backgroundColor="$backgroundStrong"
+                  borderRadius="$10"
+                  px="$3"
+                  py="$2"
+                >
+                  <Input
+                    value={nameInput}
+                    onChangeText={setNameInput}
+                    autoFocus
+                    width={180}
+                    borderWidth={0}
+                    backgroundColor="transparent"
+                    fontWeight="600"
+                  />
+
+                  <Button
+                    size="$2"
+                    circular
+                    backgroundColor="$green3"
+                    onPress={handleSaveName}
+                  >
+                    <Text color="$green10">✓</Text>
+                  </Button>
+
+                  <Button
+                    size="$2"
+                    circular
+                    backgroundColor="$red3"
+                    onPress={() => setIsEditingName(false)}
+                  >
+                    <Text color="$red10">✕</Text>
+                  </Button>
+                </XStack>
+              ) : (
+                <XStack alignItems="center" space="$2">
+                  <Heading size="$7" textAlign="center">
+                    {roomData?.roomName}
+                  </Heading>
+
+                  {isGroup && (
+                    <Button
+                      size="$2"
+                      circular
+                      icon={Edit3}
+                      backgroundColor="$backgroundStrong"
+                      hoverStyle={{ scale: 1.05 }}
+                      pressStyle={{ scale: 0.95 }}
+                      onPress={() => {
+                        setNameInput(roomData?.roomName || '')
+                        setIsEditingName(true)
+                      }}
+                    />
+                  )}
+                </XStack>
               )}
             </XStack>
           </YStack>
