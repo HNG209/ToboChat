@@ -46,6 +46,8 @@ export const formatSystemMessage = (msg: MessageResponse, selfUserId?: string) =
       return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã xóa ${meta?.removedMemberId === selfUserId ? 'bạn' : meta?.removedMemberName || '1 thành viên'} khỏi nhóm.`
     case 'GROUP_INVITE_ACCEPTED':
       return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã chấp nhận lời mời tham gia nhóm.`
+    case 'FRIEND_ACCEPTED':
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã chấp nhận lời mời kết bạn.`
     default:
       // Fallback nếu không nhận diện được action
       return msg.content || `${actorName} đã cập nhật nhóm.`

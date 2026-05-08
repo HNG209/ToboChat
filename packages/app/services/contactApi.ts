@@ -12,6 +12,7 @@ import {
   SendFriendRequestRequest,
 } from 'app/types/Request'
 import { baseApi } from './baseApi'
+import { FriendStatus } from 'app/types/Enums'
 
 export const contactApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -22,6 +23,13 @@ export const contactApi = baseApi.injectEndpoints({
         params,
       }),
       providesTags: ['FriendList'],
+    }),
+
+    getFriendStatus: builder.query<FriendStatus, { otherId: string }>({
+      query: ({ otherId }) => ({
+        url: `/users/${otherId}/friend-status`,
+        method: 'GET',
+      }),
     }),
 
     getMyFriendRequests: builder.query<
@@ -73,6 +81,7 @@ export const contactApi = baseApi.injectEndpoints({
 
 export const {
   useGetMyFriendListQuery,
+  useGetFriendStatusQuery,
   useLazyGetMyFriendListQuery,
   useGetMyFriendRequestsQuery,
   useLazyGetMyFriendRequestsQuery,

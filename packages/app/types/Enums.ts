@@ -12,3 +12,4 @@ export type SystemAction =
   | 'AVATAR_CHANGED'
   | 'MEMBER_REMOVED'
   | 'GROUP_INVITE_ACCEPTED'
+  | 'FRIEND_ACCEPTED'
