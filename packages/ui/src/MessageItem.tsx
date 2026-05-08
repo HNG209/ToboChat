@@ -116,11 +116,17 @@ export function MessageItem({
     const replyMsg = msg.replyTo
     const firstAttachment = replyMsg.attachments?.[0]
     const isReplyImage = firstAttachment?.contentType?.startsWith('image/')
+    const isReplyMultipleMedia = replyMsg.attachments && replyMsg.attachments.length > 1
     const isReplyVideo = firstAttachment?.contentType?.startsWith('video/')
+    const isRevokedReply = replyMsg.messageStatus === 'REVOKED'
+
     let subLabel = replyMsg.content || ''
     if (isReplyImage) subLabel = '[Hình ảnh]'
     if (isReplyVideo) subLabel = '[Video]'
     if (firstAttachment && !isReplyImage && !isReplyVideo) subLabel = `[File] ${firstAttachment.fileName}`
+    if (isReplyMultipleMedia) subLabel = `[${replyMsg.attachments?.length} tệp đính kèm]`
+    if (isRevokedReply) subLabel = 'Tin nhắn đã được thu hồi'
+
     return (
       <XStack
         mb="$2"

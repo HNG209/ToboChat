@@ -59,9 +59,7 @@ export const ChatScreenFooter = ({
       handleSendMessage('');
     }
   };
-  const handleEmojiSelect = (emoji: string) => {
-    setLocalMessage((prev) => prev + emoji)
-  }
+
   const handleSendMessage = async (content: string) => {
     const isStillUploading = drafts.some((d) => d.isUploading)
     const hasError = drafts.some((d) => (d as any).error)
@@ -95,8 +93,6 @@ export const ChatScreenFooter = ({
     // Lưu lại replyTo cũ để revert nếu lỗi, sau đó xóa state ngay để tránh gửi lặp
     const currentReplyTo = replyTo;
     setDrafts([])
-
-
 
     const sendSingleMessage = async (messageContent: string, messageAttachments: Attachment[]) => {
       const tempId = uuidv4()
@@ -133,12 +129,10 @@ export const ChatScreenFooter = ({
               : undefined,
           attachments: messageAttachments,
         }).unwrap()
-        if (
-          messageContent.trim().length > 0 &&
-          currentReplyTo
-        ) {
+
+        if (messageContent.trim().length > 0 && currentReplyTo)
           setReplyTo(null)
-        }
+
         dispatch(
           roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
             if (!draft?.items) return
@@ -167,9 +161,6 @@ export const ChatScreenFooter = ({
         patchResult.undo()
       }
     }
-
-
-    // --- BẮT ĐẦU LOGIC GỬI THEO THỨ TỰ ---
 
     // Trường hợp đặc biệt: Text + đúng 1 Media (không có file  đi kèm) -> Gộp chung
     const hasOnlyOneMedia = totalAttachments === 1 && isMediaType(attachments[0].contentType);
