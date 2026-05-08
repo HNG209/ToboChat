@@ -61,6 +61,7 @@ import { MemberManagementContent } from '@my/ui/src/group/MemberManagementConten
 import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
 import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, useGetMyFriendListQuery, useRespondFriendRequestMutation, useSendFriendRequestMutation } from 'app/services/contactApi';
 import { FriendStatus } from 'app/types/Enums';
+import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -97,7 +98,12 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [currentMediaList, setCurrentMediaList] = useState<any[]>([])
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
-
+  const {
+    avatarCacheKey,
+    optimisticAvatarUrl,
+    withCacheBuster,
+    handleSaveAvatar,
+  } = useGroupAvatarUpload(roomId)
   const openViewer = (mediaList: any[], index: number) => {
     setCurrentMediaList(mediaList)
     setActiveMediaIndex(index)
@@ -940,6 +946,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onAddMember={() => setInfoView('ADD')}
                 onViewMembers={() => setInfoView('MEMBERS')}
                 onApproveMembers={() => setInfoView('APPROVED')}
+                avatarCacheKey={avatarCacheKey}
+                avatarUrlOverride={optimisticAvatarUrl}
+                onSaveAvatar={handleSaveAvatar}
               />
             ) : infoView === 'MANAGEMENT' ? (
               <GroupManagementContent

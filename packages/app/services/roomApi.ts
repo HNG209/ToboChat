@@ -204,6 +204,27 @@ export const roomApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'RoomMember', id: arg.roomId }],
     }),
+
+    // Lấy presigned URL để upload ảnh nhóm
+    getGroupImageUploadUrl: builder.mutation<
+      { presignedUrl: string; fileUrl: string } | { url: string; fileUrl?: string },
+      { roomId: string; contentType: string }
+    >({
+      query: ({ roomId, contentType }) => ({
+        url: `/rooms/${roomId}/avatar/upload-url`,
+        method: 'GET',
+        params: { contentType },
+      }),
+    }),
+    updateRoomAvatar: builder.mutation<void, { roomId: string; avatarUrl: string }>({
+      query: ({ roomId, avatarUrl }) => ({
+        url: `/rooms/${roomId}/avatar`,
+        method: 'PATCH',
+        data: {
+          avatarUrl,
+        },
+      }),
+    }),
   }),
   overrideExisting: true,
 })
@@ -225,4 +246,6 @@ export const {
   useAddMembersMutation,
   useGetPendingRequestQuery,
   useApproveMemberMutation,
+  useGetGroupImageUploadUrlMutation,
+  useUpdateRoomAvatarMutation,
 } = roomApi

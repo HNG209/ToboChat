@@ -23,7 +23,8 @@ import {
   X,
   Bell,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Camera
 } from "@tamagui/lucide-icons"
 import { Alert, Platform } from 'react-native'
 import { RoomMemberResponse, RoomResponse } from "app/types/Response"
@@ -32,6 +33,9 @@ import { TransferAdminDialog } from './group/TransferAdminDialog'
 import { useRouter } from 'solito/navigation'
 import { AppDispatch } from 'app/store'
 import { useDispatch } from 'react-redux';
+import { View } from 'tamagui'
+import { Image } from 'tamagui'
+import { EditAvatar } from './EditAvatar'
 
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
@@ -42,6 +46,9 @@ type ConversationInfoProps = {
   onManageGroup?: () => void
   onViewMembers: () => void
   onApproveMembers: () => void,
+  avatarCacheKey?: number
+  avatarUrlOverride?: string
+  onSaveAvatar: (data: { avatar?: File }) => void
 }
 
 export const ConversationInfoContent = ({
@@ -53,13 +60,23 @@ export const ConversationInfoContent = ({
   onManageGroup,
   onViewMembers,
   onApproveMembers,
+  avatarCacheKey,
+  avatarUrlOverride,
+  onSaveAvatar,
 }: ConversationInfoProps) => {
   const dispatch = useDispatch<AppDispatch>()
   const router = useRouter();
   const [checkLeave, { isLoading: isChecking }] = useCheckLeaveMutation()
   const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
+  const [openEditAvatar, setOpenEditAvatar] = useState(false)
 
+  const withCacheBuster = (url?: string) => {
+    if (!url || !avatarCacheKey) return url
+    return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
+  }
+
+  const effectiveAvatarUrl = avatarUrlOverride ?? roomData?.avatarUrl
   const [openTransferAdmin, setOpenTransferAdmin] = useState(false) // State cho Modal chuyển quyền
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
@@ -210,13 +227,45 @@ export const ConversationInfoContent = ({
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* --- PROFILE SECTION --- */}
         <YStack alignItems="center" py="$6" px="$4" space="$3">
-          <Avatar circular size="$9" borderWidth={1} borderColor="$borderColor">
-            <Avatar.Image
-              src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
-            />
-            <Avatar.Fallback backgroundColor="$blue8" />
-          </Avatar>
+          <View position="relative">
+            <View
+              width={96}
+              height={96}
+              borderRadius={999}
+              borderWidth={1}
+              borderColor="$borderColor"
+              overflow="hidden"
+              backgroundColor="$background"
+            >
+              <Image
+                source={{
+                  uri:
+                    roomData?.avatarUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      roomData?.roomName || 'Room'
+                    )}&background=random`,
+                }}
+                width="100%"
+                height="100%"
+              />
+            </View>
 
+            <Button
+              position="absolute"
+              bottom={0}
+              right={0}
+              size="$2"
+              circular
+              icon={Camera}
+              backgroundColor="$background"
+              borderWidth={1}
+              borderColor="$borderColor"
+              aria-label="Chỉnh sửa avatar"
+              onPress={() => {
+                setOpenEditAvatar(true)
+              }}
+            />
+          </View>
           <YStack alignItems="center" space="$1">
             <XStack alignItems="center" justifyContent="center" space="$2" px="$5">
               <Heading size="$7" textAlign="center" numberOfLines={2}>
@@ -333,7 +382,15 @@ export const ConversationInfoContent = ({
           )}
         </YStack>
       </ScrollView>
+      <EditAvatar
+        open={openEditAvatar}
+        onOpenChange={setOpenEditAvatar}
+        currentAvatar={withCacheBuster(effectiveAvatarUrl)}
+        currentName={roomData?.roomName}
+        onSave={onSaveAvatar}
+      />
     </YStack>
+
   )
 }
 
