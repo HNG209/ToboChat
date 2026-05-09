@@ -38,6 +38,8 @@ export const formatSystemMessage = (msg: MessageResponse, selfUserId?: string) =
       return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã tạo nhóm này.`
     case 'ROOM_NAME_CHANGED':
       return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã đổi tên nhóm thành "${meta.newRoomName || 'tên mới'}".`
+    case 'ROOM_AVATAR_CHANGED':
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã đổi ảnh đại diện nhóm.`
     case 'MEMBER_ADDED':
       return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã thêm ${meta?.newMemberId === selfUserId ? 'bạn' : meta?.newMemberName || '1 thành viên'} vào nhóm.`
     case 'MEMBER_LEFT':
