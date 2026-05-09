@@ -12,6 +12,7 @@ import { formatPreviewMessage } from 'app/utils/chatHelper'
 import { useRouter, useParams } from 'solito/navigation'
 import { StyledFlatList } from './StyledFlatList'
 import { AlertTriangle, Inbox } from '@tamagui/lucide-icons'
+import { RoomUpdateEvent } from 'app/types/Events'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -226,7 +227,7 @@ export default function ChatInbox() {
           }
         })
       );
-      
+
       // Thêm phòng vào tab Tất cả nếu đã được chấp nhận
       dispatch(
         roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
@@ -241,7 +242,27 @@ export default function ChatInbox() {
       );
     }
 
+    const handleRoomUpdated = (event: RoomUpdateEvent) => {
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          const roomIndex = draft?.items.findIndex((r) => r.id === event.roomId)
+          if (roomIndex !== undefined && roomIndex !== -1) {
+            const room = draft.items[roomIndex]
+
+            if (event.newRoomName) {
+              room.roomName = event.newRoomName
+            }
+
+            if (event.newRoomAvatar) {
+              room.avatarUrl = event.newRoomAvatar
+            }
+          }
+        })
+      );
+    }
+
     socket.on('pending_inbox_updated', handlePendingInboxUpdated)
+    socket.on('room_updated', handleRoomUpdated)
     socket.on('inbox_updated', handleInboxUpdated)
     socket.on('unread_updated', handleUnreadUpdate)
     socket.on('message_revoked', handleMessageRevoked)
@@ -251,6 +272,7 @@ export default function ChatInbox() {
     socket.on('new_member', handleNewMember)
     return () => {
       socket.off('pending_inbox_updated', handlePendingInboxUpdated)
+      socket.off('room_updated', handleRoomUpdated)
       socket.off('inbox_updated', handleInboxUpdated)
       socket.off('unread_updated', handleUnreadUpdate)
       socket.off('message_revoked', handleMessageRevoked)
