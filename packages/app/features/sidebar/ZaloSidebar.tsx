@@ -23,6 +23,7 @@ import {
   userApi,
 } from 'app/services/userApi'
 import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
+import { getSocket } from 'app/utils/socket'
 
 export const ZaloSidebar = () => {
   const dispatch = useDispatch<AppDispatch>()
@@ -34,11 +35,14 @@ export const ZaloSidebar = () => {
   const isContacts = pathname?.startsWith('/contacts')
   const [initMFA] = useInitMFAMutation()
   const [confirmMFA] = useConfirmMFAMutation()
+  const [isSocketReady, setIsSocketReady] = useState(false)
 
   const [openSignOut, setOpenSignOut] = useState(false)
 
   const { data: profileData, refetch } = useGetProfileQuery()
   const userId = profileData?.id
+  const totalContactRequests = (profileData?.friendRequestCount ?? 0) + (profileData?.groupRequestCount ?? 0)
+
   // Mo full phan cai dat
   const [showFullSettings, setShowFullSettings] = useState(false)
   const [activeTab, setActiveTab] = React.useState<'general' | 'security' | null>(null)
@@ -157,6 +161,54 @@ export const ZaloSidebar = () => {
       checkMFA()
     }
   }, [showFullSettings, activeTab])
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+
+    const checkSocket = () => {
+      const socket = getSocket()
+      if (socket) {
+        setIsSocketReady(true)
+      } else {
+        timeoutId = setTimeout(checkSocket, 200)
+      }
+    }
+
+    checkSocket()
+    return () => clearTimeout(timeoutId)
+  }, [])
+
+  useEffect(() => {
+    if (!isSocketReady) return
+
+    const socket = getSocket()
+    if (!socket) return
+
+    const handleFriendRequestUnreadUpdate = (payload: number) => {
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.friendRequestCount = (draft.friendRequestCount || 0) + 1
+        })
+      )
+    }
+
+    const handleFriendRequestResetUnread = () => {
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.friendRequestCount = 0
+        })
+      )
+    }
+
+    socket.on('friend_request_unread_update', handleFriendRequestUnreadUpdate)
+    socket.on('friend_request_unread_reset', handleFriendRequestResetUnread)
+    return () => {
+      socket.off('friend_request_unread_update', handleFriendRequestUnreadUpdate)
+      socket.off('friend_request_unread_reset', handleFriendRequestResetUnread)
+    }
+  }, [dispatch, isSocketReady])
 
   const openEnableMFADialog = () => {
     setPassword('')
@@ -358,14 +410,33 @@ export const ZaloSidebar = () => {
             )}
           </View>
 
-          <Button
-            aria-label={t('contacts')}
-            borderRadius="$4"
-            padding="$3"
-            backgroundColor={isContacts ? activeNavBackground : 'transparent'}
-            onPress={handleGoToFriend}
-            icon={<Contact2 size={28} color={isContacts ? activeIconColor : inactiveIconColor} />}
-          />
+          <View position='relative'>
+            <Button
+              aria-label={t('contacts')}
+              borderRadius="$4"
+              padding="$3"
+              backgroundColor={isContacts ? activeNavBackground : 'transparent'}
+              onPress={handleGoToFriend}
+              icon={<Contact2 size={28} color={isContacts ? activeIconColor : inactiveIconColor} />}
+            />
+            {(totalContactRequests ?? 0) > 0 && (
+              <Circle
+                size={25}
+                backgroundColor="$red10"
+                position="absolute"
+                top={-2}
+                right={-2}
+                borderWidth={2}
+                borderColor="$background"
+                animation="bouncy"
+                enterStyle={{ opacity: 0, scale: 0 }}
+              >
+                <Text color="white" fontSize={9} fontWeight="bold">
+                  {totalContactRequests > 99 ? '99+' : totalContactRequests}
+                </Text>
+              </Circle>
+            )}
+          </View>
         </YStack>
         <Spacer flex={1} />
 
