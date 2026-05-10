@@ -38,7 +38,20 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ToboChat cần quyền truy cập Camera để bạn có thể gọi video."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "ToboChat cần quyền truy cập Micro để bạn có thể trò chuyện."
+        }
+      ],
+      "@livekit/react-native"
     ],
     "experiments": {
       "typedRoutes": true

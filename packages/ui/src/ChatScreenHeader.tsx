@@ -8,9 +8,10 @@ type Props = {
   insets: { top: number; bottom: number; left: number; right: number } | undefined,
   linkProps: React.ComponentProps<typeof Button>
   onInfoPress?: () => void
+  onCallPress?: () => void
 }
 
-export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps, onInfoPress }: Props) => {
+export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps, onInfoPress, onCallPress }: Props) => {
   return (
     <XStack
       alignItems="center"
@@ -48,8 +49,8 @@ export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps, o
         </XStack>
       </XStack>
       <XStack space="$1">
-        <Button size="$4" circular chromeless icon={Phone} />
-        <Button size="$4" circular chromeless icon={Video} />
+        <Button size="$4" circular chromeless icon={Phone} onPress={onCallPress} />
+        <Button size="$4" circular chromeless icon={Video} onPress={onCallPress} />
         <Button size="$4" circular chromeless icon={Info} onPress={onInfoPress} />
       </XStack>
     </XStack>

@@ -33,6 +33,7 @@ import {
   Forward,
   Trash2,
   Lock,
+  UserPlus, X, Check, XCircle
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
 import {
@@ -58,7 +59,10 @@ import { GroupManagementContent } from '@my/ui/src/GroupManagementContent';
 import { AddMemberContent } from '@my/ui/src/group/AddMemberDialog';
 import { MemberManagementContent } from '@my/ui/src/group/MemberManagementContent';
 import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
-import { contactApi, useGetMyFriendListQuery } from 'app/services/contactApi';
+import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, useGetMyFriendListQuery, useRespondFriendRequestMutation, useSendFriendRequestMutation } from 'app/services/contactApi';
+import { FriendStatus } from 'app/types/Enums';
+import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
+import { VideoCall } from '../call/VideoCall';
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -95,7 +99,12 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [currentMediaList, setCurrentMediaList] = useState<any[]>([])
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
-
+  const {
+    avatarCacheKey,
+    optimisticAvatarUrl,
+    withCacheBuster,
+    handleSaveAvatar,
+  } = useGroupAvatarUpload(roomId)
   const openViewer = (mediaList: any[], index: number) => {
     setCurrentMediaList(mediaList)
     setActiveMediaIndex(index)
@@ -174,9 +183,9 @@ export function ChatScreen({ roomId, insets }: Props) {
   // fetch thông tin của tôi trong phòng
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
   // fetch danh sách thành viên trong phòng
-  useGetRoomMembersQuery({ roomId }, { refetchOnMountOrArgChange: true })
+  const { data: roomMembers } = useGetRoomMembersQuery({ roomId }, { refetchOnMountOrArgChange: true });
   // fetch danh sách bạn bè đã có trong phòng
-  useGetMyFriendListQuery({ limit: 20, roomId }, { refetchOnMountOrArgChange: true });
+  const { data: myFriends } = useGetMyFriendListQuery({ limit: 20, roomId }, { refetchOnMountOrArgChange: true });
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
 
@@ -188,6 +197,85 @@ export function ChatScreen({ roomId, insets }: Props) {
       refetchOnMountOrArgChange: true,
     }
   )
+  const isDM = roomData?.roomType === 'DM'
+  let otherUserId: string | undefined = undefined
+
+  if (isDM) {
+    // tách id của người kia trong DM để dùng cho phần hiển thị trạng thái kết bạn và các hành động liên quan
+    otherUserId = roomData?.id.split('_').find((id) => id !== selfUserId)
+  }
+
+  const {
+    data: friendStatus,
+    isLoading: isFriendStatusLoading,
+  } = useGetFriendStatusQuery(
+    { otherId: otherUserId! },
+    {
+      skip: !isDM || !otherUserId,
+      refetchOnMountOrArgChange: true,
+    }
+  )
+
+  const [sendFriendRequest, { isLoading: isSending }] = useSendFriendRequestMutation()
+  const [cancelFriendRequest, { isLoading: isCancelling }] = useCancelFriendRequestMutation()
+  const [respondFriendRequest, { isLoading: isResponding }] = useRespondFriendRequestMutation()
+
+  const handleSendFriendRequest = async () => {
+    if (!otherUserId) return
+    // Optimistic update
+    dispatch(
+      contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
+        return 'SENT' as FriendStatus
+      })
+    )
+    try {
+      await sendFriendRequest({ otherId: otherUserId }).unwrap();
+    } catch {
+      dispatch(
+        contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
+          return friendStatus
+        })
+      )
+    }
+  };
+
+  const handleCancelFriendRequest = async () => {
+    if (!otherUserId) return
+    dispatch(
+      contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
+        return 'STRANGER' as FriendStatus
+      })
+    )
+    try {
+      await cancelFriendRequest({ otherId: otherUserId }).unwrap();
+    } catch {
+      dispatch(
+        contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
+          return friendStatus
+        })
+      )
+    }
+  };
+
+  const handleRespondFriendRequest = async (accepted: boolean) => {
+    if (!otherUserId) return
+
+    dispatch(
+      contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
+        return accepted ? 'FRIEND' : 'STRANGER' as FriendStatus
+      })
+    )
+    try {
+      await respondFriendRequest({ otherId: otherUserId, accepted }).unwrap();
+    } catch {
+      dispatch(
+        contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
+          return friendStatus
+        })
+      )
+    }
+  };
+
   const { data: joinedRoomsData, isLoading: isJoinedRoomsLoading } = useGetJoinedRoomsQuery(
     { status },
     {
@@ -197,6 +285,15 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
+  const [callToken, setCallToken] = useState<string | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ token: string; callerId: string } | null>(null);
+
+  const handleStartCall = () => {
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('request_call', { roomId: roomId });
+    }
+  };
 
   // Tự động cuộn tới tin nhắn reply sau khi fetch xong trang chứa nó
   useEffect(() => {
@@ -369,7 +466,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     setDirection('both')
   }
 
-
   useEffect(() => {
     return () => {
       dispatch(
@@ -482,6 +578,15 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   }, [roomId, isSocketReady, dispatch])
 
+  if (callToken) {
+    return (
+      <VideoCall
+        token={callToken}
+        onLeave={() => setCallToken(null)} // Bấm tắt gọi thì xóa token để về lại màn hình chat
+      />
+    );
+  }
+
   return (
     <Theme name={theme}>
       <XStack flex={1} bg="$background">
@@ -500,10 +605,96 @@ export function ChatScreen({ roomId, insets }: Props) {
             <ChatScreenHeader
               roomData={roomData}
               onInfoPress={() => setShowInfo(!showInfo)}
+              onCallPress={() => {
+                handleStartCall()
+              }}
               isRoomLoading={isRoomLoading}
               insets={insets}
               linkProps={linkProps}
             />
+
+            {/* {incomingCall && (
+              <YStack
+                position="absolute"
+                top={80} // Nằm đè lên trên cùng, ngay dưới Header
+                alignSelf="center"
+                zIndex={1000}
+                backgroundColor={theme === 'dark' ? '$color3' : 'white'}
+                padding="$4"
+                borderRadius="$4"
+                borderWidth={1}
+                borderColor="$borderColor"
+                elevation={10}
+                shadowColor="#000"
+                shadowOpacity={0.2}
+                shadowRadius={10}
+                alignItems="center"
+                space="$3"
+              >
+                <Text fontSize="$5" fontWeight="bold">
+                  Cuộc gọi video đến từ User {incomingCall.callerId}
+                </Text>
+                <XStack space="$4" mt="$2">
+                  <Button theme="red" icon={<X />} onPress={rejectCall}>
+                    Từ chối
+                  </Button>
+                  <Button theme="green" icon={<Video />} onPress={acceptCall}>
+                    Bắt máy
+                  </Button>
+                </XStack>
+              </YStack>
+            )} */}
+
+            {isDM && otherUserId && !isFriendStatusLoading && friendStatus && (
+              <YStack mt="$2" px="$4">
+                {friendStatus === 'STRANGER' && (
+                  <Button
+                    size="$4"
+                    theme="blue"
+                    flex={1}
+                    icon={<UserPlus size={20} />}
+                    onPress={handleSendFriendRequest}
+                    disabled={isSending}
+                  >
+                    Gửi lời mời kết bạn
+                  </Button>
+                )}
+                {friendStatus === 'SENT' && (
+                  <Button
+                    size="$4"
+                    flex={1}
+                    icon={<X size={20} />}
+                    onPress={handleCancelFriendRequest}
+                  >
+                    Huỷ yêu cầu
+                  </Button>
+                )}
+                {friendStatus === 'PENDING' && (
+                  <XStack space="$2" width="100%">
+                    <Button
+                      size="$4"
+                      theme="green"
+                      flex={1}
+                      icon={<Check size={20} />}
+                      onPress={() => handleRespondFriendRequest(true)}
+                      disabled={isResponding}
+                    >
+                      Chấp nhận
+                    </Button>
+                    <Button
+                      size="$4"
+                      theme="red"
+                      flex={1}
+                      icon={<X size={20} />}
+                      onPress={() => handleRespondFriendRequest(false)}
+                      disabled={isResponding}
+                    >
+                      Từ chối
+                    </Button>
+                  </XStack>
+                )}
+              </YStack>
+            )}
 
             {/* --- BODY (FLATLIST) --- */}
             {/* Lần tải đầu tiên của cả phòng */}
@@ -747,7 +938,6 @@ export function ChatScreen({ roomId, insets }: Props) {
               open={forwardDialogOpen}
               onOpenChange={setForwardDialogOpen}
               messages={forwardSourceMessages}
-              rooms={availableForwardRooms}
               isLoadingRooms={isJoinedRoomsLoading}
               currentRoomId={roomId}
               isSubmitting={isForwarding}
@@ -756,7 +946,19 @@ export function ChatScreen({ roomId, insets }: Props) {
 
             {
               // Footer (đã refractor)
-              !myInfo?.permissions?.canSendMessage ?
+              myInfo?.permissions?.canSendMessage !== false ?
+                <ChatScreenFooter
+                  roomId={roomId}
+                  status={status}
+                  selectionMode={selectionMode}
+                  replyTo={replyTo}
+                  setReplyTo={setReplyTo}
+                  theme={theme}
+                  isWeb={isWeb}
+                  insets={insets}
+                  composerHeight={composerHeight}
+                  setComposerHeight={setComposerHeight}
+                /> :
                 <XStack
                   alignItems="center"
                   justifyContent="center"
@@ -772,19 +974,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                   <Text fontSize="$3" color="$color11" fontWeight="500">
                     Quản trị viên đã tắt cho phép gửi tin nhắn
                   </Text>
-                </XStack> :
-                <ChatScreenFooter
-                  roomId={roomId}
-                  status={status}
-                  selectionMode={selectionMode}
-                  replyTo={replyTo}
-                  setReplyTo={setReplyTo}
-                  theme={theme}
-                  isWeb={isWeb}
-                  insets={insets}
-                  composerHeight={composerHeight}
-                  setComposerHeight={setComposerHeight}
-                />
+                </XStack>
             }
           </YStack>
 
@@ -808,6 +998,9 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onAddMember={() => setInfoView('ADD')}
                 onViewMembers={() => setInfoView('MEMBERS')}
                 onApproveMembers={() => setInfoView('APPROVED')}
+                avatarCacheKey={avatarCacheKey}
+                avatarUrlOverride={optimisticAvatarUrl}
+                onSaveAvatar={handleSaveAvatar}
               />
             ) : infoView === 'MANAGEMENT' ? (
               <GroupManagementContent

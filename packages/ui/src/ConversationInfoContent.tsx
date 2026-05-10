@@ -10,7 +10,8 @@ import {
   XStack,
   YStack,
   Heading,
-  Theme
+  Theme,
+  Input
 } from "tamagui"
 import {
   Edit3,
@@ -23,7 +24,8 @@ import {
   X,
   Bell,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Camera
 } from "@tamagui/lucide-icons"
 import { Alert, Platform } from 'react-native'
 import { RoomMemberResponse, RoomResponse } from "app/types/Response"
@@ -32,7 +34,10 @@ import { TransferAdminDialog } from './group/TransferAdminDialog'
 import { useRouter } from 'solito/navigation'
 import { AppDispatch } from 'app/store'
 import { useDispatch } from 'react-redux';
-
+import { View } from 'tamagui'
+import { Image } from 'tamagui'
+import { EditAvatar } from './EditAvatar'
+import { useUpdateRoomNameMutation } from 'app/services/roomApi'
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
   roomId: string
@@ -42,6 +47,9 @@ type ConversationInfoProps = {
   onManageGroup?: () => void
   onViewMembers: () => void
   onApproveMembers: () => void,
+  avatarCacheKey?: number
+  avatarUrlOverride?: string
+  onSaveAvatar: (data: { avatar?: File }) => void
 }
 
 export const ConversationInfoContent = ({
@@ -53,13 +61,25 @@ export const ConversationInfoContent = ({
   onManageGroup,
   onViewMembers,
   onApproveMembers,
+  avatarCacheKey,
+  avatarUrlOverride,
+  onSaveAvatar,
 }: ConversationInfoProps) => {
   const dispatch = useDispatch<AppDispatch>()
   const router = useRouter();
   const [checkLeave, { isLoading: isChecking }] = useCheckLeaveMutation()
   const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
+  const [openEditAvatar, setOpenEditAvatar] = useState(false)
+  const [updateRoomName] = useUpdateRoomNameMutation()
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState(roomData?.roomName || '')
+  const withCacheBuster = (url?: string) => {
+    if (!url || !avatarCacheKey) return url
+    return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
+  }
 
+  const effectiveAvatarUrl = avatarUrlOverride ?? roomData?.avatarUrl
   const [openTransferAdmin, setOpenTransferAdmin] = useState(false) // State cho Modal chuyển quyền
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
@@ -93,6 +113,30 @@ export const ConversationInfoContent = ({
     }
   }
 
+  const handleSaveName = async () => {
+    try {
+      if (!nameInput.trim()) return
+
+      await updateRoomName({
+        roomId,
+        roomName: nameInput.trim(),
+      }).unwrap()
+
+      // update cache RTK
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId }, (draft) => {
+          if (draft) {
+            draft.roomName = nameInput.trim()
+          }
+        })
+      )
+
+      setIsEditingName(false)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  
   const executeLeaveGroup = async () => {
     try {
       await leaveGroup({ roomId }).unwrap();
@@ -210,20 +254,103 @@ export const ConversationInfoContent = ({
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* --- PROFILE SECTION --- */}
         <YStack alignItems="center" py="$6" px="$4" space="$3">
-          <Avatar circular size="$9" borderWidth={1} borderColor="$borderColor">
-            <Avatar.Image
-              src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
-            />
-            <Avatar.Fallback backgroundColor="$blue8" />
-          </Avatar>
+          <View position="relative">
+            <View
+              width={96}
+              height={96}
+              borderRadius={999}
+              borderWidth={1}
+              borderColor="$borderColor"
+              overflow="hidden"
+              backgroundColor="$background"
+            >
+              <Image
+                source={{
+                  uri:
+                    roomData?.avatarUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      roomData?.roomName || 'Room'
+                    )}&background=random`,
+                }}
+                width="100%"
+                height="100%"
+              />
+            </View>
 
+            <Button
+              position="absolute"
+              bottom={0}
+              right={0}
+              size="$2"
+              circular
+              icon={Camera}
+              backgroundColor="$background"
+              borderWidth={1}
+              borderColor="$borderColor"
+              aria-label="Chỉnh sửa avatar"
+              onPress={() => {
+                setOpenEditAvatar(true)
+              }}
+            />
+          </View>
           <YStack alignItems="center" space="$1">
             <XStack alignItems="center" justifyContent="center" space="$2" px="$5">
-              <Heading size="$7" textAlign="center" numberOfLines={2}>
-                {roomData?.roomName}
-              </Heading>
-              {isGroup && (
-                <Button size="$2" circular icon={Edit3} chromeless backgroundColor="$backgroundHover" />
+              {isEditingName ? (
+                <XStack
+                  alignItems="center"
+                  space="$2"
+                  borderRadius="$10"
+                  px="$3"
+                  py="$2"
+                >
+                  <Input
+                    value={nameInput}
+                    onChangeText={setNameInput}
+                    autoFocus
+                    width={180}
+                    borderWidth={0}
+                    backgroundColor="transparent"
+                    fontWeight="600"
+                  />
+
+                  <Button
+                    size="$2"
+                    circular
+                    backgroundColor="$green3"
+                    onPress={handleSaveName}
+                  >
+                    <Text color="$green10">✓</Text>
+                  </Button>
+
+                  <Button
+                    size="$2"
+                    circular
+                    backgroundColor="$red3"
+                    onPress={() => setIsEditingName(false)}
+                  >
+                    <Text color="$red10">✕</Text>
+                  </Button>
+                </XStack>
+              ) : (
+                <XStack alignItems="center" space="$2">
+                  <Heading size="$7" textAlign="center">
+                    {roomData?.roomName}
+                  </Heading>
+
+                  {isGroup && (
+                    <Button
+                      size="$2"
+                      circular
+                      icon={Edit3}
+                      hoverStyle={{ scale: 1.05 }}
+                      pressStyle={{ scale: 0.95 }}
+                      onPress={() => {
+                        setNameInput(roomData?.roomName || '')
+                        setIsEditingName(true)
+                      }}
+                    />
+                  )}
+                </XStack>
               )}
             </XStack>
           </YStack>
@@ -333,7 +460,15 @@ export const ConversationInfoContent = ({
           )}
         </YStack>
       </ScrollView>
+      <EditAvatar
+        open={openEditAvatar}
+        onOpenChange={setOpenEditAvatar}
+        currentAvatar={withCacheBuster(effectiveAvatarUrl)}
+        currentName={roomData?.roomName}
+        onSave={onSaveAvatar}
+      />
     </YStack>
+
   )
 }
 

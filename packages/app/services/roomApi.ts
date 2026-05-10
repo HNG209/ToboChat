@@ -14,15 +14,47 @@ import { MemberUpdateRequest, RoomCreateRequest, RoomUpdateRequest } from 'app/t
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getJoinedRooms: builder.query<PageResponse<RoomResponse>, { status: RoomStatus }>({
+    getJoinedRooms: builder.query<
+      PageResponse<RoomResponse>,
+      { status: RoomStatus; cursor?: string; limit?: number }
+    >({
       // Lấy danh sách phòng của người dùng hiện tại
       query: (params) => ({
-        url: `/rooms?status=${params.status}`,
+        url: `/rooms`,
         method: 'GET',
         params: {
           status: params.status,
+          cursor: params.cursor,
+          limit: params.limit,
         },
       }),
+
+      serializeQueryArgs: ({ queryArgs, endpointName }) => {
+        // Tạo cache key chỉ dựa trên endpointName và status.
+        // Bỏ qua cursor, để tất cả các trang của cùng một status dùng chung 1 cache.
+        return `${endpointName}-${queryArgs.status}`
+      },
+
+      // Ép gọi lại API khi cursor thay đổi
+      forceRefetch({ currentArg, previousArg }) {
+        // Bắt buộc fetch lại khi người dùng yêu cầu một cursor mới
+        return currentArg?.cursor !== previousArg?.cursor && currentArg?.cursor !== undefined
+      },
+
+      merge: (currentCache, newData, { arg }) => {
+        if (!arg.cursor) {
+          return newData
+        }
+
+        if (!currentCache.items) {
+          currentCache.items = []
+        }
+
+        const existingIds = new Set(currentCache.items.map((i) => i.id))
+        const newItems = newData.items.filter((i) => !existingIds.has(i.id))
+        currentCache.items.push(...newItems)
+        currentCache.nextCursor = newData.nextCursor
+      },
       providesTags: ['Rooms'],
     }),
 
@@ -149,7 +181,7 @@ export const roomApi = baseApi.injectEndpoints({
         url: `/rooms/${roomId}`,
         method: 'GET',
       }),
-      // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
+      providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
     getPendingRequest: builder.query<PageResponse<GroupPendingRequestResponse>, { roomId: string }>(
@@ -172,6 +204,42 @@ export const roomApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'RoomMember', id: arg.roomId }],
     }),
+
+    // Lấy presigned URL để upload ảnh nhóm
+    getGroupImageUploadUrl: builder.mutation<
+      { presignedUrl: string; fileUrl: string } | { url: string; fileUrl?: string },
+      { roomId: string; contentType: string }
+    >({
+      query: ({ roomId, contentType }) => ({
+        url: `/rooms/${roomId}/avatar/upload-url`,
+        method: 'GET',
+        params: { contentType },
+      }),
+    }),
+    updateRoomName: builder.mutation<void, { roomId: string; roomName: string }>({
+      query: ({ roomId, roomName }) => ({
+        url: `/rooms/${roomId}/name`,
+        method: 'PATCH',
+        data: { roomName },
+      }),
+
+      invalidatesTags: (result, error, arg) => [
+        { type: 'RoomMetadata', id: arg.roomId },
+        { type: 'Rooms' }, // update list chat sidebar luôn
+      ],
+    }),
+    updateRoomAvatar: builder.mutation<void, { roomId: string; avatarUrl: string }>({
+      query: ({ roomId, avatarUrl }) => ({
+        url: `/rooms/${roomId}/avatar`,
+        method: 'PATCH',
+        data: { avatarUrl },
+      }),
+
+      invalidatesTags: (result, error, arg) => [
+        { type: 'RoomMetadata', id: arg.roomId },
+        { type: 'Rooms' },
+      ],
+    }),
   }),
   overrideExisting: true,
 })
@@ -193,4 +261,7 @@ export const {
   useAddMembersMutation,
   useGetPendingRequestQuery,
   useApproveMemberMutation,
+  useGetGroupImageUploadUrlMutation,
+  useUpdateRoomAvatarMutation,
+  useUpdateRoomNameMutation,
 } = roomApi

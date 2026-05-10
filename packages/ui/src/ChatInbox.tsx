@@ -1,4 +1,3 @@
-import { usePathname } from 'solito/navigation'
 import { ScrollView, Spinner, Text, YStack, XStack } from '@my/ui'
 import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
@@ -11,6 +10,9 @@ import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { formatPreviewMessage } from 'app/utils/chatHelper'
 import { useRouter, useParams } from 'solito/navigation'
+import { StyledFlatList } from './StyledFlatList'
+import { AlertTriangle, Inbox } from '@tamagui/lucide-icons'
+import { RoomUpdateEvent } from 'app/types/Events'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -39,6 +41,16 @@ function TabButton({
   )
 }
 
+type InboxUpdatedPayload = {
+  message: MessageResponse
+  inboxStatus: RoomStatus
+}
+
+type NewRoomPayload = {
+  room: RoomResponse
+  inboxStatus: RoomStatus
+}
+
 export default function ChatInbox() {
   const dispatch = useDispatch<AppDispatch>()
   const activeRoomId = useSelector(
@@ -49,13 +61,14 @@ export default function ChatInbox() {
 
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
+  const [activeCursor, setActiveCursor] = useState<string | undefined>(undefined)
+  const [pendingCursor, setPendingCursor] = useState<string | undefined>(undefined)
   const router = useRouter()
 
   const { data, isLoading, isError } = useGetJoinedRoomsQuery(
-    { status },
-    {
-      skip: !hasSession,
-    }
+    { status, cursor: status === 'ACTIVE' ? activeCursor : pendingCursor },
+    { skip: !hasSession }
   )
 
   useEffect(() => {
@@ -80,20 +93,15 @@ export default function ChatInbox() {
     const socket = getSocket()
     if (!socket) return
 
-    const handleInboxUpdated = (payload: any) => {
-      const newMsg: MessageResponse = payload.message || payload
-      const targetRoomId = newMsg.roomId || payload.roomId
-
+    const handleInboxUpdated = (payload: InboxUpdatedPayload) => {
       dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        roomApi.util.updateQueryData('getJoinedRooms', { status: payload.inboxStatus }, (draft) => {
           if (!draft?.items) return
 
-          const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
+          const roomIndex = draft.items.findIndex((r) => r.id === payload.message.roomId)
 
           if (roomIndex !== -1) {
-            draft.items[roomIndex].latestMessage = newMsg
-            // draft.items[roomIndex].unreadMessages =
-            //   (draft.items[roomIndex].unreadMessages || 0) + 1
+            draft.items[roomIndex].latestMessage = payload.message
 
             const [updatedRoom] = draft.items.splice(roomIndex, 1)
             draft.items.unshift(updatedRoom)
@@ -145,12 +153,12 @@ export default function ChatInbox() {
       )
     }
 
-    const handleNewRoom = (newRoom: RoomResponse) => {
+    const handleNewRoom = (payload: NewRoomPayload) => {
       // Cập nhật cache rtk-query để thêm nhóm mới vào danh sách phòng
       dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+        roomApi.util.updateQueryData('getJoinedRooms', { status: payload.inboxStatus }, (draft) => {
           if (draft) {
-            draft.items.unshift(newRoom);
+            draft.items.unshift(payload.room);
           }
         })
       );
@@ -198,6 +206,7 @@ export default function ChatInbox() {
       );
 
     };
+
     const handleNewMember = (member: RoomMemberResponse) => {
       dispatch(
         roomApi.util.updateQueryData('getRoomMembers', { roomId: member.roomId }, (draft) => {
@@ -208,6 +217,52 @@ export default function ChatInbox() {
       );
     }
 
+    const handlePendingInboxUpdated = (room: RoomResponse) => {
+      // Xoá phòng khỏi tab Đang chờ nếu đã được chấp nhận
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'PENDING' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === room.id);
+          if (index !== -1 && index !== undefined) {
+            draft.items.splice(index, 1);
+          }
+        })
+      );
+
+      // Thêm phòng vào tab Tất cả nếu đã được chấp nhận
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          if (draft) {
+            // Nếu phòng đã tồn tại thì không thêm nữa (trường hợp nhận được nhiều sự kiện cập nhật cho cùng 1 phòng)
+            const exists = draft.items.some((r) => r.id === room.id);
+            if (!exists) {
+              draft.items.unshift(room);
+            }
+          }
+        })
+      );
+    }
+
+    const handleRoomUpdated = (event: RoomUpdateEvent) => {
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+          const roomIndex = draft?.items.findIndex((r) => r.id === event.roomId)
+          if (roomIndex !== undefined && roomIndex !== -1) {
+            const room = draft.items[roomIndex]
+
+            if (event.newRoomName) {
+              room.roomName = event.newRoomName
+            }
+
+            if (event.newRoomAvatar) {
+              room.avatarUrl = event.newRoomAvatar
+            }
+          }
+        })
+      );
+    }
+
+    socket.on('pending_inbox_updated', handlePendingInboxUpdated)
+    socket.on('room_updated', handleRoomUpdated)
     socket.on('inbox_updated', handleInboxUpdated)
     socket.on('unread_updated', handleUnreadUpdate)
     socket.on('message_revoked', handleMessageRevoked)
@@ -215,8 +270,9 @@ export default function ChatInbox() {
     socket.on('room_disband', handleGroupDisband)
     socket.on('self_removed', handleSelfRemoved)
     socket.on('new_member', handleNewMember)
-
     return () => {
+      socket.off('pending_inbox_updated', handlePendingInboxUpdated)
+      socket.off('room_updated', handleRoomUpdated)
       socket.off('inbox_updated', handleInboxUpdated)
       socket.off('unread_updated', handleUnreadUpdate)
       socket.off('message_revoked', handleMessageRevoked)
@@ -250,18 +306,36 @@ export default function ChatInbox() {
     router.push(`/chat/${roomId}`)
   }
 
-  if (!hasSession || isLoading) {
-    return (
-      <YStack flex={1} justifyContent="center" alignItems="center">
-        <Spinner size="large" color="$blue10" />
-      </YStack>
-    )
+  const handleFetchMore = () => {
+    if (isLoading || isFetchingMore || !data?.nextCursor) return
+
+    setIsFetchingMore(true)
+    if (status === 'ACTIVE') {
+      setActiveCursor(data.nextCursor)
+    } else {
+      setPendingCursor(data.nextCursor)
+    }
+
+    setTimeout(() => {
+      setIsFetchingMore(false)
+    }, 1000)
   }
 
   if (isError) {
     return (
-      <YStack flex={1} justifyContent="center" alignItems="center">
-        <Text>Error loading rooms</Text>
+      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor="$color2">
+        <AlertTriangle size={48} color="#FF6B6B" />
+        <Text fontSize={18} fontWeight="700" color="#FF6B6B" marginTop={12}>
+          Đã xảy ra lỗi!
+        </Text>
+        <Text color="$color10" marginTop={4}>
+          Không thể tải danh sách phòng.
+        </Text>
+        <Pressable onPress={() => window.location.reload()} style={{ marginTop: 20 }}>
+          <XStack backgroundColor="$blue10" paddingHorizontal={20} paddingVertical={10} borderRadius="$5">
+            <Text color="white" fontWeight="600">Thử lại</Text>
+          </XStack>
+        </Pressable>
       </YStack>
     )
   }
@@ -286,29 +360,43 @@ export default function ChatInbox() {
       </YStack>
 
       {/* ===== LIST ===== */}
-      <ScrollView>
-        <YStack>
-          {data?.items?.map((room) => (
-            <ChatInboxItem
-              key={room.id}
-              name={room.roomName}
-              avatarUrl={
-                room.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  room.roomName
-                )}&background=random`
-              }
-              latestMessage={room.latestMessage}
-              time={room?.latestMessage?.createdAt ?? undefined}
-              pinned={false}
-              onPress={() =>
-                handleRoomPress(room.id, room.unreadMessages || 0)
-              }
-              unreadCount={room.unreadMessages}
-            />
-          ))}
-        </YStack>
-      </ScrollView>
+      <StyledFlatList<RoomResponse>
+        data={data?.items || []}
+        keyExtractor={room => room.id}
+        renderItem={({ item: room }) => (
+          <ChatInboxItem
+            selected={activeRoomId === room.id}
+            key={room.id}
+            name={room.roomName}
+            avatarUrl={
+              room.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`
+            }
+            latestMessage={room.latestMessage}
+            time={room?.latestMessage?.createdAt ?? undefined}
+            pinned={false}
+            onPress={() => handleRoomPress(room.id, room.unreadMessages || 0)}
+            unreadCount={room.unreadMessages}
+          />
+        )}
+        ListEmptyComponent={
+          isLoading ? (
+            <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+              <Spinner size="large" color="$blue10" />
+            </YStack>
+          ) : (
+            <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+              <Inbox size={48} color="#A0AEC0" />
+              <Text fontSize={18} fontWeight="700" color="$color10" marginTop={12}>
+                Không có phòng nào
+              </Text>
+            </YStack>
+          )
+        }
+        onEndReached={handleFetchMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingMore ? <Spinner size="small" color="$blue10" /> : null}
+      />
     </YStack>
   )
 }

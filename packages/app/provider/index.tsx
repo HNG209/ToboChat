@@ -1,6 +1,7 @@
 import { useColorScheme } from 'react-native'
 import {
   CustomToast,
+  PortalProvider,
   TamaguiProvider,
   type TamaguiProviderProps,
   ToastProvider,
@@ -19,6 +20,7 @@ import { YStack } from '@my/ui'
 // Phan chuyen doi ngon ngu
 import { I18nextProvider } from 'react-i18next'
 import i18n from '../i18n'
+import { SocketEventProvider } from './SocketEventProvider'
 export function Provider({ children }) {
   const systemScheme = useColorScheme()
 
@@ -47,24 +49,28 @@ export function Provider({ children }) {
       <TamaguiProvider config={config} defaultTheme={theme}>
         {/* Component Theme này sẽ áp các token màu $background, $color... theo theme hiện tại */}
         <I18nextProvider i18n={i18n}>
-          <Theme name={theme}>
-            {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
-            <YStack flex={1} backgroundColor="$background">
-              <ReduxProvider store={store}>
-                <AuthProvider>
-                  <ToastProvider
-                    swipeDirection="horizontal"
-                    duration={6000}
-                    native={[]}
-                    // native={isWeb ? [] : ['mobile']}
-                  >
-                    {children}
-                    <CustomToast />
-                  </ToastProvider>
-                </AuthProvider>
-              </ReduxProvider>
-            </YStack>
-          </Theme>
+          <PortalProvider shouldAddRootHost>
+            <Theme name={theme}>
+              {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
+              <YStack flex={1} backgroundColor="$background">
+                <ReduxProvider store={store}>
+                  <AuthProvider>
+                    <SocketEventProvider>
+                      <ToastProvider
+                        swipeDirection="horizontal"
+                        duration={6000}
+                        native={[]}
+                      // native={isWeb ? [] : ['mobile']}
+                      >
+                        {children}
+                        <CustomToast />
+                      </ToastProvider>
+                    </SocketEventProvider>
+                  </AuthProvider>
+                </ReduxProvider>
+              </YStack>
+            </Theme>
+          </PortalProvider>
         </I18nextProvider>
       </TamaguiProvider>
     </ThemeContext.Provider>

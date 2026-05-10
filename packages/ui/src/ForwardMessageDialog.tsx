@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Pressable } from 'react-native'
-import { Button, Dialog, Separator, Text, XStack, YStack, Circle } from '@my/ui'
+import { Button, Dialog, Separator, Text, XStack, YStack, Circle, Spinner, Avatar } from '@my/ui'
 import { Check, SendHorizontal, X } from '@tamagui/lucide-icons'
 import { RoomType } from 'app/types/Enums'
 import type { MessageResponse, RoomResponse } from 'app/types/Response'
+import { StyledFlatList } from './StyledFlatList'
+import { useGetJoinedRoomsQuery } from 'app/services/roomApi'
+import { useSelector } from 'react-redux'
+import { RootState } from 'app/store'
 
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   messages: MessageResponse[]
-  rooms: RoomResponse[]
-  isLoadingRooms?: boolean
   currentRoomId: string
   isSubmitting?: boolean
   onConfirm: (roomIds: string[]) => Promise<void>
@@ -24,27 +26,35 @@ export function ForwardMessageDialog({
   open,
   onOpenChange,
   messages,
-  rooms,
-  isLoadingRooms = false,
   currentRoomId,
   isSubmitting = false,
   onConfirm,
 }: Props) {
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(() => new Set())
+  const [cursor, setCursor] = useState<string | undefined>(undefined)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
 
+  const hasSession = useSelector((s: RootState) => s.auth.hasSession)
+
+  // Lấy danh sách phòng từ RTK Query
+  const { data, isLoading, isError } = useGetJoinedRoomsQuery(
+    { status: 'ACTIVE', cursor },
+    { skip: !hasSession }
+  )
+
+  // Loại bỏ phòng hiện tại và sắp xếp
   const availableRooms = useMemo(() => {
-    return rooms
+    return (data?.items ?? [])
       .filter((room) => room.id !== currentRoomId)
       .slice()
       .sort((left, right) => left.roomName.localeCompare(right.roomName))
-  }, [rooms, currentRoomId])
+  }, [data, currentRoomId])
 
   useEffect(() => {
     if (!open) {
       setSelectedRoomIds(new Set())
       return
     }
-
     setSelectedRoomIds(new Set())
   }, [open])
 
@@ -71,13 +81,19 @@ export function ForwardMessageDialog({
 
   const handleConfirm = async () => {
     if (selectedRoomIds.size === 0 || messages.length === 0) return
-
     try {
       await onConfirm(Array.from(selectedRoomIds))
       onOpenChange(false)
     } catch (error) {
       console.error('Forward failed:', error)
     }
+  }
+
+  const handleFetchMore = () => {
+    if (isFetchingMore || !data?.nextCursor) return
+    setIsFetchingMore(true)
+    setCursor(data.nextCursor)
+    setTimeout(() => setIsFetchingMore(false), 1000)
   }
 
   return (
@@ -111,45 +127,12 @@ export function ForwardMessageDialog({
               <Text fontSize="$6" fontWeight="700">
                 Chuyển tiếp tin nhắn
               </Text>
-              <Text color="$color10" fontSize="$2">
-                Chọn một hoặc nhiều phòng để gửi lại tin nhắn.
-              </Text>
             </YStack>
 
             <Dialog.Close asChild>
               <Button size="$2" circular chromeless icon={X} />
             </Dialog.Close>
           </XStack>
-
-          <YStack marginTop="$4" space="$2">
-            <Text fontSize="$2" color="$color10">
-              Sẽ chuyển {messages.length} tin nhắn
-            </Text>
-
-            {previewMessages.map((message, index) => (
-              <YStack
-                key={message.id}
-                padding="$3"
-                borderWidth={1}
-                borderColor="$borderColor"
-                borderRadius="$4"
-                bg="$color2"
-              >
-                <Text fontSize="$2" color="$color10">
-                  Tin nhắn {index + 1}
-                </Text>
-                <Text numberOfLines={2} fontSize="$3">
-                  {message.content}
-                </Text>
-              </YStack>
-            ))}
-
-            {hasMoreMessages && (
-              <Text fontSize="$2" color="$color10">
-                Và {messages.length - previewMessages.length} tin nhắn khác
-              </Text>
-            )}
-          </YStack>
 
           <Separator marginVertical="$4" />
 
@@ -165,34 +148,13 @@ export function ForwardMessageDialog({
             </Button>
           </XStack>
 
-          <YStack maxHeight={340} space="$2">
-            {isLoadingRooms ? (
-              <YStack
-                padding="$4"
-                borderWidth={1}
-                borderStyle="dashed"
-                borderColor="$borderColor"
-                borderRadius="$4"
-                alignItems="center"
-              >
-                <Text color="$color10">Đang tải danh sách phòng...</Text>
-              </YStack>
-            ) : availableRooms.length === 0 ? (
-              <YStack
-                padding="$4"
-                borderWidth={1}
-                borderStyle="dashed"
-                borderColor="$borderColor"
-                borderRadius="$4"
-                alignItems="center"
-              >
-                <Text color="$color10">Không có phòng nào để chuyển tiếp.</Text>
-              </YStack>
-            ) : (
-              availableRooms.map((room) => {
+          <YStack maxHeight={340}>
+            <StyledFlatList<RoomResponse>
+              data={availableRooms}
+              keyExtractor={room => room.id}
+              renderItem={({ item: room }) => {
                 const selected = selectedRoomIds.has(room.id)
                 const initials = room.roomName.trim().slice(0, 2).toUpperCase() || 'PH'
-
                 return (
                   <Pressable key={room.id} onPress={() => toggleRoom(room.id)}>
                     <XStack
@@ -203,23 +165,15 @@ export function ForwardMessageDialog({
                       borderRadius="$4"
                       borderColor={selected ? '$blue9' : '$borderColor'}
                       backgroundColor={selected ? '$blue2' : '$background'}
+                      marginBottom="$2"
                     >
                       <XStack alignItems="center" space="$3" flex={1}>
-                        <Circle
-                          size={44}
-                          backgroundColor={selected ? '$blue10' : '$color5'}
-                          alignItems="center"
-                          justifyContent="center"
-                        >
-                          <Text
-                            fontSize="$2"
-                            fontWeight="700"
-                            color={selected ? 'white' : '$color11'}
-                          >
-                            {initials}
-                          </Text>
-                        </Circle>
-
+                        <Avatar circular size="$4">
+                          <Avatar.Image
+                            src={room.avatarUrl
+                              || `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`}
+                          />
+                        </Avatar>
                         <YStack flex={1}>
                           <Text fontSize="$4" fontWeight="700" numberOfLines={1}>
                             {room.roomName}
@@ -229,7 +183,6 @@ export function ForwardMessageDialog({
                           </Text>
                         </YStack>
                       </XStack>
-
                       {selected ? (
                         <Circle
                           size={22}
@@ -250,8 +203,37 @@ export function ForwardMessageDialog({
                     </XStack>
                   </Pressable>
                 )
-              })
-            )}
+              }}
+              ListEmptyComponent={
+                isLoading ? (
+                  <YStack
+                    padding="$4"
+                    borderWidth={1}
+                    borderStyle="dashed"
+                    borderColor="$borderColor"
+                    borderRadius="$4"
+                    alignItems="center"
+                  >
+                    <Text color="$color10">Đang tải danh sách phòng...</Text>
+                  </YStack>
+                ) : (
+                  <YStack
+                    padding="$4"
+                    borderWidth={1}
+                    borderStyle="dashed"
+                    borderColor="$borderColor"
+                    borderRadius="$4"
+                    alignItems="center"
+                  >
+                    <Text color="$color10">Không có phòng nào để chuyển tiếp.</Text>
+                  </YStack>
+                )
+              }
+              onEndReached={handleFetchMore}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={isFetchingMore ? <Spinner size="small" color="$blue10" /> : null}
+              style={{ maxHeight: 340 }}
+            />
           </YStack>
 
           <XStack justifyContent="flex-end" space="$2" marginTop="$4">
@@ -272,6 +254,14 @@ export function ForwardMessageDialog({
               Gửi
             </Button>
           </XStack>
+          <YStack marginTop="$4" space="$2" alignItems="center">
+            <XStack alignItems="center" space="$2">
+              <SendHorizontal size={18} color="$blue10" />
+              <Text fontSize="$4" fontWeight="700" color="$color10">
+                {messages.length} tin nhắn sẽ được chuyển tiếp
+              </Text>
+            </XStack>
+          </YStack>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>

@@ -44,41 +44,39 @@ export const ChatInboxItem = ({
   return (
     <ListItem
       pressTheme
-      backgroundColor={selected ? '$blue10' : '$color3'}
+      backgroundColor={selected ? '$blue8' : 'transparent'}
       onPress={onPress}
-      borderRadius={14}
+      borderRadius={10}
       marginVertical={2}
       paddingVertical="$2"
-      paddingHorizontal="$4"
       borderWidth={selected ? 1 : 0}
-      borderColor={selected ? '$accent1' : 'transparent'}
       hoverStyle={{
-        background: selected ? '$blue10' : '$color2',
+        background: selected ? '$blue8' : '$gray5',
       }}
       title={
         <View>
-          <Text fontWeight="700" fontSize={16} color={selected ? '$color1' : '$color'}>
+          <Text fontWeight="500" fontSize={16} color={selected ? '$color1' : '$color'}>
             {name}
-          </Text> 
-          
-        {unreadCount > 0 && ( 
-          <Circle
-            size={23}
-            backgroundColor="$red10"
-            position='absolute'
-            top={4}
-            right={3}
-            animation="lazy"
-            enterStyle={{ opacity: 0, scale: 0.5 }}
-          >
-            <Text color="white" fontSize={10} fontWeight="700">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Text>
-          </Circle>
-        )}
+          </Text>
+
+          {unreadCount > 0 && (
+            <Circle
+              size={23}
+              backgroundColor="$red10"
+              position='absolute'
+              top={4}
+              right={3}
+              animation="lazy"
+              enterStyle={{ opacity: 0, scale: 0.5 }}
+            >
+              <Text color="white" fontSize={10} fontWeight="700">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </Circle>
+          )}
 
         </View>
-        
+
       }
       subTitle={
         <Text
