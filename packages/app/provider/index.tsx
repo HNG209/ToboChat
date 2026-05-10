@@ -20,6 +20,7 @@ import { YStack } from '@my/ui'
 // Phan chuyen doi ngon ngu
 import { I18nextProvider } from 'react-i18next'
 import i18n from '../i18n'
+import { SocketEventProvider } from './SocketEventProvider'
 export function Provider({ children }) {
   const systemScheme = useColorScheme()
 
@@ -54,15 +55,17 @@ export function Provider({ children }) {
               <YStack flex={1} backgroundColor="$background">
                 <ReduxProvider store={store}>
                   <AuthProvider>
-                    <ToastProvider
-                      swipeDirection="horizontal"
-                      duration={6000}
-                      native={[]}
-                    // native={isWeb ? [] : ['mobile']}
-                    >
-                      {children}
-                      <CustomToast />
-                    </ToastProvider>
+                    <SocketEventProvider>
+                      <ToastProvider
+                        swipeDirection="horizontal"
+                        duration={6000}
+                        native={[]}
+                      // native={isWeb ? [] : ['mobile']}
+                      >
+                        {children}
+                        <CustomToast />
+                      </ToastProvider>
+                    </SocketEventProvider>
                   </AuthProvider>
                 </ReduxProvider>
               </YStack>

@@ -112,6 +112,7 @@ export const ConversationInfoContent = ({
       // Xử lý thông báo lỗi UI ở đây
     }
   }
+
   const handleSaveName = async () => {
     try {
       if (!nameInput.trim()) return
@@ -135,6 +136,7 @@ export const ConversationInfoContent = ({
       console.error(err)
     }
   }
+  
   const executeLeaveGroup = async () => {
     try {
       await leaveGroup({ roomId }).unwrap();
@@ -297,7 +299,6 @@ export const ConversationInfoContent = ({
                 <XStack
                   alignItems="center"
                   space="$2"
-                  backgroundColor="$backgroundStrong"
                   borderRadius="$10"
                   px="$3"
                   py="$2"
@@ -341,7 +342,6 @@ export const ConversationInfoContent = ({
                       size="$2"
                       circular
                       icon={Edit3}
-                      backgroundColor="$backgroundStrong"
                       hoverStyle={{ scale: 1.05 }}
                       pressStyle={{ scale: 0.95 }}
                       onPress={() => {

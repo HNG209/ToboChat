@@ -62,6 +62,7 @@ import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
 import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, useGetMyFriendListQuery, useRespondFriendRequestMutation, useSendFriendRequestMutation } from 'app/services/contactApi';
 import { FriendStatus } from 'app/types/Enums';
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
+import { VideoCall } from '../call/VideoCall';
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -284,6 +285,15 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
+  const [callToken, setCallToken] = useState<string | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ token: string; callerId: string } | null>(null);
+
+  const handleStartCall = () => {
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('request_call', { roomId: roomId });
+    }
+  };
 
   // Tự động cuộn tới tin nhắn reply sau khi fetch xong trang chứa nó
   useEffect(() => {
@@ -456,7 +466,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     setDirection('both')
   }
 
-
   useEffect(() => {
     return () => {
       dispatch(
@@ -569,6 +578,15 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   }, [roomId, isSocketReady, dispatch])
 
+  if (callToken) {
+    return (
+      <VideoCall
+        token={callToken}
+        onLeave={() => setCallToken(null)} // Bấm tắt gọi thì xóa token để về lại màn hình chat
+      />
+    );
+  }
+
   return (
     <Theme name={theme}>
       <XStack flex={1} bg="$background">
@@ -587,10 +605,45 @@ export function ChatScreen({ roomId, insets }: Props) {
             <ChatScreenHeader
               roomData={roomData}
               onInfoPress={() => setShowInfo(!showInfo)}
+              onCallPress={() => {
+                handleStartCall()
+              }}
               isRoomLoading={isRoomLoading}
               insets={insets}
               linkProps={linkProps}
             />
+
+            {/* {incomingCall && (
+              <YStack
+                position="absolute"
+                top={80} // Nằm đè lên trên cùng, ngay dưới Header
+                alignSelf="center"
+                zIndex={1000}
+                backgroundColor={theme === 'dark' ? '$color3' : 'white'}
+                padding="$4"
+                borderRadius="$4"
+                borderWidth={1}
+                borderColor="$borderColor"
+                elevation={10}
+                shadowColor="#000"
+                shadowOpacity={0.2}
+                shadowRadius={10}
+                alignItems="center"
+                space="$3"
+              >
+                <Text fontSize="$5" fontWeight="bold">
+                  Cuộc gọi video đến từ User {incomingCall.callerId}
+                </Text>
+                <XStack space="$4" mt="$2">
+                  <Button theme="red" icon={<X />} onPress={rejectCall}>
+                    Từ chối
+                  </Button>
+                  <Button theme="green" icon={<Video />} onPress={acceptCall}>
+                    Bắt máy
+                  </Button>
+                </XStack>
+              </YStack>
+            )} */}
 
             {isDM && otherUserId && !isFriendStatusLoading && friendStatus && (
               <YStack mt="$2" px="$4">
@@ -885,7 +938,6 @@ export function ChatScreen({ roomId, insets }: Props) {
               open={forwardDialogOpen}
               onOpenChange={setForwardDialogOpen}
               messages={forwardSourceMessages}
-              rooms={availableForwardRooms}
               isLoadingRooms={isJoinedRoomsLoading}
               currentRoomId={roomId}
               isSubmitting={isForwarding}
