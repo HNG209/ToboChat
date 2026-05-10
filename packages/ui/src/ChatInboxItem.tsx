@@ -61,7 +61,7 @@ export const ChatInboxItem = ({
             {name}
           </Text> 
           
-        {unreadCount > 0 && (
+        {unreadCount > 0 && ( 
           <Circle
             size={23}
             backgroundColor="$red10"

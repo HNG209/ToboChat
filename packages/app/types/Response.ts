@@ -30,7 +30,9 @@ export interface UserResponse {
   avatarUrl?: string
   createdAt: string
   friendStatus?: FriendStatus
-  totalUnreadMessages: number
+  totalUnreadMessages?: number
+  friendRequestCount?: number
+  groupRequestCount?: number
   allowAutoAddToGroup?: boolean
 }
 
