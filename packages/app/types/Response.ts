@@ -1,4 +1,12 @@
-import { FriendStatus, MemberRole, MemberStatus, MessageStatus, MessageType, RoomType, SystemAction } from './Enums'
+import {
+  FriendStatus,
+  MemberRole,
+  MemberStatus,
+  MessageStatus,
+  MessageType,
+  RoomType,
+  SystemAction,
+} from './Enums'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -125,4 +133,15 @@ export interface GroupPendingRequestResponse {
   roomName: string
   user: UserResponse
   requester: UserResponse
+}
+
+export interface CallResponse {
+  token: string
+  roomId: string
+}
+
+export interface IncomingCallDto {
+  token: string
+  callerId: string
+  room: RoomResponse
 }

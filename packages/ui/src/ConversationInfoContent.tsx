@@ -136,7 +136,7 @@ export const ConversationInfoContent = ({
       console.error(err)
     }
   }
-  
+
   const executeLeaveGroup = async () => {
     try {
       await leaveGroup({ roomId }).unwrap();
@@ -414,7 +414,6 @@ export const ConversationInfoContent = ({
                   flex={1}
                   aspectRatio={1}
                   borderRadius="$3"
-                  backgroundColor="$backgroundStrong"
                   alignItems="center"
                   justifyContent="center"
                 >
@@ -429,7 +428,7 @@ export const ConversationInfoContent = ({
           {/* KHO FILE */}
           <YStack p="$3" space="$3">
             <Text fontWeight="700" fontSize="$4" px="$1">File đã gửi</Text>
-            <XStack p="$3" backgroundColor="$backgroundStrong" borderRadius="$4" alignItems="center" space="$3">
+            <XStack p="$3"  borderRadius="$4" alignItems="center" space="$3">
               <Circle size={36} backgroundColor="$orange3">
                 <FileText size={18} color="$orange10" />
               </Circle>
@@ -497,7 +496,6 @@ const QuickActionButton = ({
     >
       <Circle
         size={42}
-        backgroundColor="$backgroundStrong"
         hoverStyle={isDisabled ? {} : { backgroundColor: '$backgroundHover', scale: 1.05 }}
         pressStyle={isDisabled ? {} : { scale: 0.9 }}
         onPress={isDisabled ? undefined : onPress}

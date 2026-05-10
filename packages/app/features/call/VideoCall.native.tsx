@@ -3,8 +3,7 @@ import { YStack, Text, Button } from 'tamagui';
 import { LiveKitRoom, useTracks, VideoTrack, AudioSession } from '@livekit/react-native';
 import { Track } from 'livekit-client';
 
-// Cấu hình URL lấy từ LiveKit Cloud của bạn
-const LIVEKIT_URL = "wss://tobochat-xxxx.livekit.cloud";
+const LIVEKIT_URL = process.env.EXPO_PUBLIC_LIVEKIT_URL;
 
 export function VideoCall({ token, onLeave }: { token: string; onLeave: () => void }) {
 

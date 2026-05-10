@@ -63,3 +63,7 @@ export interface RoomUpdateRequest {
 export interface MemberUpdateRequest {
   memberRole: 'VICE_ADMIN' | 'MEMBER'
 }
+
+export interface CallRequest {
+  roomId: string
+}

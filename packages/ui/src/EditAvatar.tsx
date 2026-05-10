@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Button, Dialog, Image, Text, View, XStack, YStack } from '@my/ui'
 import { Platform } from 'react-native'
+
 interface ProfileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentName: string
+  currentName?: string
   currentAvatar?: string
   onSave: (data: { name?: string; avatar?: File }) => void | Promise<void>
 }

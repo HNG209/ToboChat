@@ -19,7 +19,6 @@ export function VideoCall({ token, onLeave }: { token: string; onLeave: () => vo
         data-lk-theme="default"
         style={{ height: '100%', flex: 1 }}
       >
-        {/* Component này sẽ tự động vẽ ra toàn bộ giao diện: Lưới video, Nút bật/tắt mic cam, Nút chia sẻ màn hình... */}
         <VideoConference />
       </LiveKitRoom>
     </YStack>

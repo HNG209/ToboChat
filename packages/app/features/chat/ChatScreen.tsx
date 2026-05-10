@@ -276,17 +276,9 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   };
 
-  const { data: joinedRoomsData, isLoading: isJoinedRoomsLoading } = useGetJoinedRoomsQuery(
-    { status },
-    {
-      skip: !hasSession,
-    }
-  )
   const [forwardMessages, { isLoading: isForwarding }] = useForwardMessagesMutation()
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
-  const [callToken, setCallToken] = useState<string | null>(null);
-  const [incomingCall, setIncomingCall] = useState<{ token: string; callerId: string } | null>(null);
 
   const handleStartCall = () => {
     const socket = getSocket();
@@ -335,13 +327,6 @@ export function ChatScreen({ roomId, insets }: Props) {
       }
     })
   }, [data?.items, locallyDeletedIds, locallyRecalledIds])
-
-  const availableForwardRooms = useMemo(() => {
-    return (joinedRoomsData?.items || [])
-      .filter((room) => room.id !== roomId)
-      .slice()
-      .sort((left, right) => left.roomName.localeCompare(right.roomName))
-  }, [joinedRoomsData?.items, roomId])
 
   const selectedMessages = useMemo(
     () => (normalizedMessages || []).filter((message) => selectedIds.has(message.id)),
@@ -578,15 +563,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
   }, [roomId, isSocketReady, dispatch])
 
-  if (callToken) {
-    return (
-      <VideoCall
-        token={callToken}
-        onLeave={() => setCallToken(null)} // Bấm tắt gọi thì xóa token để về lại màn hình chat
-      />
-    );
-  }
-
   return (
     <Theme name={theme}>
       <XStack flex={1} bg="$background">
@@ -612,38 +588,6 @@ export function ChatScreen({ roomId, insets }: Props) {
               insets={insets}
               linkProps={linkProps}
             />
-
-            {/* {incomingCall && (
-              <YStack
-                position="absolute"
-                top={80} // Nằm đè lên trên cùng, ngay dưới Header
-                alignSelf="center"
-                zIndex={1000}
-                backgroundColor={theme === 'dark' ? '$color3' : 'white'}
-                padding="$4"
-                borderRadius="$4"
-                borderWidth={1}
-                borderColor="$borderColor"
-                elevation={10}
-                shadowColor="#000"
-                shadowOpacity={0.2}
-                shadowRadius={10}
-                alignItems="center"
-                space="$3"
-              >
-                <Text fontSize="$5" fontWeight="bold">
-                  Cuộc gọi video đến từ User {incomingCall.callerId}
-                </Text>
-                <XStack space="$4" mt="$2">
-                  <Button theme="red" icon={<X />} onPress={rejectCall}>
-                    Từ chối
-                  </Button>
-                  <Button theme="green" icon={<Video />} onPress={acceptCall}>
-                    Bắt máy
-                  </Button>
-                </XStack>
-              </YStack>
-            )} */}
 
             {isDM && otherUserId && !isFriendStatusLoading && friendStatus && (
               <YStack mt="$2" px="$4">
@@ -938,7 +882,6 @@ export function ChatScreen({ roomId, insets }: Props) {
               open={forwardDialogOpen}
               onOpenChange={setForwardDialogOpen}
               messages={forwardSourceMessages}
-              isLoadingRooms={isJoinedRoomsLoading}
               currentRoomId={roomId}
               isSubmitting={isForwarding}
               onConfirm={handleForwardConfirm}
@@ -1047,6 +990,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onAddMember={() => setInfoView('ADD')}
                     onViewMembers={() => setInfoView('MEMBERS')}
                     onApproveMembers={() => setInfoView('APPROVED')}
+                    onSaveAvatar={handleSaveAvatar}
                   />
                 ) : infoView === 'MANAGEMENT' ? (
                   <GroupManagementContent
