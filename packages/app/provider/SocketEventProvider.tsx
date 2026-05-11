@@ -62,11 +62,26 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       setCurrentCallRoomId((prevId) => prevId === data.roomId ? null : prevId);
     };
 
+    const handleCallJoined = (data: CallResponse) => {
+      setCallToken(data.token);
+      setCurrentCallRoomId(data.roomId);
+      // Ghi chú: Vì tham gia trễ nên không có incomingCall (không có popup),
+      // chỉ cần set token là component <VideoCall /> sẽ tự động hiện lên!
+    };
+
+    const handleCallError = (message: string) => {
+      console.log("Lỗi tham gia gọi:", message);
+    };
+
     socket.on('call_started', handleCallStarted);
+    socket.on('call_joined', handleCallJoined);
+    socket.on('call_error', handleCallError);
     socket.on('incoming_call', handleIncomingCall);
     socket.on('call_cancelled', handleCallCancelled);
     return () => {
       socket.off('call_started', handleCallStarted);
+      socket.off('call_joined', handleCallJoined);
+      socket.off('call_error', handleCallError);
       socket.off('incoming_call', handleIncomingCall);
       socket.off('call_cancelled', handleCallCancelled);
     }

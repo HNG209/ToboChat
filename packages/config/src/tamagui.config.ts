@@ -1,6 +1,6 @@
 import { defaultConfig } from '@tamagui/config/v4'
 import { createTamagui } from 'tamagui'
-import { blue, gray, orange } from '@tamagui/colors'
+import { blue, gray, orange, red, purple } from '@tamagui/colors'
 import { bodyFont, headingFont } from './fonts'
 import { animations } from './animations'
 
@@ -12,7 +12,9 @@ export const config = createTamagui({
     color: {
       ...blue,
       ...gray,
-      ...orange
+      ...orange,
+      ...red,
+      ...purple,
     },
   },
   themes: {

@@ -111,6 +111,7 @@ export function MessageItem({
   const messageColor = isRevoked ? '$color9' : '$color12'
   const isSelected = selectionMode && selected
   const menuTriggerRef = useRef<(() => void) | null>(null)
+  const isGroupCallWidget = msg.metadata?.isGroupCall === 'true';
 
   const renderReplyPreview = () => {
     if (!msg.replyTo || isRevoked) return null
@@ -252,9 +253,13 @@ export function MessageItem({
   }
 
   return (
-    <XStack space="$2" mb="$2" justifyContent={isMe ? 'flex-end' : 'flex-start'}>
+    <XStack
+      space="$2"
+      mb="$2"
+      justifyContent={isGroupCallWidget ? 'center' : (isMe ? 'flex-end' : 'flex-start')}
+    >
       {/* AVATAR */}
-      {!isMe && (
+      {!isMe && !isGroupCallWidget && (
         <YStack width={32} alignItems="center">
           {showAvatar && (
             <Avatar circular size="$3">
@@ -309,6 +314,7 @@ export function MessageItem({
             </YStack>
           ) : null}
 
+          {/* WIDGETS */}
           {msg.messageType === 'WIDGET' && (
             <WidgetMessage msg={msg} isMe={isMe} roomId={roomId} />
           )}

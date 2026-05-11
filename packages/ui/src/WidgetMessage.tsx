@@ -1,4 +1,4 @@
-import { YStack, XStack, Text, Circle, Button, Theme } from '@my/ui'
+import { YStack, XStack, Text, Circle, Button, ThemeName } from '@my/ui'
 import { PhoneMissed, PhoneCall, Video, MapPin, BarChart2 } from '@tamagui/lucide-icons'
 import { MessageResponse } from 'app/types/Response'
 import { getSocket } from 'app/utils/socket'
@@ -41,7 +41,22 @@ function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; 
   const status = metadata.status // 'MISSED' hoặc 'ENDED'
   const duration = metadata.duration
   const isMissed = status === 'MISSED'
+  const isGroupCall = metadata.isGroupCall === 'true'
 
+  // Định nghĩa style riêng cho nhóm
+  const borderColor = isMissed ? '$red5' : (isGroupCall ? '$color6' : '$color4')
+  const icon = isGroupCall
+    ? <BarChart2 size={20} color={isMissed ? '$red10' : '$purple10'} />
+    : (isMissed
+      ? <PhoneMissed size={20} color="$red10" />
+      : <Video size={20} color="$green10" />)
+  const title = isGroupCall
+    ? (isMissed ? 'Cuộc gọi nhóm nhỡ' : 'Cuộc gọi nhóm video')
+    : (isMissed ? 'Cuộc gọi nhỡ' : 'Cuộc gọi video')
+  const titleColor = isGroupCall
+    ? (isMissed ? '$red10' : '$purple10')
+    : (isMissed ? '$red10' : '$color12')
+  const buttonTheme = (isGroupCall ? 'purple' : (isMissed ? 'red' : 'active')) as ThemeName;
   const handleCallBack = () => {
     const socket = getSocket()
     if (socket) {
@@ -54,26 +69,22 @@ function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; 
       p="$3"
       minWidth={240}
       maxWidth={300}
-      bg={isMe ? '$blue3' : '$color2'}
+      bg='$color1'
       borderRadius="$4"
       borderWidth={1}
-      borderColor={isMissed ? '$red5' : '$color4'}
+      borderColor={borderColor}
     >
       <XStack space="$3" alignItems="center">
-        <Circle size={42} bg={isMissed ? '$red3' : '$green3'}>
-          {isMissed ? (
-            <PhoneMissed size={20} color="$red10" />
-          ) : (
-            <Video size={20} color="$green10" />
-          )}
+        <Circle size={42} bg={isMissed ? '$red3' : (isGroupCall ? '$purple3' : '$green3')}>
+          {icon}
         </Circle>
 
         <YStack flex={1}>
-          <Text fontWeight="bold" color={isMissed ? '$red10' : '$color12'}>
-            {isMissed ? 'Cuộc gọi nhỡ' : 'Cuộc gọi video'}
+          <Text fontWeight="bold" color={titleColor}>
+            {title}
           </Text>
           {!isMissed && duration && (
-            <Text fontSize="$2" color="$color11">
+            <Text fontSize="$2" color={isGroupCall ? '$purple10' : '$color11'}>
               Thời gian: {formatDuration(duration)}
             </Text>
           )}
@@ -83,7 +94,7 @@ function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; 
       <Button
         mt="$3"
         size="$3"
-        theme={isMissed ? 'red' : 'active'}
+        theme={buttonTheme}
         icon={<PhoneCall size={16} />}
         onPress={handleCallBack}
       >
