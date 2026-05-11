@@ -11,6 +11,7 @@ import { AppDispatch, store } from 'app/store'
 import { roomApi } from 'app/services/roomApi'
 import { RoomStatus } from './ChatInbox'
 import { formatPreviewMessage, formatSystemMessage } from 'app/utils/chatHelper';
+import { WidgetMessage } from './WidgetMessage'
 
 interface Props {
   roomId: string
@@ -307,8 +308,13 @@ export function MessageItem({
               ) : null}
             </YStack>
           ) : null}
+
+          {msg.messageType === 'WIDGET' && (
+            <WidgetMessage msg={msg} isMe={isMe} roomId={roomId} />
+          )}
+
           {/* TEXT ONLY */}
-          {(media.length === 0 && !file) ? (
+          {(media.length === 0 && !file && msg.messageType !== 'WIDGET') ? (
             <Pressable
               onPress={selectionMode ? () => onToggleSelect(msg.id) : undefined}
               onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}

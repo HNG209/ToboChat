@@ -50,6 +50,16 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         }
         return prev;
       });
+
+      setCallToken((prevToken) => {
+        if (prevToken && currentCallRoomId === data.roomId) {
+          return null; // Xóa token -> Component VideoCall bị unmount -> Trở về giao diện bình thường
+        }
+        return prevToken;
+      });
+
+      // Reset lại ID phòng đang gọi
+      setCurrentCallRoomId((prevId) => prevId === data.roomId ? null : prevId);
     };
 
     socket.on('call_started', handleCallStarted);
@@ -64,14 +74,28 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
   const handleAcceptCall = () => {
     if (incomingCall) {
-      setCallToken(incomingCall.token)
-      setCurrentCallRoomId(incomingCall.room.id)
-      setIncomingCall(null)
+      const socket = getSocket();
+
+      // Báo cho server biết là tôi đã bắt máy rồi
+      if (socket) {
+        socket.emit('accept_call', { roomId: incomingCall.room.id });
+      }
+
+      setCallToken(incomingCall.token);
+      setCurrentCallRoomId(incomingCall.room.id);
+      setIncomingCall(null);
     }
   }
 
   const handleRejectCall = () => {
-    setIncomingCall(null)
+    if (incomingCall) {
+      const socket = getSocket();
+      // Nếu từ chối, cũng gửi sự kiện cancel_call để báo nhỡ
+      if (socket) {
+        socket.emit('cancel_call', { roomId: incomingCall.room.id });
+      }
+      setIncomingCall(null);
+    }
   }
 
   if (callToken) {
