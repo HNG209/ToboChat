@@ -92,6 +92,7 @@ export function MessageItem({
   const isGroupEnd = !groupsWithNewer || isSolo;
 
   const showAvatar = !isMe && (isSolo || isGroupStart)
+  const showName = !isMe && (isSolo || isGroupStart)
 
   const isRevoked = msg.messageStatus === 'REVOKED'
 
@@ -284,7 +285,21 @@ export function MessageItem({
         onEnterMultiSelect={onEnterMultiSelect}
         triggerRef={menuTriggerRef}
       >
+
         <YStack space="$2">
+          {/* TÊN NGƯỜI GỬI */}
+          {showName && (
+            <Text
+              fontSize="$2"
+              fontWeight="600"
+              color="$color10"
+              ml="$2"
+              letterSpacing={0.2}
+            >
+              {msg.user?.name}
+            </Text>
+          )}
+
           {/* MEDIA */}
           {media.length > 0 ? (
             <YStack
