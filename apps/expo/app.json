@@ -51,7 +51,21 @@
           "microphonePermission": "ToboChat cần quyền truy cập Micro để bạn có thể trò chuyện."
         }
       ],
-      "@livekit/react-native"
+      [
+        "@livekit/react-native-expo-plugin",
+        {
+          "android": {
+            "audioType": "communication"
+          }
+        }
+      ],
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "ToboChat cần quyền truy cập Camera để bạn có thể gọi video.",
+          "microphonePermission": "ToboChat cần quyền truy cập Micro để bạn có thể trò chuyện."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
