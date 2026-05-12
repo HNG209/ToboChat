@@ -13,6 +13,7 @@ import { useRouter, useParams } from 'solito/navigation'
 import { StyledFlatList } from './StyledFlatList'
 import { AlertTriangle, Inbox } from '@tamagui/lucide-icons'
 import { RoomUpdateEvent } from 'app/types/Events'
+import { CheckCircle, Clock } from '@tamagui/lucide-icons' // Thêm icon nếu chưa có
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
 function TabButton({
@@ -344,18 +345,62 @@ export default function ChatInbox() {
     <YStack flex={1} backgroundColor="$color2">
 
       {/* ===== SEGMENTED TABS ===== */}
-      <YStack padding="$3" backgroundColor="$color2">
-        <XStack backgroundColor="$background" borderRadius="$5" padding={4} gap={4}>
-          <TabButton
-            active={status === 'ACTIVE'}
-            label="Tất cả"
-            onPress={() => setStatus('ACTIVE')}
-          />
-          <TabButton
-            active={status === 'PENDING'}
-            label="Đang chờ"
-            onPress={() => setStatus('PENDING')}
-          />
+      <YStack paddingHorizontal="$3" paddingTop="$3" backgroundColor="$color2">
+        <XStack gap={8} justifyContent="center">
+          <Pressable onPress={() => setStatus('ACTIVE')} style={{ flex: 1 }}>
+            <XStack
+              backgroundColor={status === 'ACTIVE' ? '$blue10' : '$background'}
+              borderRadius={8}
+              paddingVertical={7}
+              paddingHorizontal={0}
+              justifyContent="center"
+              alignItems="center"
+              gap={6}
+              shadowColor={status === 'ACTIVE' ? '#1976d2' : 'transparent'}
+              shadowOpacity={status === 'ACTIVE' ? 0.10 : 0}
+              shadowRadius={status === 'ACTIVE' ? 4 : 0}
+              borderWidth={1}
+              borderColor={status === 'ACTIVE' ? '$blue8' : 'transparent'}
+              pressStyle={{ scale: 0.98 }}
+              transition="all 0.12s"
+            >
+              <CheckCircle size={16} color={status === 'ACTIVE' ? 'white' : '$blue10'} />
+              <Text
+                color={status === 'ACTIVE' ? 'white' : '$blue10'}
+                fontWeight="700"
+                fontSize={13}
+              >
+                Tất cả
+              </Text>
+            </XStack>
+          </Pressable>
+          <Pressable onPress={() => setStatus('PENDING')} style={{ flex: 1 }}>
+            <XStack
+              backgroundColor={status === 'PENDING' ? '$orange8' : '$background'}
+              borderRadius={8}
+              paddingVertical={7}
+              paddingHorizontal={0}
+              justifyContent="center"
+              alignItems="center"
+              gap={6}
+              shadowColor={status === 'PENDING' ? '#ff9800' : 'transparent'}
+              shadowOpacity={status === 'PENDING' ? 0.10 : 0}
+              shadowRadius={status === 'PENDING' ? 4 : 0}
+              borderWidth={1}
+              borderColor={status === 'PENDING' ? '$orange7' : 'transparent'}
+              pressStyle={{ scale: 0.98 }}
+              transition="all 0.12s"
+            >
+              <Clock size={16} color={status === 'PENDING' ? 'white' : '$orange8'} />
+              <Text
+                color={status === 'PENDING' ? 'white' : '$orange8'}
+                fontWeight="700"
+                fontSize={13}
+              >
+                Đang chờ
+              </Text>
+            </XStack>
+          </Pressable>
         </XStack>
       </YStack>
 

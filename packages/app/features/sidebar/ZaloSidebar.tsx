@@ -404,7 +404,7 @@ export const ZaloSidebar = () => {
                 enterStyle={{ opacity: 0, scale: 0 }}
               >
                 <Text color="white" fontSize={9} fontWeight="bold">
-                  {profileData!.totalUnreadMessages > 99 ? '99+' : profileData!.totalUnreadMessages}
+                  {profileData?.totalUnreadMessages > 99 ? '99+' : profileData?.totalUnreadMessages}
                 </Text>
               </Circle>
             )}

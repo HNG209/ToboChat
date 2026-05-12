@@ -7,6 +7,7 @@ import { VideoCall } from "app/features/call/VideoCall"
 import { Check, X as XIcon } from "@tamagui/lucide-icons"
 import { CallResponse, IncomingCallDto, RoomResponse } from "app/types/Response"
 import { CallRequest } from "app/types/Request"
+import { callApi } from "app/services/callApi"
 
 export const SocketEventProvider = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useDispatch<AppDispatch>()
@@ -40,6 +41,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
     const handleIncomingCall = (data: IncomingCallDto) => {
       setIncomingCall(data);
+      dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.room.id }, () => true));
     };
 
     const handleCallCancelled = (data: CallRequest) => {
@@ -60,6 +62,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
       // Reset lại ID phòng đang gọi
       setCurrentCallRoomId((prevId) => prevId === data.roomId ? null : prevId);
+      dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => false));
     };
 
     const handleCallJoined = (data: CallResponse) => {

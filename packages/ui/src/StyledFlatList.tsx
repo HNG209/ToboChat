@@ -22,7 +22,7 @@ const BaseFlatList = forwardRef(BaseFlatListInner) as <T>(
 
 const Styled = styled(BaseFlatList, {
   flex: 1,
-  backgroundColor: '$background',
+  backgroundColor: 'transparent',
   padding: '$3',
 })
 
