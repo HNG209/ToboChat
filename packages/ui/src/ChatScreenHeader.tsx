@@ -1,8 +1,11 @@
 import { Avatar, Button, Circle, Text, XStack, YStack } from "tamagui"
 import { ChevronLeft, Info, Phone, Video } from "@tamagui/lucide-icons"
 import { RoomResponse } from "app/types/Response"
+import { useGetCallStatusQuery } from "app/services/callApi"
+import { getSocket } from "app/utils/socket"
 
 type Props = {
+  roomId: string
   roomData: RoomResponse | undefined,
   isRoomLoading: boolean,
   insets: { top: number; bottom: number; left: number; right: number } | undefined,
@@ -11,7 +14,20 @@ type Props = {
   onCallPress?: () => void
 }
 
-export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps, onInfoPress, onCallPress }: Props) => {
+export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, linkProps, onInfoPress, onCallPress }: Props) => {
+  const isGroup = roomData?.roomType === 'GROUP';
+  const { data: callStatusData } = useGetCallStatusQuery(
+    { roomId },
+    { skip: !roomId, refetchOnMountOrArgChange: true }
+  );
+
+  const handleJoinCall = () => {
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('join_ongoing_call', { roomId: roomId });
+    }
+  }
+
   return (
     <XStack
       alignItems="center"
@@ -29,7 +45,7 @@ export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps, o
       <XStack alignItems="center" space="$3">
         <Button size="$3" circular chromeless icon={ChevronLeft} {...linkProps} />
         <XStack alignItems="center" space="$2">
-          <Avatar circular size="$3" marginRight="$2">
+          <Avatar circular size="$4" marginRight="$2">
             <Avatar.Image
               src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
             />
@@ -48,10 +64,27 @@ export const ChatScreenHeader = ({ roomData, isRoomLoading, insets, linkProps, o
           </YStack>
         </XStack>
       </XStack>
-      <XStack space="$1">
-        <Button size="$4" circular chromeless icon={Phone} onPress={onCallPress} />
-        <Button size="$4" circular chromeless icon={Video} onPress={onCallPress} />
-        <Button size="$4" circular chromeless icon={Info} onPress={onInfoPress} />
+      <XStack space="$1" justifyContent="center" alignItems="center">
+        {callStatusData && isGroup ? (
+          <Button
+            size="$3"
+            icon={Phone}
+            backgroundColor="$green10"
+            color="white"
+            borderRadius={20}
+            fontWeight="bold"
+            paddingHorizontal={16}
+            onPress={handleJoinCall}
+          >
+            Tham gia cuộc gọi
+          </Button>
+        ) : (
+          <>
+            <Button size="$5" circular chromeless icon={Phone} onPress={onCallPress} />
+            <Button size="$5" circular chromeless icon={Video} onPress={onCallPress} />
+          </>
+        )}
+        <Button size="$5" circular chromeless icon={Info} onPress={onInfoPress} />
       </XStack>
     </XStack>
   )

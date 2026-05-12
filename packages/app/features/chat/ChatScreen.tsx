@@ -12,22 +12,13 @@ import {
   YStack,
   XStack,
   Text,
-  Input,
   Button,
-  Avatar,
   Theme,
-  Circle,
-  Image,
-  ZStack,
   ForwardMessageDialog,
   RoomStatus,
   Sheet,
 } from '@my/ui'
 import {
-  SendHorizontal,
-  Heart,
-  Phone,
-  Video,
   Image as ImageIcon,
   Copy,
   Forward,
@@ -62,7 +53,6 @@ import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
 import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, useGetMyFriendListQuery, useRespondFriendRequestMutation, useSendFriendRequestMutation } from 'app/services/contactApi';
 import { FriendStatus } from 'app/types/Enums';
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
-import { VideoCall } from '../call/VideoCall';
 import { useGetCallStatusQuery } from 'app/services/callApi';
 
 async function copyText(text: string) {
@@ -189,11 +179,6 @@ export function ChatScreen({ roomId, insets }: Props) {
   const { data: myFriends } = useGetMyFriendListQuery({ limit: 20, roomId }, { refetchOnMountOrArgChange: true });
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
-
-  const { data: callStatusData, refetch: refetchCallStatus } = useGetCallStatusQuery(
-    { roomId },
-    { skip: !roomId, refetchOnMountOrArgChange: true }
-  );
 
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
   const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery(
@@ -585,6 +570,7 @@ export function ChatScreen({ roomId, insets }: Props) {
           >
             {/* --- HEADER --- */}
             <ChatScreenHeader
+              roomId={roomId}
               roomData={roomData}
               onInfoPress={() => setShowInfo(!showInfo)}
               onCallPress={() => {
