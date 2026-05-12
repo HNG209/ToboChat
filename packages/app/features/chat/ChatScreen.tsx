@@ -63,6 +63,7 @@ import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, us
 import { FriendStatus } from 'app/types/Enums';
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
 import { VideoCall } from '../call/VideoCall';
+import { useGetCallStatusQuery } from 'app/services/callApi';
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -188,6 +189,11 @@ export function ChatScreen({ roomId, insets }: Props) {
   const { data: myFriends } = useGetMyFriendListQuery({ limit: 20, roomId }, { refetchOnMountOrArgChange: true });
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
+
+  const { data: callStatusData, refetch: refetchCallStatus } = useGetCallStatusQuery(
+    { roomId },
+    { skip: !roomId, refetchOnMountOrArgChange: true }
+  );
 
   const [triggerGetMessages, { isFetching: isFetchingMore }] = useLazyGetMessagesQuery()
   const { data: roomData, isLoading: isRoomLoading } = useGetRoomMetadataQuery(
