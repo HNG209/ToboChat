@@ -65,36 +65,21 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
       {/* RIGHT: Các nút hành động */}
       <XStack gap="$2" alignItems="center">
         {isGroup ? (
-          <XStack gap="$2">
-            <Button
-              {...buttonProps}
-              theme="red"
-              icon={<X size={16} />}
-              onPress={() => onAction?.('cancel', user.id)}
-            >
-              {!media.sm && "Từ chối"}
-            </Button>
-            <Button
-              {...buttonProps}
-              theme="blue" // Thêm màu cho nổi bật nút chính
-              onPress={() => onAction?.('join', user.id)}
-              icon={media.sm ? <Check size={16} /> : undefined} // Hiện icon check nếu là mobile
-            >
-              {!media.sm && "Vào nhóm"}
-            </Button>
-          </XStack>
+          <></>
         ) : (
           <>
             {/* Trường hợp: Danh sách bạn bè bình thường */}
-            {!isPending && !isSent && (
-              <Button
-                size="$3"
-                circular
-                chromeless
-                icon={<MoreHorizontal size={20} color="$gray10" />}
-                hoverStyle={{ backgroundColor: '$gray4' }}
-              />
-            )}
+            {
+              !isPending && !isSent && (
+                <Button
+                  size="$3"
+                  circular
+                  chromeless
+                  icon={<MoreHorizontal size={20} color="$gray10" />}
+                  hoverStyle={{ backgroundColor: '$gray4' }}
+                />
+              )
+            }
 
             {/* Trường hợp: Lời mời ĐÃ NHẬN (Pending) */}
             {isPending && (
