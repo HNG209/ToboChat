@@ -5,13 +5,17 @@ import { ContactHeader, UserCard } from '@my/ui'
 import { Platform, FlatList } from 'react-native'
 import { useGetJoinedRoomsQuery } from 'app/services/roomApi'
 import { CreateGroupDialog } from '@my/ui/src/CreateGroupDialog'
+
 export default function GroupPage() {
   const [keyword, setKeyword] = useState('')
 
   // State phục vụ phân trang
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // State xử lý Modal tạo nhóm
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+
   const isWeb = Platform.OS === 'web'
 
   const {
@@ -63,10 +67,15 @@ export default function GroupPage() {
         {/* HEADER */}
         <ContactHeader
           title="Danh sách nhóm"
-          subtitle={`${groupsData?.items?.length ?? 0} nhóm đã tham gia`}
+          subtitle={`${filteredGroups.length} nhóm`} // Đếm chuẩn theo số nhóm đã lọc
           onBackPath="/contacts"
           actionElement={
-            <Button theme="blue" icon={<Plus size={18} />} borderRadius="$4" onPress={() => setIsCreateModalOpen(true)}>
+            <Button
+              theme="blue"
+              icon={<Plus size={18} />}
+              borderRadius="$4"
+              onPress={() => setIsCreateModalOpen(true)}
+            >
               Tạo nhóm
             </Button>
           }
@@ -98,11 +107,14 @@ export default function GroupPage() {
         >
           {groupsError && <Text color="red" padding="$2">Lỗi tải dữ liệu</Text>}
 
-          {/* Sử dụng FlatList thay cho ScrollView để hỗ trợ phân trang tốt nhất */}
+          {/* Đã thêm lại các props tối ưu cho FlatList trên mobile */}
           <FlatList
+            style={{ flex: 1 }}
             data={filteredGroups}
             keyExtractor={(group) => group.id}
-            contentContainerStyle={{ gap: 8, padding: 4 }}
+            contentContainerStyle={{ gap: 8, padding: 4, paddingBottom: 24 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             renderItem={({ item: group }) => (
               <UserCard
                 isGroup={true}
@@ -114,6 +126,7 @@ export default function GroupPage() {
                     avatarUrl: group.avatarUrl || '',
                   } as any
                 }
+
               />
             )}
             ListEmptyComponent={
@@ -128,7 +141,7 @@ export default function GroupPage() {
               )
             }
             onEndReached={handleFetchMore}
-            onEndReachedThreshold={0.5} // Gọi hàm khi lướt tới 50% nội dung cuối
+            onEndReachedThreshold={0.5}
             ListFooterComponent={
               isFetchingMore ? (
                 <YStack padding="$4" alignItems="center">
@@ -139,6 +152,7 @@ export default function GroupPage() {
           />
         </YStack>
       </YStack>
+
       <CreateGroupDialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} />
     </XStack>
   )
