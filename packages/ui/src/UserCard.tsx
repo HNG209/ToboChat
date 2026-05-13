@@ -29,7 +29,6 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
       marginBottom="$2"
       alignItems="center"
       justifyContent="space-between"
-      borderWidth={1}
       borderColor="$borderColor"
       borderRadius="$6"
       backgroundColor="$background"

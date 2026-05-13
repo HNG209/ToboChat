@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { YStack, XStack, Input, Button, H3, Text, Image, ScrollView } from 'tamagui'
-import { Search, ChevronLeft, Contact } from '@tamagui/lucide-icons'
+import { Search, ChevronLeft, Contact, ArrowDownUp } from '@tamagui/lucide-icons'
 import { useMedia } from 'tamagui'
 import { ContactHeader, UserCard } from '@my/ui'
 import { useRouter } from 'solito/navigation'
@@ -10,6 +10,7 @@ import { Platform } from 'react-native'
 
 export default function Friend() {
   const [keyword, setKeyword] = useState('')
+  const [sortOrder, setSortOrder] = useState('asc') // 'asc' | 'desc'
 
   const {
     data: friendsData,
@@ -28,11 +29,23 @@ export default function Friend() {
 
   const isWeb = Platform.OS === 'web'
 
+  // Logic Sắp xếp danh sách bạn bè
+  const sortedFriends = React.useMemo(() => {
+    if (!friendsData?.items) return []
+    return [...friendsData.items].sort((a, b) => {
+      const nameA = a.name || a.email || ''
+      const nameB = b.name || b.email || ''
+      return sortOrder === 'asc'
+        ? nameA.localeCompare(nameB)
+        : nameB.localeCompare(nameA)
+    })
+  }, [friendsData?.items, sortOrder])
+
   return (
     <XStack
       flex={1}
-      padding="$4"
-      gap="$4"
+      padding="$2"
+      gap="$2"
       alignItems="stretch"
       {...(isWeb ? { height: '100vh' } : {})}
     >
@@ -44,11 +57,34 @@ export default function Friend() {
           onBackPath="/contacts"
         />
 
+        {/* TOOLBAR: SEARCH & SORT */}
+        <XStack gap="$2" alignItems="center">
+          <XStack flex={1} alignItems="center" borderWidth={1} borderColor="$borderColor" borderRadius="$4" paddingHorizontal="$3">
+            <Search size={18} color="$color10" />
+            <Input
+              flex={1}
+              borderWidth={0}
+              backgroundColor="transparent"
+              placeholder="Tìm kiếm bằng email..."
+              value={keyword}
+              onChangeText={setKeyword}
+              focusStyle={{ outlineWidth: 0 }}
+            />
+          </XStack>
+
+          <Button
+            icon={ArrowDownUp}
+            size="$3"
+            onPress={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+          >
+            {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+          </Button>
+        </XStack>
+
         {/* NỘI DUNG DANH SÁCH */}
         <YStack
           flex={1}
           padding="$2"
-          borderWidth={1}
           borderColor="$borderColor"
           borderRadius="$6"
           gap="$2"
@@ -63,14 +99,14 @@ export default function Friend() {
                 ))}
               </>
             ) : (
-              // Danh sách bạn bè
+              // Danh sách bạn bè đã sắp xếp
               <>
                 {friendsLoading && <Text>Đang tải...</Text>}
                 {friendsError && <Text color="red">Lỗi tải dữ liệu</Text>}
-                {friendsData?.items?.map((user) => (
+                {sortedFriends.map((user) => (
                   <UserCard key={user.id} user={user} />
                 ))}
-                {!friendsLoading && (friendsData?.items?.length ?? 0) === 0 && (
+                {!friendsLoading && sortedFriends.length === 0 && (
                   <Text color="$color10" textAlign="center" marginTop="$10">
                     Chưa có bạn bè nào
                   </Text>

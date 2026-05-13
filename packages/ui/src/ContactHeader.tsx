@@ -25,7 +25,7 @@ export const ContactHeader = ({
     <XStack
       alignItems="center"
       padding="$4"
-      borderWidth={1}
+
       borderColor="$borderColor"
       borderRadius="$6"
       backgroundColor="$background"
