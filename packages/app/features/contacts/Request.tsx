@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { YStack, XStack, H3, Text, Select, ScrollView, Button } from 'tamagui'
-import { ChevronDown, ChevronLeft } from '@tamagui/lucide-icons'
+import { YStack, XStack, Text, Select, Button, Spinner } from 'tamagui'
+import { ChevronDown } from '@tamagui/lucide-icons'
 import { ContactHeader, UserCard } from '@my/ui'
 import { FriendRequestType } from '../../types/Request'
 import { useRouter } from 'solito/navigation'
@@ -9,22 +9,27 @@ import {
   useGetMyFriendRequestsQuery,
   useRespondFriendRequestMutation,
 } from 'app/services/contactApi'
-import { Platform } from 'react-native'
+import { Platform, FlatList } from 'react-native'
 
 export default function RequestPage() {
   const router = useRouter()
   const [requestFilter, setRequestFilter] = useState<FriendRequestType>(FriendRequestType.PENDING)
+
+  // State phục vụ phân trang
+  const [cursor, setCursor] = useState<string | undefined>(undefined)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
 
   const isWeb = Platform.OS === 'web'
 
   const [cancelFriendRequest] = useCancelFriendRequestMutation()
   const [respondFriendRequest] = useRespondFriendRequestMutation()
 
+  // Thêm cursor vào query
   const {
     data: requestsData,
     isLoading: requestsLoading,
     error: requestsError,
-  } = useGetMyFriendRequestsQuery({ type: requestFilter, limit: 10 })
+  } = useGetMyFriendRequestsQuery({ type: requestFilter, cursor, limit: 10 })
 
   const handleAction = async (action: string, targetId: string) => {
     try {
@@ -38,11 +43,29 @@ export default function RequestPage() {
     }
   }
 
+  // Chuyển đổi tab cần reset lại cursor
+  const handleFilterChange = (val: FriendRequestType) => {
+    setRequestFilter(val)
+    setCursor(undefined)
+  }
+
+  // Logic phân trang khi lướt đến cuối danh sách
+  const handleFetchMore = () => {
+    if (requestsLoading || isFetchingMore || !requestsData?.nextCursor) return
+
+    setIsFetchingMore(true)
+    setCursor(requestsData.nextCursor)
+
+    setTimeout(() => {
+      setIsFetchingMore(false)
+    }, 1000)
+  }
+
   return (
     <XStack
       flex={1}
-      padding="$4"
-      gap="$4"
+      padding="$2" // Đổi thành $2 cho đồng bộ với các trang khác
+      gap="$2"
       alignItems="stretch"
       {...(isWeb ? { height: '100vh' } : {})}
     >
@@ -57,7 +80,7 @@ export default function RequestPage() {
               // Web: giữ Select như cũ
               <Select
                 value={requestFilter}
-                onValueChange={(val) => setRequestFilter(val as FriendRequestType)}
+                onValueChange={(val) => handleFilterChange(val as FriendRequestType)}
                 disablePreventBodyScroll
               >
                 <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>
@@ -82,7 +105,7 @@ export default function RequestPage() {
                   borderRadius="$4"
                   themeInverse={requestFilter === FriendRequestType.PENDING}
                   variant={requestFilter === FriendRequestType.PENDING ? undefined : 'outlined'}
-                  onPress={() => setRequestFilter(FriendRequestType.PENDING)}
+                  onPress={() => handleFilterChange(FriendRequestType.PENDING)}
                 >
                   Đã nhận
                 </Button>
@@ -91,7 +114,7 @@ export default function RequestPage() {
                   borderRadius="$4"
                   themeInverse={requestFilter === FriendRequestType.SENT}
                   variant={requestFilter === FriendRequestType.SENT ? undefined : 'outlined'}
-                  onPress={() => setRequestFilter(FriendRequestType.SENT)}
+                  onPress={() => handleFilterChange(FriendRequestType.SENT)}
                 >
                   Đã gửi
                 </Button>
@@ -108,28 +131,46 @@ export default function RequestPage() {
           borderRadius="$6"
           gap="$2"
         >
-          <ScrollView gap="$3" flex={1}>
-            {requestsLoading && <Text>Đang tải...</Text>}
-            {requestsError && <Text color="red">Lỗi tải dữ liệu</Text>}
+          {requestsError && <Text color="red" padding="$2">Lỗi tải dữ liệu</Text>}
 
-            {requestsData?.items?.map((request, index) => (
+          <FlatList
+            style={{ flex: 1 }}
+            data={requestsData?.items || []}
+            keyExtractor={(request, index) => `${request.id}-${index}`}
+            contentContainerStyle={{ gap: 12, padding: 8, paddingBottom: 24 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            renderItem={({ item: request }) => (
               <UserCard
-                key={`${request.id}-${index}`}
                 user={request}
                 requestId={request.id}
                 type={requestFilter}
                 onAction={(action) => handleAction(action, request.id)}
               />
-            ))}
-
-            {!requestsLoading && (requestsData?.items?.length ?? 0) === 0 && (
-              <Text color="$color10" textAlign="center" marginTop="$10">
-                {requestFilter === FriendRequestType.SENT
-                  ? 'Chưa gửi lời mời nào'
-                  : 'Chưa có lời mời kết bạn nào đang chờ'}
-              </Text>
             )}
-          </ScrollView>
+            ListEmptyComponent={
+              requestsLoading ? (
+                <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+                  <Spinner size="large" color="$blue10" />
+                </YStack>
+              ) : (
+                <Text color="$color10" textAlign="center" marginTop="$10">
+                  {requestFilter === FriendRequestType.SENT
+                    ? 'Chưa gửi lời mời nào'
+                    : 'Chưa có lời mời kết bạn nào đang chờ'}
+                </Text>
+              )
+            }
+            onEndReached={handleFetchMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              isFetchingMore ? (
+                <YStack padding="$4" alignItems="center">
+                  <Spinner size="small" color="$blue10" />
+                </YStack>
+              ) : null
+            }
+          />
         </YStack>
       </YStack>
     </XStack>

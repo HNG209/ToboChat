@@ -1,22 +1,27 @@
-import React, { useEffect, useState } from 'react'
-import { YStack, XStack, Input, Button, H3, Text, Image, ScrollView } from 'tamagui'
-import { Search, ChevronLeft, Contact, ArrowDownUp } from '@tamagui/lucide-icons'
-import { useMedia } from 'tamagui'
+import React, { useEffect, useState, useMemo } from 'react'
+import { YStack, XStack, Input, Button, Text, Spinner } from 'tamagui'
+import { Search, ArrowDownUp } from '@tamagui/lucide-icons'
 import { ContactHeader, UserCard } from '@my/ui'
-import { useRouter } from 'solito/navigation'
+import { Platform, FlatList } from 'react-native'
 import { useGetMyFriendListQuery } from 'app/services/contactApi'
 import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
-import { Platform } from 'react-native'
 
 export default function Friend() {
   const [keyword, setKeyword] = useState('')
   const [sortOrder, setSortOrder] = useState('asc') // 'asc' | 'desc'
 
+  // State phục vụ phân trang
+  const [cursor, setCursor] = useState<string | undefined>(undefined)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
+
+  const isWeb = Platform.OS === 'web'
+
+  // Thêm cursor vào query lấy danh sách bạn bè
   const {
     data: friendsData,
     isLoading: friendsLoading,
     error: friendsError,
-  } = useGetMyFriendListQuery({ limit: 10 })
+  } = useGetMyFriendListQuery({ limit: 10, cursor })
 
   const [findUser, { data: searchData, isLoading: searchLoading }] = useLazyFindUserByEmailQuery()
 
@@ -27,19 +32,33 @@ export default function Friend() {
     return () => clearTimeout(timeout)
   }, [keyword, findUser])
 
-  const isWeb = Platform.OS === 'web'
-
   // Logic Sắp xếp danh sách bạn bè
-  const sortedFriends = React.useMemo(() => {
+  const sortedFriends = useMemo(() => {
     if (!friendsData?.items) return []
     return [...friendsData.items].sort((a, b) => {
-      const nameA = a.name || a.email || ''
-      const nameB = b.name || b.email || ''
+      const nameA = a.name || ''
+      const nameB = b.name || ''
       return sortOrder === 'asc'
         ? nameA.localeCompare(nameB)
         : nameB.localeCompare(nameA)
     })
   }, [friendsData?.items, sortOrder])
+
+  // Xác định dữ liệu nào sẽ được truyền vào FlatList
+  const isSearching = keyword.trim() !== ''
+  const listData = isSearching ? (searchData?.items || []) : sortedFriends
+
+  // Logic phân trang khi lướt đến cuối danh sách (chỉ áp dụng khi không search)
+  const handleFetchMore = () => {
+    if (isSearching || friendsLoading || isFetchingMore || !friendsData?.nextCursor) return
+
+    setIsFetchingMore(true)
+    setCursor(friendsData.nextCursor)
+
+    setTimeout(() => {
+      setIsFetchingMore(false)
+    }, 1000)
+  }
 
   return (
     <XStack
@@ -89,31 +108,39 @@ export default function Friend() {
           borderRadius="$6"
           gap="$2"
         >
-          <ScrollView gap="$3" flex={1}>
-            {keyword.trim() !== '' ? (
-              // Kết quả Search
-              <>
-                {searchLoading && <Text>Đang tìm...</Text>}
-                {searchData?.items?.map((user) => (
-                  <UserCard key={user.id} user={user} />
-                ))}
-              </>
-            ) : (
-              // Danh sách bạn bè đã sắp xếp
-              <>
-                {friendsLoading && <Text>Đang tải...</Text>}
-                {friendsError && <Text color="red">Lỗi tải dữ liệu</Text>}
-                {sortedFriends.map((user) => (
-                  <UserCard key={user.id} user={user} />
-                ))}
-                {!friendsLoading && sortedFriends.length === 0 && (
-                  <Text color="$color10" textAlign="center" marginTop="$10">
-                    Chưa có bạn bè nào
-                  </Text>
-                )}
-              </>
+          {friendsError && !isSearching && <Text color="red" padding="$2">Lỗi tải dữ liệu</Text>}
+
+          <FlatList
+            style={{ flex: 1 }}
+            data={listData}
+            keyExtractor={(user) => user.id}
+            contentContainerStyle={{ gap: 8, padding: 4, paddingBottom: 24 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            renderItem={({ item: user }) => (
+              <UserCard user={user} />
             )}
-          </ScrollView>
+            ListEmptyComponent={
+              (isSearching ? searchLoading : friendsLoading) ? (
+                <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+                  <Spinner size="large" color="$blue10" />
+                </YStack>
+              ) : (
+                <Text color="$color10" textAlign="center" marginTop="$10">
+                  {isSearching ? 'Không tìm thấy người dùng nào' : 'Chưa có bạn bè nào'}
+                </Text>
+              )
+            }
+            onEndReached={handleFetchMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              isFetchingMore && !isSearching ? (
+                <YStack padding="$4" alignItems="center">
+                  <Spinner size="small" color="$blue10" />
+                </YStack>
+              ) : null
+            }
+          />
         </YStack>
       </YStack>
     </XStack>
