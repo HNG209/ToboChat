@@ -62,7 +62,7 @@ export default function GroupRequestPage() {
         />
 
         {/* DANH SÁCH NỘI DUNG */}
-        <YStack flex={1} padding="$2" borderWidth={1} borderColor="$borderColor" borderRadius="$6">
+        <YStack flex={1} padding="$2" borderColor="$borderColor" borderRadius="$6">
           <ScrollView flex={1}>
             <YStack gap="$3" padding="$2">
               {groupInvitesData?.map((item: GroupAcceptRequestResponse) => (

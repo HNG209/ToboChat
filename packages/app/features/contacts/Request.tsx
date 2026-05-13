@@ -66,10 +66,10 @@ export default function RequestPage() {
                 <Select.Content zIndex={200000}>
                   <Select.Viewport>
                     <Select.Item index={0} value={FriendRequestType.PENDING}>
-                      <Select.ItemText>Lời mời đã nhận</Select.ItemText>
+                      <Select.ItemText>Đã nhận</Select.ItemText>
                     </Select.Item>
                     <Select.Item index={1} value={FriendRequestType.SENT}>
-                      <Select.ItemText>Lời mời đã gửi</Select.ItemText>
+                      <Select.ItemText>Đã gửi</Select.ItemText>
                     </Select.Item>
                   </Select.Viewport>
                 </Select.Content>
@@ -104,7 +104,6 @@ export default function RequestPage() {
         <YStack
           flex={1}
           padding="$2"
-          borderWidth={1}
           borderColor="$borderColor"
           borderRadius="$6"
           gap="$2"
