@@ -7,7 +7,8 @@ import {
   Separator,
   Text,
   YStack,
-  XStack
+  XStack,
+  View
 } from 'tamagui'
 import {
   ArrowLeft,
@@ -16,11 +17,12 @@ import {
   CornerUpLeft,
   Forward,
   MoreHorizontal,
+  Smile,
   Trash2,
 } from '@tamagui/lucide-icons'
 import type { MessageResponse } from 'app/types/Response'
 import { Platform, Pressable, StyleSheet } from 'react-native'
-
+import { MessageReactions } from './MessageReactions'
 type Props = {
   message: MessageResponse
   isMe: boolean
@@ -37,6 +39,8 @@ type Props = {
   children: React.ReactNode
   onTap?: () => void
   triggerRef?: React.MutableRefObject<(() => void) | null>
+  isGroupEnd: boolean
+  roomId: string
 }
 
 export function MessageActionMenu({
@@ -54,13 +58,16 @@ export function MessageActionMenu({
   disabled,
   children,
   onTap,
-  triggerRef
+  triggerRef,
+  isGroupEnd,
+  roomId,
 }: Props) {
   const isWeb = Platform.OS === 'web'
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<'main' | 'delete'>(() => 'main')
   const [hovered, setHovered] = useState(false)
   const hideHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
 
   useEffect(() => {
     if (!open) setView('main')
@@ -173,6 +180,8 @@ export function MessageActionMenu({
             >
               {view === 'main' ? (
                 <YStack paddingVertical="$1">
+                  <MessageReactions message={message} roomId={roomId} />
+                  <Separator marginVertical="$2" />
                   <XStack flexWrap="wrap">
                     <Tile title="Sao chép" icon={<Copy size={18} color="#3b82f6" />} onPress={() => onCopy(message)} />
                     <Tile title="Trả lời" icon={<CornerUpLeft size={18} color="#10b981" />} onPress={() => onReply(message)} />
@@ -262,7 +271,24 @@ export function MessageActionMenu({
   return (
     <Popover size="$5" allowFlip placement={placement as any} open={open} onOpenChange={setOpen}>
       <YStack position="relative" maxWidth="75%" minWidth={0} {...webEvents}>
-        <YStack>{children}</YStack>
+        {/* Khối chứa nội dung tin nhắn */}
+        <YStack position="relative">
+          {children}
+
+          {/* ICON REACTION: Luôn cố định góc dưới bên phải tin nhắn */}
+          {!disabled && (
+            <View
+              position="absolute"
+              bottom={12}
+              right={30} // Điều chỉnh tọa độ tùy theo tin nhắn của mình hay người ta
+              zIndex={20}
+            >
+              <MessageReactions message={message} roomId={roomId} isGroupEnd={isGroupEnd} opacity={isGroupEnd ? 1 : (hovered ? 1 : 0)} />
+            </View>
+          )}
+        </YStack>
+
+        {/* NÚT BA CHẤM (...): Nằm ở trên như cũ */}
         {!selectionMode && (
           <Popover.Trigger asChild>
             <Button
@@ -272,14 +298,15 @@ export function MessageActionMenu({
               icon={MoreHorizontal}
               onPress={() => setOpen(true)}
               position="absolute"
-              top={6}
               zIndex={10}
               opacity={showTrigger ? 1 : 0}
               pointerEvents={showTrigger ? 'auto' : 'none'}
-              {...(isMe ? { left: -30 } : { right: -30 })}
+              {...(isMe ? { left: -35 } : { right: -35 })}
+              {...(isMe ? { top: 15 } : { top: 25 })}
               backgroundColor="white"
               borderWidth={1}
               borderColor="$borderColor"
+              hoverStyle={{ backgroundColor: '$blue2' }}
             />
           </Popover.Trigger>
         )}

@@ -103,6 +103,7 @@ export interface MessageResponse {
   createdAt: string
   messageStatus?: MessageStatus
   attachments?: Attachment[]
+  reactionsSummary: Record<string, number>;
 
   // Tin nhắn hệ thống
   messageType: MessageType

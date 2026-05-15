@@ -78,7 +78,6 @@ export function MessageItem({
       </YStack>
     )
   }
-
   const isMe = msg.user?.id === selfUserId
 
   const newerMsg = items[index - 1]
@@ -95,6 +94,7 @@ export function MessageItem({
   const showName = !isMe && (isSolo || isGroupStart)
 
   const isRevoked = msg.messageStatus === 'REVOKED'
+  console.log("Room ID của Message Item", roomId);
 
   const media = isRevoked
     ? []
@@ -256,7 +256,7 @@ export function MessageItem({
   return (
     <XStack
       space="$2"
-      mb="$2"
+      mb="$3"
       justifyContent={isGroupCallWidget ? 'center' : (isMe ? 'flex-end' : 'flex-start')}
     >
       {/* AVATAR */}
@@ -284,6 +284,8 @@ export function MessageItem({
         disabled={isRevoked}
         onEnterMultiSelect={onEnterMultiSelect}
         triggerRef={menuTriggerRef}
+        isGroupEnd={isGroupEnd}
+        roomId={roomId}
       >
 
         <YStack space="$2">
@@ -341,7 +343,7 @@ export function MessageItem({
               onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
               delayLongPress={250}
             >
-              <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4">
+              <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4" minWidth={80}>
                 {msg.replyTo && renderReplyPreview()}
                 {
                   isRevoked ?
@@ -404,15 +406,17 @@ export function MessageItem({
       </MessageActionMenu>
 
       {/* SELECT INDICATOR */}
-      {selectionMode && (
-        <YStack width={20} justifyContent="center">
-          {isSelected && (
-            <Circle size={18} bg="$blue10">
-              <Check size={12} color="white" />
-            </Circle>
-          )}
-        </YStack>
-      )}
-    </XStack>
+      {
+        selectionMode && (
+          <YStack width={20} justifyContent="center">
+            {isSelected && (
+              <Circle size={18} bg="$blue10">
+                <Check size={12} color="white" />
+              </Circle>
+            )}
+          </YStack>
+        )
+      }
+    </XStack >
   )
 }
