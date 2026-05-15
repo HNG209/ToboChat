@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { XStack, Text, View, Button, Popover } from 'tamagui'
 import { ThumbsUp } from '@tamagui/lucide-icons' // Dùng ThumbsUp cho giống ảnh
 import { Platform } from 'react-native'
@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux'
 import { AppDispatch } from 'app/store'
 import { chatApi, useAddReactionMutation } from 'app/services/chatApi'
 import { MessageResponse } from 'app/types/Response'
+import { ReactionDetailModal } from './ReactionDetailModal'
 
 const REACTION_OPTIONS = [
   { type: 'LIKE', emoji: '👍' },
@@ -26,6 +27,7 @@ export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props
   const dispatch = useDispatch<AppDispatch>()
   const [addReaction] = useAddReactionMutation()
   const shouldShow = message.messageType === 'USER'
+  const [showDetail, setShowDetail] = useState(false)
   const handleSelect = async (reactionType: string) => {
     const currentCount = message.reactionsSummary?.[reactionType] || 0;
     dispatch(
@@ -79,12 +81,16 @@ export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props
       borderColor="#e0e0e0"
       elevation={2}
       zIndex={10}
+      onPress={(e) => {
+        e.stopPropagation() // Ngăn chặn trigger vào sự kiện click tin nhắn
+        setShowDetail(true)
+      }}
+      hoverStyle={{ scale: 1.05, cursor: 'pointer' }}
+      pressStyle={{ scale: 0.95 }}
     >
       <XStack space={-4}>
         {activeTypes.slice(0, 3).map((type) => {
-          // Tìm object trong mảng có type trùng với type đang lặp
           const option = REACTION_OPTIONS.find(opt => opt.type === type);
-
           return (
             <Text key={type} fontSize={13}>
               {option ? option.emoji : '👍'}
@@ -92,6 +98,10 @@ export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props
           );
         })}
       </XStack>
+      {/* Hiển thị tổng số nếu có nhiều loại */}
+      <Text fontSize={11} alignSelf='center' color="$gray10">
+        {Object.values(summary).reduce((a, b) => a + b, 0)}
+      </Text>
     </XStack>
   )
   if (Platform.OS !== 'web') {
@@ -108,6 +118,11 @@ export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props
   return (
     <>
       {ReactionBadge}
+      <ReactionDetailModal
+        summary={summary}
+        open={showDetail}
+        onOpenChange={setShowDetail}
+      />
       {shouldShow && (
         <Popover size="$2" allowFlip placement="top" >
           <Popover.Trigger asChild>
