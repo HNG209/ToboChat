@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { YStack, XStack, Input, Button, Text, Spinner } from 'tamagui'
+import { YStack, XStack, Input, Button, Text, Spinner, Separator } from 'tamagui'
 import { Plus, Search } from '@tamagui/lucide-icons'
 import { ContactHeader, UserCard } from '@my/ui'
 import { Platform, FlatList } from 'react-native'
@@ -140,6 +140,8 @@ export default function GroupPage() {
                 </Text>
               )
             }
+            ItemSeparatorComponent={() => <Separator borderColor="$borderColor" borderBottomWidth={1} />}
+
             onEndReached={handleFetchMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={

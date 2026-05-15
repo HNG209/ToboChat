@@ -8,6 +8,7 @@ import { GroupAcceptRequestResponse, UserResponse } from 'app/types/Response'
 import { useDispatch } from 'react-redux'
 import { AppDispatch } from 'app/store'
 import { roomApi } from 'app/services/roomApi'
+import { Separator } from 'tamagui'
 
 export default function GroupRequestPage() {
   // State phục vụ phân trang
@@ -65,8 +66,8 @@ export default function GroupRequestPage() {
   return (
     <XStack
       flex={1}
-      padding="$4"
-      gap="$4"
+      padding="$2"
+      gap="$2"
       alignItems="stretch"
       {...(isWeb ? { height: '100vh' } : {})}
     >
@@ -115,6 +116,7 @@ export default function GroupRequestPage() {
                 </Text>
               )
             }
+            ItemSeparatorComponent={() => <Separator borderColor="$borderColor" borderBottomWidth={1} />}
             onEndReached={handleFetchMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={
