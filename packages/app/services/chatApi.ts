@@ -155,7 +155,7 @@ export const chatApi = baseApi.injectEndpoints({
     }),
     addReaction: builder.mutation<void, { roomId: string; messageId: string; reactionType: string }>({
       query: ({ roomId, messageId, reactionType }) => ({
-        url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}`,
+        url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}/reactions`,
         method: 'POST',
         params: { reactionType },
       }),

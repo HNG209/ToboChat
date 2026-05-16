@@ -23,14 +23,14 @@ interface Props {
   opacity?: number
 }
 
-export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props) {
+export function MessageReactions({ message, roomId, opacity }: Props) {
   const dispatch = useDispatch<AppDispatch>()
   const [addReaction] = useAddReactionMutation()
   const shouldShow = message.messageType === 'USER'
   const [showDetail, setShowDetail] = useState(false)
   const handleSelect = async (reactionType: string) => {
     const currentCount = message.reactionsSummary?.[reactionType] || 0;
-    dispatch(
+    const patchResult = dispatch(
       chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
         const target = draft.items?.find((m) => m.id === message.id)
         if (target) {
@@ -41,13 +41,9 @@ export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props
     )
 
     try {
-      const result = await addReaction({ roomId, messageId: message.id, reactionType }).unwrap()
-      console.log(result);
-      console.log(message.id);
-
-
+      await addReaction({ roomId, messageId: message.id, reactionType }).unwrap()
     } catch (e) {
-      console.error('Reaction error:', e)
+      patchResult.undo()
     }
   }
 
@@ -112,7 +108,6 @@ export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props
       </>
     )
   }
-  console.log("Should show: ", message.messageType);
 
 
   return (
@@ -131,6 +126,7 @@ export function MessageReactions({ message, roomId, isGroupEnd, opacity }: Props
               size="$1.5"
               width={10}
               height={10}
+              right={-30}
               circular
               backgroundColor="white"
               borderWidth={1}

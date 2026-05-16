@@ -104,24 +104,7 @@ export const ChatInboxItem = ({
                 fill={pinFill}
               />
             )}
-            {unreadCount > 0 && (
-              <Circle
-                size={22}
-                backgroundColor="$red10"
-                marginLeft={6}
-                animation="bouncy"
-                enterStyle={{ scale: 0 }}
-                borderWidth={2}
-                borderColor="white"
-                shadowColor="#000"
-                shadowOpacity={0.10}
-                shadowRadius={6}
-              >
-                <Text color="white" fontSize={11} fontWeight="700">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Text>
-              </Circle>
-            )}
+
           </XStack>
           <Text
             fontSize={13}
@@ -135,7 +118,25 @@ export const ChatInboxItem = ({
               'Chưa có tin nhắn'}
           </Text>
         </YStack>
-        <YStack alignItems="flex-end" minWidth={60}>
+        <YStack alignItems="flex-end" minWidth={60} gap="$2" alignItems="center">
+          {unreadCount > 0 && (
+            <Circle
+              size={22}
+              backgroundColor="$red10"
+              marginLeft={6}
+              animation="bouncy"
+              enterStyle={{ scale: 0 }}
+              borderWidth={2}
+              borderColor="white"
+              shadowColor="#000"
+              shadowOpacity={0.10}
+              shadowRadius={6}
+            >
+              <Text color="white" fontSize={11} fontWeight="700">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </Circle>
+          )}
           <Text fontSize={11} color={subColor} marginBottom={2}>
             {formatTime(time)}
           </Text>

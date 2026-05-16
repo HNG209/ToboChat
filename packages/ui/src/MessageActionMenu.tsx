@@ -283,7 +283,7 @@ export function MessageActionMenu({
               right={30} // Điều chỉnh tọa độ tùy theo tin nhắn của mình hay người ta
               zIndex={20}
             >
-              <MessageReactions message={message} roomId={roomId} isGroupEnd={isGroupEnd} opacity={isGroupEnd ? 1 : (hovered ? 1 : 0)} />
+              <MessageReactions message={message} roomId={roomId} isGroupEnd={isGroupEnd} opacity={hovered ? 1 : 0} />
             </View>
           )}
         </YStack>
