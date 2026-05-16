@@ -1,6 +1,6 @@
 'use client'
-import { Auth } from 'app/features/auth/Auth'
+import { SignInForm } from 'app/features/auth/SignInForm'
 
 export default function Page() {
-  return <Auth></Auth>
+  return <SignInForm></SignInForm>
 }

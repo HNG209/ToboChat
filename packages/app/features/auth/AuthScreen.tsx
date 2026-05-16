@@ -57,15 +57,15 @@ export function AuthScreen() {
   useEffect(() => {
     let cancelled = false
 
-    ;(async () => {
-      try {
-        await getCurrentUser()
-        if (cancelled) return
-        router.replace('/chat')
-      } catch {
-        // not signed in
-      }
-    })()
+      ; (async () => {
+        try {
+          await getCurrentUser()
+          if (cancelled) return
+          router.replace('/chat')
+        } catch {
+          // not signed in
+        }
+      })()
 
     return () => {
       cancelled = true
@@ -418,7 +418,7 @@ export function AuthScreen() {
                   onPress={() => setForgotStep('SEND_CODE')}
                   size="$4"
                   borderRadius="$4"
-                  // variant="outline"
+                // variant="outline"
                 >
                   Quay lại
                 </Button>

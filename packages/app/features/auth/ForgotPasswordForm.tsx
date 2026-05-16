@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
-import { YStack, Input, Button, Text, Spinner, Paragraph } from 'tamagui'
+import { YStack, Input, Button, Text, Spinner, Paragraph, H3 } from 'tamagui'
 import { resetPassword, confirmResetPassword } from 'aws-amplify/auth'
 import { useToastController } from '@my/ui'
+import { useRouter } from 'solito/navigation'
 
-export function ForgotPasswordForm({ onBackToSignIn }) {
+export function ForgotPasswordForm() {
   const toast = useToastController()
+  const router = useRouter()
   const [step, setStep] = useState<'SEND_CODE' | 'CONFIRM_RESET'>('SEND_CODE')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -41,7 +43,11 @@ export function ForgotPasswordForm({ onBackToSignIn }) {
         newPassword,
       })
       toast.show('Thành công!', { message: 'Mật khẩu đã được thay đổi.' })
-      onBackToSignIn()
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
+      } else {
+        router.replace('/login')
+      }
     } catch (err: any) {
       setError(err.message || 'Mã xác nhận không đúng hoặc đã hết hạn.')
     } finally {
@@ -50,18 +56,23 @@ export function ForgotPasswordForm({ onBackToSignIn }) {
   }
 
   return (
-    <YStack space="$4" width="100%" mt="$2">
-      <Paragraph size="$3" color="$color10" textAlign="center" px="$2">
-        {step === 'SEND_CODE'
-          ? 'Nhập email để nhận mã xác thực đặt lại mật khẩu.'
-          : `Mã xác nhận đã được gửi đến: ${email}`}
-      </Paragraph>
+    <YStack space="$4" width="100%" flex={1} justifyContent="flex-start" pt="$2">
+      <YStack space="$1" mb="$2" alignItems="center">
+        <H3 fontWeight="700" fontSize="$8" color="$color12" letterSpacing={-0.5}>
+          {step === 'SEND_CODE' ? 'Quên mật khẩu' : 'Đặt lại mật khẩu'}
+        </H3>
+        <Paragraph color="$color10" textAlign="center">
+          {step === 'SEND_CODE'
+            ? 'Nhập email để nhận mã xác thực đặt lại mật khẩu.'
+            : `Mã xác nhận đã được gửi đến: ${email}`}
+        </Paragraph>
+      </YStack>
 
-      {error && (
-        <Text color="$red10" size="$2" textAlign="center" bg="$red2" p="$2" borderRadius="$4">
+      {error ? (
+        <Text color="$red10" textAlign="center" bg="$red2" p="$2" borderRadius="$4">
           {error}
         </Text>
-      )}
+      ) : null}
 
       {step === 'SEND_CODE' ? (
         <YStack space="$3">
@@ -75,7 +86,7 @@ export function ForgotPasswordForm({ onBackToSignIn }) {
             autoCapitalize="none"
           />
           <Button height={50} width="100%" onPress={handleSendCode} disabled={loading} themeInverse>
-            {loading ? <Spinner /> : "Gửi mã xác nhận"}
+            {loading ? <Spinner /> : <Text>Gửi mã xác nhận</Text>}
           </Button>
         </YStack>
       ) : (
@@ -100,12 +111,11 @@ export function ForgotPasswordForm({ onBackToSignIn }) {
             autoComplete="new-password"
           />
           <Button height={50} width="100%" onPress={handleResetPassword} disabled={loading} themeInverse>
-            {loading ? <Spinner /> : "Xác nhận đổi mật khẩu"}
+            {loading ? <Spinner /> : <Text>Xác nhận đổi mật khẩu</Text>}
           </Button>
 
           <Text
             textAlign="center"
-            size="$2"
             color="$blue10"
             onPress={() => setStep('SEND_CODE')}
             mt="$2"
@@ -115,8 +125,18 @@ export function ForgotPasswordForm({ onBackToSignIn }) {
         </YStack>
       )}
 
-      <Button width="100%" variant="outline" onPress={onBackToSignIn} borderSize={0}>
-        Quay lại đăng nhập
+      <Button
+        width="100%"
+        variant="outlined"
+        onPress={() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
+          } else {
+            router.replace('/login')
+          }
+        }}
+      >
+        <Text>Quay lại đăng nhập</Text>
       </Button>
     </YStack>
   )

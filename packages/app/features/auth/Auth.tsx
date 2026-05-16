@@ -1,26 +1,19 @@
-import React, { useState, useEffect } from 'react'
-import { YStack, XStack, Card, H3, Image, Paragraph, View, Separator } from 'tamagui'
+import React, { useEffect } from 'react'
+import { YStack, Card, H3, Image, Paragraph, View, Separator } from 'tamagui'
 import { getCurrentUser } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
 
 import { SignInForm } from './SignInForm'
-import { SignUpForm } from './SignUpForm'
-import { ForgotPasswordForm } from './ForgotPasswordForm'
 
 export function Auth() {
-  const [mode, setMode] = useState<'SIGNIN' | 'SIGNUP' | 'FORGOT'>('SIGNIN')
   const router = useRouter()
 
   useEffect(() => {
-    getCurrentUser()
+    void getCurrentUser()
       .then(() => router.replace('/chat'))
-      .catch(() => { })
-  }, [])// Hàm render tiêu đề động
-  const getTitle = () => {
-    if (mode === 'SIGNIN') return 'Đăng nhập'
-    if (mode === 'SIGNUP') return 'Tạo tài khoản'
-    return 'Quên mật khẩu'
-  }
+      .catch(() => undefined)
+  }, [router])
+
   return (
     <YStack flex={1} alignItems="center" justifyContent="center" bg="$background" p="$4">
       <Card
@@ -40,7 +33,6 @@ export function Auth() {
       >
         {/* PHẦN BÊN TRÁI: Branding */}
         <YStack
-          // FIX 2: Thay vì flex, ta dùng width phần trăm cố định hoặc px
           width="60%"
           bg="$blue10"
           justifyContent="center"
@@ -49,7 +41,6 @@ export function Auth() {
           $sm={{ display: 'none' }}
           position="relative"
         >
-          {/* ... các phần trang trí giữ nguyên ... */}
           <View
             position="absolute"
             width={300}
@@ -65,7 +56,6 @@ export function Auth() {
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/295/295128.png' }}
             width={100}
             height={100}
-            style={{ tintColor: 'white' }}
           />
           <H3 color="white" mt="$5" fontWeight="900" fontSize="$9" letterSpacing={1}>
             ToboChat
@@ -76,44 +66,17 @@ export function Auth() {
           </Paragraph>
         </YStack>
 
-        {/* PHẦN BÊN PHẢI: Form */}
         <YStack
-          // FIX 3: Phần còn lại chiếm 60%
           width="40%"
-          $sm={{ width: '100%' }} // Trên mobile chiếm hết 100%
+          $sm={{ width: '100%' }}
           p="$7"
           justifyContent="center"
           bg="$color1"
         >
-          {/* FIX 4: Cố định chiều cao vùng chứa Header để không bị lệch dòng */}
-          <YStack mb="$6" height={100} justifyContent="center">
-            <H3 alignItems='center' fontWeight="700" fontSize="$9" color="$color12" letterSpacing={-0.5}>
-              {getTitle()}
-            </H3>
-            <Paragraph size="$4" color="$color10" mt="$2">
 
-            </Paragraph>
-          </YStack>
 
-          {/* FIX 5: Cố định chiều cao vùng chứa Form */}
           <View minHeight={350} justifyContent="flex-start">
-            {mode === 'SIGNIN' && (
-              <SignInForm
-                onSwitchSignUp={() => setMode('SIGNUP')}
-                onForgotPassword={() => setMode('FORGOT')}
-              />
-            )}
-
-            {mode === 'SIGNUP' && (
-              <SignUpForm
-                onSignUpSuccess={() => setMode('SIGNIN')}
-                onSwitchSignIn={() => setMode('SIGNIN')}
-              />
-            )}
-
-            {mode === 'FORGOT' && (
-              <ForgotPasswordForm onBackToSignIn={() => setMode('SIGNIN')} />
-            )}
+            <SignInForm />
           </View>
         </YStack>
       </Card>
