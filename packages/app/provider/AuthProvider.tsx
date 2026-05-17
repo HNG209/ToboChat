@@ -12,7 +12,13 @@ import { resetAuth, setHasSession } from 'app/store/authSlice'
 import type { AppDispatch } from 'app/store'
 
 // Danh sách các đường dẫn KHÔNG cần đăng nhập (Public)
-const PUBLIC_PATHS = ['/login', '/auth/forgot-password']
+// Thêm '/signup' và '/forgot-password' để các trang auth không bị redirect về login
+const PUBLIC_PATHS = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/auth/forgot-password',
+]
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true)

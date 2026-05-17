@@ -4,9 +4,9 @@ import { YStack, Card, H3, Image, Paragraph, View, Separator } from 'tamagui'
 import { getCurrentUser } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
 
-import { SignInForm } from './SignInForm'
+import { ReactNode } from 'react'
 
-export function Auth() {
+export function Auth({ children }: { children?: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
@@ -74,10 +74,8 @@ export function Auth() {
           justifyContent="center"
           bg="$color1"
         >
-
-
           <View minHeight={350} justifyContent="flex-start">
-            <SignInForm />
+            {children}
           </View>
         </YStack>
       </Card>

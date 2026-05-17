@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { YStack, Input, Button, Text, Spinner, H3, Paragraph } from 'tamagui'
+import { YStack, XStack, Input, Button, Text, Spinner, H3, Paragraph } from 'tamagui'
+import { ChevronRight } from '@tamagui/lucide-icons'
 import { signUp, confirmSignUp } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
 
@@ -7,10 +8,30 @@ export function SignUpForm() {
   const router = useRouter()
   const [step, setStep] = useState<'FILL' | 'CONFIRM'>('FILL')
   const [form, setForm] = useState({ email: '', password: '', name: '', code: '' })
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleSignUp = async () => {
+    // client-side validation before calling signUp
+    setError('')
+    if (!form.name?.trim()) {
+      setError('Vui lòng nhập họ tên.')
+      return
+    }
+    if (!form.email?.trim()) {
+      setError('Vui lòng nhập email.')
+      return
+    }
+    if (!form.password || form.password.length < 8) {
+      setError('Mật khẩu phải có ít nhất 8 ký tự.')
+      return
+    }
+    if (form.password !== confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp.')
+      return
+    }
+
     setLoading(true)
     try {
       await signUp({
@@ -19,8 +40,9 @@ export function SignUpForm() {
         options: { userAttributes: { email: form.email, name: form.name } }
       })
       setStep('CONFIRM')
-    } catch (err: any) { setError(err.message) }
-    finally { setLoading(false) }
+    } catch (err: any) {
+      setError(err.message || 'Đăng ký thất bại.')
+    } finally { setLoading(false) }
   }
 
   const handleConfirm = async () => {
@@ -31,11 +53,7 @@ export function SignUpForm() {
         confirmationCode: form.code
       })
       if (isSignUpComplete) {
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
-        } else {
-          router.push('/login')
-        }
+        router.push('/login')
       }
     } catch (err: any) { setError(err.message) }
     finally { setLoading(false) }
@@ -72,21 +90,23 @@ export function SignUpForm() {
       {error ? <Text color="$red10">{error}</Text> : null}
       <Input width="100%" placeholder="Họ tên" onChangeText={(txt) => setForm({ ...form, name: txt })} />
       <Input width="100%" placeholder="Email" onChangeText={(txt) => setForm({ ...form, email: txt })} />
-      <Input width="100%" placeholder="Mật khẩu" secureTextEntry onChangeText={(txt) => setForm({ ...form, password: txt })} />
-      <Button width="100%" onPress={handleSignUp}>{loading ? <Spinner /> : <Text>Đăng ký</Text>}</Button>
-      <Text
-        textAlign="center"
-        color="$blue10"
-        onPress={() => {
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
-          } else {
-            router.push('/login')
-          }
-        }}
-      >
-        Đã có tài khoản? Đăng nhập
-      </Text>
+      <Input width="100%" placeholder="Mật khẩu" secureTextEntry value={form.password} onChangeText={(txt) => setForm({ ...form, password: txt })} />
+      <Input width="100%" placeholder="Nhập lại mật khẩu" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
+      <Button width="100%" themeInverse onPress={handleSignUp} disabled={loading}>{loading ? <Spinner /> : <Text>Đăng ký</Text>}</Button>
+      <XStack justifyContent="center" alignItems="center">
+        <Paragraph size="$2" color="$gray10">Đã có tài khoản?</Paragraph>
+        <XStack
+          ml="$2"
+          cursor="pointer"
+          onPress={() => router.push('/login')}
+          hoverStyle={{ scale: 1.03 }}
+          pressStyle={{ scale: 0.97, opacity: 0.85 }}
+          alignItems="center"
+        >
+          <Text color="$blue10" fontWeight="bold">Đăng nhập</Text>
+          <ChevronRight size={16} color="#1677FF" style={{ marginLeft: 6 }} />
+        </XStack>
+      </XStack>
     </YStack>
   )
 }

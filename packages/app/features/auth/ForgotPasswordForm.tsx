@@ -56,7 +56,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <YStack space="$4" width="100%" flex={1} justifyContent="flex-start" pt="$2">
+    <YStack space="$3" width="100%" flex={1} justifyContent="flex-start" pt="$2">
       <YStack space="$1" mb="$2" alignItems="center">
         <H3 fontWeight="700" fontSize="$8" color="$color12" letterSpacing={-0.5}>
           {step === 'SEND_CODE' ? 'Quên mật khẩu' : 'Đặt lại mật khẩu'}
@@ -75,7 +75,7 @@ export function ForgotPasswordForm() {
       ) : null}
 
       {step === 'SEND_CODE' ? (
-        <YStack space="$3">
+        <YStack space="$1">
           <Input
             height={50}
             width="100%"
@@ -85,7 +85,7 @@ export function ForgotPasswordForm() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          <Button height={50} width="100%" onPress={handleSendCode} disabled={loading} themeInverse>
+          <Button mt="$4" height={50} width="100%" onPress={handleSendCode} disabled={loading} themeInverse>
             {loading ? <Spinner /> : <Text>Gửi mã xác nhận</Text>}
           </Button>
         </YStack>
@@ -129,13 +129,9 @@ export function ForgotPasswordForm() {
         width="100%"
         variant="outlined"
         onPress={() => {
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
-          } else {
-            router.push('/login')
-          }
+          router.push('/login')
         }}
-      >
+      >s
         <Text>Quay lại đăng nhập</Text>
       </Button>
     </YStack>
