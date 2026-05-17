@@ -141,7 +141,7 @@ export function SignInForm() {
 
   return (
     // 🛠️ FIX 1: Bỏ flex={1} để các phần tử tự sắp xếp theo chiều cao tự nhiên của chúng
-    <YStack space="$4" width="100%" justifyContent="flex-start" pt="$2" px="$1">
+    <YStack space="$4" justifyContent="center" pt="$2" px="$1">
       <YStack space="$1" mb="$2" alignItems="center">
         <H3 fontWeight="900" fontSize="$8" color="$color12" letterSpacing={-0.5}>
           {step === 'SIGNIN' ? 'Đăng nhập' : step === 'CONFIRM_MFA' ? 'Nhập mã xác thực (MFA)' : 'Thiết lập MFA'}
@@ -154,11 +154,12 @@ export function SignInForm() {
       {error ? <Text color="$red10" textAlign="center">{error}</Text> : null}
 
       {step === 'SIGNIN' ? (
-        <>
+        <YStack space="$1" mb="$2" alignItems="center">
           {/* 🛠️ FIX 2: Thêm borderWidth, borderColor và màu nền bg để hiện rõ ô nhập liệu trên Mobile */}
           <Input
             mb="$2"
-            width="100%"
+            $sm={{ width: '40%' }}
+
             placeholder="Email"
             color="black"
             placeholderTextColor="$colorMuted"
@@ -166,14 +167,13 @@ export function SignInForm() {
             onChangeText={setEmail}
             autoCapitalize="none"
             borderWidth={1}
-            borderColor="$borderColor"
-            bg="$background"
+
             size="$4"
             borderRadius="$4"
           />
           <Input
             mb="$4"
-            width="100%"
+            $sm={{ width: '40%' }}
             placeholder="Mật khẩu"
             value={password}
             onChangeText={setPassword}
@@ -185,21 +185,20 @@ export function SignInForm() {
             borderRadius="$4"
           />
 
-          <Button width="100%" onPress={handleSignIn} disabled={loading} themeInverse size="$4" mt="$2">
+          <Button $sm={{ width: '40%' }} onPress={handleSignIn} disabled={loading} backgroundColor="$blue10" size="$4" mt="$2">
             {loading ? <Spinner /> : <Text fontWeight="bold" color="$color1">Đăng nhập</Text>}
           </Button>
-        </>
+        </YStack>
       ) : step === 'CONFIRM_MFA' ? (
-        <>
+        <YStack space="$1" mb="$2" alignItems="center">
           <Input
-            width="100%"
+            $sm={{ width: '40%' }}
             placeholder="Mã OTP 6 số"
             value={code}
             onChangeText={setCode}
             keyboardType="number-pad"
             borderWidth={1}
-            borderColor="$borderColor"
-            bg="$background"
+
             size="$4"
           />
           <Button width="100%" onPress={async () => {
@@ -216,7 +215,7 @@ export function SignInForm() {
           <Button variant="outlined" onPress={() => { setStep('SIGNIN'); setCode(''); setError('') }}>
             Quay lại
           </Button>
-        </>
+        </YStack>
       ) : (
         <>
           {totpDetails ? (

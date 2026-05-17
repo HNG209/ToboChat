@@ -47,7 +47,7 @@ export function Auth({ children }: { children?: ReactNode }) {
           alignItems="center"
           p="$10"
 
-          display={media.sm ? 'none' : 'flex'}
+          $sm={{ display: 'none' }}
           position="relative"
         >
           <View
@@ -78,7 +78,7 @@ export function Auth({ children }: { children?: ReactNode }) {
 
 
         <YStack
-
+          $sm={{ width: '100%' }}
           width={media.sm ? '100%' : '40%'}
           p="$7"
           justifyContent="center"

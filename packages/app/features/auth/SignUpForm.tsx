@@ -77,7 +77,7 @@ export function SignUpForm() {
   }
 
   return (
-    <YStack space="$3" width="100%" flex={1} justifyContent="flex-start" pt="$2">
+    <YStack space="$3" flex={1} alignItems="center" justifyContent="center" pt="$2">
       <YStack space="$1" mb="$2" alignItems="center">
         <H3 fontWeight="900" fontSize="$8" color="$color12" letterSpacing={-0.5}>
           Tạo tài khoản
@@ -88,11 +88,11 @@ export function SignUpForm() {
       </YStack>
 
       {error ? <Text color="$red10">{error}</Text> : null}
-      <Input width="100%" placeholder="Họ tên" onChangeText={(txt) => setForm({ ...form, name: txt })} />
-      <Input width="100%" placeholder="Email" onChangeText={(txt) => setForm({ ...form, email: txt })} />
-      <Input width="100%" placeholder="Mật khẩu" secureTextEntry value={form.password} onChangeText={(txt) => setForm({ ...form, password: txt })} />
-      <Input width="100%" placeholder="Nhập lại mật khẩu" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
-      <Button width="100%" themeInverse onPress={handleSignUp} disabled={loading}>{loading ? <Spinner /> : <Text>Đăng ký</Text>}</Button>
+      <Input $sm={{ width: '40%' }} placeholder="Họ tên" onChangeText={(txt) => setForm({ ...form, name: txt })} />
+      <Input $sm={{ width: '40%' }} placeholder="Email" onChangeText={(txt) => setForm({ ...form, email: txt })} />
+      <Input $sm={{ width: '40%' }} placeholder="Mật khẩu" secureTextEntry value={form.password} onChangeText={(txt) => setForm({ ...form, password: txt })} />
+      <Input $sm={{ width: '40%' }} placeholder="Nhập lại mật khẩu" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
+      <Button $sm={{ width: '40%' }} themeInverse onPress={handleSignUp} disabled={loading}>{loading ? <Spinner /> : <Text>Đăng ký</Text>}</Button>
       <XStack justifyContent="center" alignItems="center">
         <Paragraph size="$2" color="$gray10">Đã có tài khoản?</Paragraph>
         <XStack

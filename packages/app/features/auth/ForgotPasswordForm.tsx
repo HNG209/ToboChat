@@ -56,7 +56,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <YStack space="$3" width="100%" flex={1} justifyContent="flex-start" pt="$2">
+    <YStack space="$4" width='100%' alignItems='center' flex={1} pt="$2" justifyContent="center">
       <YStack space="$1" mb="$2" alignItems="center">
         <H3 fontWeight="700" fontSize="$8" color="$color12" letterSpacing={-0.5}>
           {step === 'SEND_CODE' ? 'Quên mật khẩu' : 'Đặt lại mật khẩu'}
@@ -75,25 +75,26 @@ export function ForgotPasswordForm() {
       ) : null}
 
       {step === 'SEND_CODE' ? (
-        <YStack space="$1">
+        < YStack space="$1" mb="$2" alignItems="center">
           <Input
             height={50}
-            width="100%"
+            width='100%'
             placeholder="Email của bạn"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          <Button mt="$4" height={50} width="100%" onPress={handleSendCode} disabled={loading} themeInverse>
+          <Button mt="$4" height={50} justifyContent="center" alignItems="center" width='60%' onPress={handleSendCode} disabled={loading} themeInverse>
             {loading ? <Spinner /> : <Text>Gửi mã xác nhận</Text>}
           </Button>
         </YStack>
       ) : (
-        <YStack space="$3">
+        <YStack space="$3" alignItems="center">
           <Input
             height={50}
-            width="100%"
+            width="60%"
+            $sm={{ width: '40%' }}
             placeholder="Mã xác nhận (6 số)"
             value={code}
             onChangeText={setCode}
@@ -103,14 +104,15 @@ export function ForgotPasswordForm() {
           />
           <Input
             height={50}
-            width="100%"
+            width="60%"
+            $sm={{ width: '40%' }}
             placeholder="Mật khẩu mới"
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
             autoComplete="new-password"
           />
-          <Button height={50} width="100%" onPress={handleResetPassword} disabled={loading} themeInverse>
+          <Button height={50} width="60%" onPress={handleResetPassword} disabled={loading} themeInverse>
             {loading ? <Spinner /> : <Text>Xác nhận đổi mật khẩu</Text>}
           </Button>
 
@@ -126,7 +128,7 @@ export function ForgotPasswordForm() {
       )}
 
       <Button
-        width="100%"
+        $sm={{ width: '40%' }}
         variant="outlined"
         onPress={() => {
           router.push('/login')
