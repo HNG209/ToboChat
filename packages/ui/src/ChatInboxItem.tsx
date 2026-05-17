@@ -114,11 +114,10 @@ export const ChatInboxItem = ({
             fontWeight={unreadCount > 0 && !selected ? '700' : '400'}
             opacity={latestMessage?.content ? 1 : 0.7}
           >
-            {(latestMessage?.self ? `Tôi: ${latestMessage?.content}` : latestMessage?.content) ||
-              'Chưa có tin nhắn'}
+            {latestMessage?.content || 'Chưa có tin nhắn'}
           </Text>
         </YStack>
-        <YStack alignItems="flex-end" minWidth={60} gap="$2" alignItems="center">
+        <YStack alignItems="flex-end" minWidth={60} gap="$2">
           {unreadCount > 0 && (
             <Circle
               size={22}
