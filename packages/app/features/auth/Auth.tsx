@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react'
 import { YStack, Card, H3, Image, Paragraph, View, Separator } from 'tamagui'
 import { getCurrentUser } from 'aws-amplify/auth'

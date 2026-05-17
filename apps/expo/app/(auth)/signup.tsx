@@ -1,6 +1,5 @@
-'use client'
 import { SignUpForm } from 'app/features/auth/SignUpForm'
 
-export default function Page() {
+export default function Screen() {
   return <SignUpForm />
 }

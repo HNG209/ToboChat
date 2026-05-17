@@ -34,7 +34,7 @@ export function SignUpForm() {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
         } else {
-          router.replace('/login')
+          router.push('/login')
         }
       }
     } catch (err: any) { setError(err.message) }
@@ -81,7 +81,7 @@ export function SignUpForm() {
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
           } else {
-            router.replace('/login')
+            router.push('/login')
           }
         }}
       >

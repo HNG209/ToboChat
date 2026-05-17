@@ -46,7 +46,7 @@ export function ForgotPasswordForm() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
       } else {
-        router.replace('/login')
+        router.push('/login')
       }
     } catch (err: any) {
       setError(err.message || 'Mã xác nhận không đúng hoặc đã hết hạn.')
@@ -132,7 +132,7 @@ export function ForgotPasswordForm() {
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('auth:switch-view', { detail: 'SIGNIN' }))
           } else {
-            router.replace('/login')
+            router.push('/login')
           }
         }}
       >

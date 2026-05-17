@@ -1,3 +1,4 @@
+"use client"
 import React, { useEffect, useState } from 'react'
 import { YStack, Input, Button, Text, Spinner, H3, Paragraph } from 'tamagui'
 import { signIn } from 'aws-amplify/auth'
@@ -39,7 +40,7 @@ export function SignInForm() {
       const { isSignedIn, nextStep } = await signIn({ username: email, password })
       if (isSignedIn) {
         router.replace('/chat')
-      } else if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_TOTP_CODE') {
+      } else if (nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_TOTP_CODE') {
         // Xử lý MFA ở đây nếu có
       }
     } catch (err: any) {
@@ -48,6 +49,7 @@ export function SignInForm() {
       setLoading(false)
     }
   }
+
   if (view === 'SIGNUP') return <SignUpForm />
   if (view === 'FORGOT') return <ForgotPasswordForm />
 
@@ -71,20 +73,11 @@ export function SignInForm() {
         {loading ? <Spinner /> : <Text fontWeight="bold">Đăng nhập</Text>}
       </Button>
 
-      {/* Đổi từ window.dispatchEvent sang setView trực tiếp */}
-      <Text
-        textAlign="center"
-        color="$blue10"
-        onPress={() => setView('FORGOT')}
-      >
+      <Text textAlign="center" color="$blue10" onPress={() => setView('FORGOT')}>
         Quên mật khẩu?
       </Text>
 
-      <Text
-        textAlign="center"
-        color="$gray10"
-        onPress={() => setView('SIGNUP')}
-      >
+      <Text textAlign="center" color="$gray10" onPress={() => setView('SIGNUP')}>
         Chưa có tài khoản? <Text color="$blue10" fontWeight="bold">Đăng ký ngay</Text>
       </Text>
     </YStack>
