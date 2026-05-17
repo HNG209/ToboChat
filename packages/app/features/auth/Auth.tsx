@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react'
-import { YStack, Card, H3, Image, Paragraph, View, Separator } from 'tamagui'
+import React, { useEffect, useState } from 'react'
+import { YStack, Card, H3, Image, Paragraph, View, Separator, useMedia } from 'tamagui'
 import { getCurrentUser } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
 
@@ -8,11 +8,17 @@ import { ReactNode } from 'react'
 
 export function Auth({ children }: { children?: ReactNode }) {
   const router = useRouter()
+  const media = useMedia()
 
+  const [checkingSession, setCheckingSession] = useState(true)
   useEffect(() => {
     void getCurrentUser()
-      .then(() => router.replace('/chat'))
+      .then(() => {
+        // session exists — previously we redirected to /chat here
+        router.replace('/chat')
+      })
       .catch(() => undefined)
+      .finally(() => setCheckingSession(false))
   }, [router])
 
   return (
@@ -32,14 +38,16 @@ export function Auth({ children }: { children?: ReactNode }) {
         // FIX 1: Cố định chiều cao tối thiểu cho toàn bộ Card
         minHeight={650}
       >
-        {/* PHẦN BÊN TRÁI: Branding */}
+
+
         <YStack
           width="60%"
           bg="$blue10"
           justifyContent="center"
           alignItems="center"
           p="$10"
-          $sm={{ display: 'none' }}
+
+          display={media.sm ? 'none' : 'flex'}
           position="relative"
         >
           <View
@@ -67,9 +75,11 @@ export function Auth({ children }: { children?: ReactNode }) {
           </Paragraph>
         </YStack>
 
+
+
         <YStack
-          width="40%"
-          $sm={{ width: '100%' }}
+
+          width={media.sm ? '100%' : '40%'}
           p="$7"
           justifyContent="center"
           bg="$color1"

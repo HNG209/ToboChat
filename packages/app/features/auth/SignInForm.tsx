@@ -51,8 +51,97 @@ export function SignInForm() {
 
 
 
+  // return (
+  //   <YStack space="$3" width="100%" flex={1} justifyContent="flex-start" pt="$2">
+  //     <YStack space="$1" mb="$2" alignItems="center">
+  //       <H3 fontWeight="900" fontSize="$8" color="$color12" letterSpacing={-0.5}>
+  //         {step === 'SIGNIN' ? 'Đăng nhập' : step === 'CONFIRM_MFA' ? 'Nhập mã xác thực (MFA)' : 'Thiết lập MFA'}
+  //       </H3>
+  //       <Paragraph color="$color10" textAlign="center">
+  //         {step === 'SIGNIN' ? 'Đăng nhập để bắt đầu trò chuyện.' : step === 'CONFIRM_MFA' ? 'Nhập mã OTP 6 số từ ứng dụng xác thực.' : 'Quét mã QR và nhập mã để kích hoạt MFA.'}
+  //       </Paragraph>
+  //     </YStack>
+
+  //     {error ? <Text color="$red10">{error}</Text> : null}
+
+  //     {step === 'SIGNIN' ? (
+  //       <>
+  //         <Input width="100%" placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+  //         <Input width="100%" placeholder="Mật khẩu" value={password} onChangeText={setPassword} secureTextEntry />
+
+  //         <Button width="100%" onPress={handleSignIn} disabled={loading} themeInverse>
+  //           {loading ? <Spinner /> : <Text fontWeight="bold">Đăng nhập</Text>}
+  //         </Button>
+  //       </>
+  //     ) : step === 'CONFIRM_MFA' ? (
+  //       <>
+  //         <Input width="100%" placeholder="Mã OTP 6 số" value={code} onChangeText={setCode} keyboardType="number-pad" />
+  //         <Button width="100%" onPress={async () => {
+  //           setLoading(true); setError('')
+  //           try {
+  //             const { isSignedIn } = await confirmSignIn({ challengeResponse: code })
+  //             if (isSignedIn) router.replace('/chat')
+  //           } catch (err: any) {
+  //             setError(getMFAErrorMessage(err))
+  //           } finally { setLoading(false) }
+  //         }} disabled={loading}>
+  //           {loading ? <Spinner /> : <Text>Xác nhận</Text>}
+  //         </Button>
+  //         <Button variant="outlined" onPress={() => { setStep('SIGNIN'); setCode(''); setError('') }}>
+  //           Quay lại
+  //         </Button>
+  //       </>
+  //     ) : (
+  //       <>
+  //         {totpDetails ? (
+  //           <YStack alignItems="center" mb="$2">
+  //             {/* QR code UI could be added here using totpDetails.getSetupUri(...) */}
+  //             <Text size="$2" color="$color8">Quét mã QR bằng ứng dụng Authenticator</Text>
+  //           </YStack>
+  //         ) : null}
+  //         <Input width="100%" placeholder="Mã OTP 6 số" value={code} onChangeText={setCode} keyboardType="number-pad" />
+  //         <Button width="100%" onPress={async () => {
+  //           setLoading(true); setError('')
+  //           try {
+  //             const { isSignedIn } = await confirmSignIn({ challengeResponse: code })
+  //             if (isSignedIn) router.replace('/chat')
+  //           } catch (err: any) {
+  //             setError(getMFAErrorMessage(err))
+  //           } finally { setLoading(false) }
+  //         }} disabled={loading}>
+  //           {loading ? <Spinner /> : <Text>Xác nhận kích hoạt</Text>}
+  //         </Button>
+  //         <Button variant="outlined" onPress={() => { setStep('SIGNIN'); setCode(''); setError('') }}>
+  //           Hủy
+  //         </Button>
+  //       </>
+  //     )}
+
+  //     <Text textAlign="center" color="$blue10" onPress={() => router.push('/forgot-password')}>
+  //       Quên mật khẩu?
+  //     </Text>
+
+  //     <XStack justifyContent="center" alignItems="center">
+  //       <Paragraph size="$2" color="$gray10">Chưa có tài khoản?</Paragraph>
+  //       <XStack
+  //         ml="$2"
+  //         cursor="pointer"
+  //         onPress={() => router.push('/signup')}
+  //         hoverStyle={{ scale: 1.03 }}
+  //         pressStyle={{ scale: 0.97, opacity: 0.85 }}
+  //         alignItems="center"
+  //       >
+  //         <Text color="$blue10" fontWeight="bold">Đăng ký ngay</Text>
+  //         <ChevronRight size={16} color="#1677FF" style={{ marginLeft: 6 }} />
+  //       </XStack>
+  //     </XStack>
+  //   </YStack>
+  // )
+
+
   return (
-    <YStack space="$3" width="100%" flex={1} justifyContent="flex-start" pt="$2">
+    // 🛠️ FIX 1: Bỏ flex={1} để các phần tử tự sắp xếp theo chiều cao tự nhiên của chúng
+    <YStack space="$4" width="100%" justifyContent="flex-start" pt="$2" px="$1">
       <YStack space="$1" mb="$2" alignItems="center">
         <H3 fontWeight="900" fontSize="$8" color="$color12" letterSpacing={-0.5}>
           {step === 'SIGNIN' ? 'Đăng nhập' : step === 'CONFIRM_MFA' ? 'Nhập mã xác thực (MFA)' : 'Thiết lập MFA'}
@@ -62,20 +151,57 @@ export function SignInForm() {
         </Paragraph>
       </YStack>
 
-      {error ? <Text color="$red10">{error}</Text> : null}
+      {error ? <Text color="$red10" textAlign="center">{error}</Text> : null}
 
       {step === 'SIGNIN' ? (
         <>
-          <Input width="100%" placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
-          <Input width="100%" placeholder="Mật khẩu" value={password} onChangeText={setPassword} secureTextEntry />
+          {/* 🛠️ FIX 2: Thêm borderWidth, borderColor và màu nền bg để hiện rõ ô nhập liệu trên Mobile */}
+          <Input
+            mb="$2"
+            width="100%"
+            placeholder="Email"
+            color="black"
+            placeholderTextColor="$colorMuted"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            borderWidth={1}
+            borderColor="$borderColor"
+            bg="$background"
+            size="$4"
+            borderRadius="$4"
+          />
+          <Input
+            mb="$4"
+            width="100%"
+            placeholder="Mật khẩu"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            borderWidth={1}
+            borderColor="$borderColor"
+            bg="$background"
+            size="$4"
+            borderRadius="$4"
+          />
 
-          <Button width="100%" onPress={handleSignIn} disabled={loading} themeInverse>
-            {loading ? <Spinner /> : <Text fontWeight="bold">Đăng nhập</Text>}
+          <Button width="100%" onPress={handleSignIn} disabled={loading} themeInverse size="$4" mt="$2">
+            {loading ? <Spinner /> : <Text fontWeight="bold" color="$color1">Đăng nhập</Text>}
           </Button>
         </>
       ) : step === 'CONFIRM_MFA' ? (
         <>
-          <Input width="100%" placeholder="Mã OTP 6 số" value={code} onChangeText={setCode} keyboardType="number-pad" />
+          <Input
+            width="100%"
+            placeholder="Mã OTP 6 số"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            borderWidth={1}
+            borderColor="$borderColor"
+            bg="$background"
+            size="$4"
+          />
           <Button width="100%" onPress={async () => {
             setLoading(true); setError('')
             try {
@@ -84,7 +210,7 @@ export function SignInForm() {
             } catch (err: any) {
               setError(getMFAErrorMessage(err))
             } finally { setLoading(false) }
-          }} disabled={loading}>
+          }} disabled={loading} mt="$2">
             {loading ? <Spinner /> : <Text>Xác nhận</Text>}
           </Button>
           <Button variant="outlined" onPress={() => { setStep('SIGNIN'); setCode(''); setError('') }}>
@@ -95,11 +221,20 @@ export function SignInForm() {
         <>
           {totpDetails ? (
             <YStack alignItems="center" mb="$2">
-              {/* QR code UI could be added here using totpDetails.getSetupUri(...) */}
               <Text size="$2" color="$color8">Quét mã QR bằng ứng dụng Authenticator</Text>
             </YStack>
           ) : null}
-          <Input width="100%" placeholder="Mã OTP 6 số" value={code} onChangeText={setCode} keyboardType="number-pad" />
+          <Input
+            width="100%"
+            placeholder="Mã OTP 6 số"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            borderWidth={1}
+            borderColor="$borderColor"
+            bg="$background"
+            size="$4"
+          />
           <Button width="100%" onPress={async () => {
             setLoading(true); setError('')
             try {
@@ -108,7 +243,7 @@ export function SignInForm() {
             } catch (err: any) {
               setError(getMFAErrorMessage(err))
             } finally { setLoading(false) }
-          }} disabled={loading}>
+          }} disabled={loading} mt="$2">
             {loading ? <Spinner /> : <Text>Xác nhận kích hoạt</Text>}
           </Button>
           <Button variant="outlined" onPress={() => { setStep('SIGNIN'); setCode(''); setError('') }}>
@@ -117,11 +252,12 @@ export function SignInForm() {
         </>
       )}
 
-      <Text textAlign="center" color="$blue10" onPress={() => router.push('/forgot-password')}>
+      {/* 🛠️ FIX 3: Thêm khoảng cách (margin) hợp lý cho các nút điều hướng phía dưới */}
+      <Text textAlign="center" color="$blue10" py="$2" onPress={() => router.push('/forgot-password')}>
         Quên mật khẩu?
       </Text>
 
-      <XStack justifyContent="center" alignItems="center">
+      <XStack justifyContent="center" alignItems="center" mt="$2">
         <Paragraph size="$2" color="$gray10">Chưa có tài khoản?</Paragraph>
         <XStack
           ml="$2"
@@ -137,4 +273,5 @@ export function SignInForm() {
       </XStack>
     </YStack>
   )
+
 }

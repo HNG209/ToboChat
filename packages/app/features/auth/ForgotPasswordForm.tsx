@@ -131,7 +131,7 @@ export function ForgotPasswordForm() {
         onPress={() => {
           router.push('/login')
         }}
-      >s
+      >
         <Text>Quay lại đăng nhập</Text>
       </Button>
     </YStack>
