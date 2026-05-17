@@ -24,6 +24,11 @@ type NewRoomPayload = {
   inboxStatus: RoomStatus
 }
 
+type InboxUnreadUpdatePayload = {
+  roomId: string
+  unreadCount: number
+}
+
 export const SocketEventProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
@@ -88,24 +93,29 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       // chỉ cần set token là component <VideoCall /> sẽ tự động hiện lên!
     };
 
-    const handleUnreadUpdate = (roomId: string) => {
+    const handleUnreadUpdate = (payload: InboxUnreadUpdatePayload) => {
+      const { roomId, unreadCount } = payload;
+
       dispatch(
         roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
           if (!draft?.items) return
 
           const roomIndex = draft.items.findIndex((r) => r.id === roomId)
 
-          if (roomIndex !== -1) {
-            draft.items[roomIndex].unreadMessages =
-              (draft.items[roomIndex].unreadMessages || 0) + 1
-          }
+          if (roomIndex === -1) return
+
+          if (unreadCount < 0 && draft.items[roomIndex].unreadMessages === 0) return
+
+          draft.items[roomIndex].unreadMessages =
+            (draft.items[roomIndex].unreadMessages || 0) + unreadCount
+
         })
       )
 
       dispatch(
         userApi.util.updateQueryData('getProfile', undefined, (draft) => {
           if (!draft) return
-          draft.totalUnreadMessages = (draft.totalUnreadMessages || 0) + 1
+          draft.totalUnreadMessages = (draft.totalUnreadMessages || 0) + unreadCount
         })
       )
     };
