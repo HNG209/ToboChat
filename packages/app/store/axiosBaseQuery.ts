@@ -13,25 +13,25 @@ export const axiosBaseQuery =
     unknown,
     unknown
   > =>
-  async ({ url, method, data, params }) => {
-    try {
-      const client = await getAxiosClient()
+    async ({ url, method, data, params }) => {
+      try {
+        const client = await getAxiosClient()
 
-      const result = await client({
-        url, // URL ở đây chỉ là path (ví dụ '/auth/me'), axiosClient tự gắn baseURL
-        method,
-        data,
-        params,
-      })
+        const result = await client({
+          url, // URL ở đây chỉ là path (ví dụ '/auth/me'), axiosClient tự gắn baseURL
+          method,
+          data,
+          params,
+        })
 
-      return { data: result.data } // Trả về data hoặc results nếu có
-    } catch (axiosError) {
-      const err = axiosError as AxiosError
-      return {
-        error: {
-          status: err.response?.status,
-          data: err.response?.data || err.message,
-        },
+        return { data: result.data } // Trả về data hoặc results nếu có
+      } catch (axiosError) {
+        const err = axiosError as AxiosError
+        return {
+          error: {
+            status: err.response?.status,
+            data: err.response?.data || err.message,
+          },
+        }
       }
     }
-  }

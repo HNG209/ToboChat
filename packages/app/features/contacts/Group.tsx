@@ -5,6 +5,7 @@ import { ContactHeader, UserCard } from '@my/ui'
 import { Platform, FlatList } from 'react-native'
 import { useGetJoinedRoomsQuery } from 'app/services/roomApi'
 import { CreateGroupDialog } from '@my/ui/src/CreateGroupDialog'
+import { GroupCard } from '@my/ui/src/GroupCard'
 
 export default function GroupPage() {
   const [keyword, setKeyword] = useState('')
@@ -116,17 +117,10 @@ export default function GroupPage() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             renderItem={({ item: group }) => (
-              <UserCard
-                isGroup={true}
+              <GroupCard
+                roomName={group.roomName}
+                avatarUrl={group.avatarUrl || ''}
                 description={`${group.memberCount ?? 0} thành viên`}
-                user={
-                  {
-                    id: group.id,
-                    name: group.roomName,
-                    avatarUrl: group.avatarUrl || '',
-                  } as any
-                }
-
               />
             )}
             ListEmptyComponent={

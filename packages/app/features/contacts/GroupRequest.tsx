@@ -9,6 +9,8 @@ import { useDispatch } from 'react-redux'
 import { AppDispatch } from 'app/store'
 import { roomApi } from 'app/services/roomApi'
 import { Separator } from 'tamagui'
+import { GroupCard } from '@my/ui/src/GroupCard'
+import { log } from '@livekit/react-native'
 
 export default function GroupRequestPage() {
   // State phục vụ phân trang
@@ -36,6 +38,7 @@ export default function GroupRequestPage() {
         })
       );
       const response = await respondGroupInvite({ groupId: id, accepted: isAccept }).unwrap();
+      console.log("Response:", response);
 
       if (isAccept && response && response.id) {
         dispatch(
@@ -89,18 +92,10 @@ export default function GroupRequestPage() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             renderItem={({ item }) => (
-              <UserCard
-                isGroup={true} // Bật chế độ hiển thị Nhóm
-                // Hiển thị thông tin người mời cho sinh động
+              <GroupCard
+                roomName={item.roomName}
+                avatarUrl=""
                 description={`Người mời: ${item.inviter.name}`}
-                user={
-                  {
-                    id: item.roomId,
-                    name: item.roomName,
-                    avatarUrl: '',
-                  } as UserResponse
-                }
-                // Mapping filter sang Type của UserCard để hiện đúng nút (Accept/Reject hoặc Cancel)
                 type={FriendRequestType.PENDING}
                 onAction={(action) => handleAction(action, item.roomId)}
               />
