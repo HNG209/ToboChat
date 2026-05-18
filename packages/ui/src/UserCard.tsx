@@ -1,9 +1,14 @@
-import { Button, XStack, YStack, Text, Avatar } from 'tamagui'
+import { Button, XStack, YStack, Text, Avatar, Adapt, Sheet } from 'tamagui'
 import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
 import { FriendResponse, UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
 import { Platform } from 'react-native'
 import { useMedia } from 'tamagui'
+import { useDispatch } from 'react-redux'
+import { AppDispatch, store } from 'app/store'
+import { contactApi } from 'app/services/contactApi'
+import { Popover } from 'tamagui'
+import { Dialog } from 'tamagui'
 type Props = {
   user: UserResponse
   description?: string
@@ -13,14 +18,42 @@ type Props = {
   onAction?: (action: 'accept' | 'reject' | 'cancel' | 'join', id: string) => void
 }
 
-export function UserCard({ user, description, isGroup = false, type, requestId, onAction }: Props) {
+export function UserCard({ user, description, isGroup, type, requestId, onAction }: Props) {
   const isPending = type === FriendRequestType.PENDING
   const isSent = type === FriendRequestType.SENT
   const media = useMedia()
+  const dispatch = useDispatch<AppDispatch>()
+
   const buttonProps = {
     size: "$3",
     borderRadius: "$4",
     variant: "outline" as const,
+  }
+  const handleUnfriendOptimistic = (friendId: string) => {
+    const state = store.getState()
+
+    const friendListCaches = contactApi.util.selectInvalidatedBy(
+      state,
+      ['FriendList']
+    )
+
+    friendListCaches.forEach(({ originalArgs }) => {
+      dispatch(
+        contactApi.util.updateQueryData(
+          'getMyFriendList',
+          originalArgs,
+          (draft) => {
+            if (!draft?.items) return
+
+            draft.items = draft.items.filter(
+              (item: any) =>
+                item.user?.id !== friendId &&
+                item.id !== friendId
+            )
+          }
+        )
+      )
+    })
   }
   return (
     <XStack
@@ -64,22 +97,58 @@ export function UserCard({ user, description, isGroup = false, type, requestId, 
 
       {/* RIGHT: Các nút hành động */}
       <XStack gap="$2" alignItems="center">
-        {isGroup ? (
+        {!isGroup ? (
           <></>
         ) : (
           <>
             {/* Trường hợp: Danh sách bạn bè bình thường */}
-            {
-              !isPending && !isSent && (
-                <Button
-                  size="$3"
-                  circular
-                  chromeless
-                  icon={<MoreHorizontal size={20} color="$gray10" />}
-                  hoverStyle={{ backgroundColor: '$gray4' }}
-                />
-              )
-            }
+            {!isPending && !isSent && (
+              <Popover size="$5" allowFlip placement="bottom-end">
+                <Popover.Trigger asChild>
+                  <Button
+                    size="$3"
+                    circular
+                    chromeless
+                    icon={<MoreHorizontal size={20} color="$gray10" />}
+                    onPress={(e) => e.stopPropagation()}
+                  />
+                </Popover.Trigger>
+
+                <Popover.Content
+                  borderWidth={1}
+                  borderColor="$borderColor"
+                  enterStyle={{ y: -10, opacity: 0 }}
+                  exitStyle={{ y: -10, opacity: 0 }}
+                  elevate
+                  animation={[
+                    'quick',
+                    {
+                      opacity: {
+                        overshootClamping: true,
+                      },
+                    },
+                  ]}
+                  p={0}
+                >
+                  <YStack>
+                    <Button
+                      chromeless
+                      borderRadius={0}
+                      size="$3"
+                      justifyContent="flex-start"
+                      onPress={() => {
+                        handleUnfriendOptimistic(user.id)
+                      }}
+                    >
+                      <XStack space="$2" alignItems="center">
+                        <UserMinus size={16} color="$red10" />
+                        <Text color="$red10" fontSize="$3">Hủy kết bạn</Text>
+                      </XStack>
+                    </Button>
+                  </YStack>
+                </Popover.Content>
+              </Popover>
+            )}
 
             {/* Trường hợp: Lời mời ĐÃ NHẬN (Pending) */}
             {isPending && (

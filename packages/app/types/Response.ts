@@ -103,6 +103,7 @@ export interface MessageResponse {
   createdAt: string
   messageStatus?: MessageStatus
   attachments?: Attachment[]
+  reactionsSummary: Record<string, number>;
 
   // Tin nhắn hệ thống
   messageType: MessageType
@@ -144,4 +145,8 @@ export interface IncomingCallDto {
   token: string
   callerId: string
   room: RoomResponse
+}
+export interface MessageReactionResponse {
+  user: UserResponse
+  reactions: string[]
 }

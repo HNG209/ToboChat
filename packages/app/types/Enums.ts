@@ -3,7 +3,8 @@ export type RoomType = 'DM' | 'GROUP'
 export type MemberRole = 'ADMIN' | 'VICE_ADMIN' | 'MEMBER'
 export type MemberStatus = 'NOT_IN_GROUP' | 'ADDED' | 'SENT' | 'PENDING'
 export type MessageStatus = 'SENT' | 'REVOKED'
-export type MessageType = 'USER' | 'SYSTEM' | 'FORWARDED' | 'WIDGET'zzz
+export type MessageType = 'USER' | 'SYSTEM' | 'FORWARDED' | 'WIDGET'
+export type RoomStatus = 'ACTIVE' | 'PENDING'
 export type SystemAction =
   | 'ROOM_CREATED'
   | 'MEMBER_ADDED'

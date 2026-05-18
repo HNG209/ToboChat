@@ -148,6 +148,8 @@ export default function RequestPage() {
                 onAction={(action) => handleAction(action, request.id)}
               />
             )}
+            ItemSeparatorComponent={() => <Separator borderColor="$borderColor" borderBottomWidth={1} />}
+
             ListEmptyComponent={
               requestsLoading ? (
                 <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>

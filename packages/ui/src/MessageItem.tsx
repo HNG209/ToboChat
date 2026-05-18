@@ -78,7 +78,6 @@ export function MessageItem({
       </YStack>
     )
   }
-
   const isMe = msg.user?.id === selfUserId
 
   const newerMsg = items[index - 1]
@@ -95,6 +94,8 @@ export function MessageItem({
   const showName = !isMe && (isSolo || isGroupStart)
 
   const isRevoked = msg.messageStatus === 'REVOKED'
+  const isDiabled = msg.messageType === "WIDGET" || isRevoked
+  console.log("Room ID của Message Item", roomId);
 
   const media = isRevoked
     ? []
@@ -254,165 +255,174 @@ export function MessageItem({
   }
 
   return (
-    <XStack
-      space="$2"
-      mb="$2"
-      justifyContent={isGroupCallWidget ? 'center' : (isMe ? 'flex-end' : 'flex-start')}
-    >
-      {/* AVATAR */}
-      {!isMe && !isGroupCallWidget && (
-        <YStack width={32} alignItems="center">
-          {showAvatar && (
-            <Avatar circular size="$3">
-              <Avatar.Image src={msg.user?.avatarUrl} />
-            </Avatar>
-          )}
-        </YStack>
-      )}
-
-      <MessageActionMenu
-        message={msg}
-        isMe={isMe}
-        selectionMode={selectionMode}
-        isSelected={isSelected}
-        onToggleSelected={onToggleSelect}
-        onReply={onReply}
-        onForward={onForward}
-        onDelete={handleDeleteMessage}
-        onRevoke={handleRevokeMessage}
-        onCopy={onCopy}
-        disabled={isRevoked}
-        onEnterMultiSelect={onEnterMultiSelect}
-        triggerRef={menuTriggerRef}
+    <YStack>
+      {/* TÊN NGƯỜI GỬI */}
+      {
+        showName && !isGroupCallWidget && (
+          <Text
+            fontSize="$2"
+            fontWeight="600"
+            color="$color10"
+            ml="$7"
+            letterSpacing={0.2}
+          >
+            {msg.user?.name}
+          </Text>
+        )
+      }
+      <XStack
+        space="$2"
+        mb="$2"
+        justifyContent={isGroupCallWidget ? 'center' : (isMe ? 'flex-end' : 'flex-start')}
       >
+        {/* AVATAR */}
+        {!isMe && !isGroupCallWidget && (
+          <YStack width={32} alignItems="center">
+            {showAvatar && (
+              <Avatar circular size="$3">
+                <Avatar.Image src={msg.user?.avatarUrl} />
+              </Avatar>
+            )}
+          </YStack>
+        )}
 
-        <YStack space="$2">
-          {/* TÊN NGƯỜI GỬI */}
-          {showName && (
-            <Text
-              fontSize="$2"
-              fontWeight="600"
-              color="$color10"
-              ml="$2"
-              letterSpacing={0.2}
-            >
-              {msg.user?.name}
-            </Text>
-          )}
+        <MessageActionMenu
+          message={msg}
+          isMe={isMe}
+          selectionMode={selectionMode}
+          isSelected={isSelected}
+          onToggleSelected={onToggleSelect}
+          onReply={onReply}
+          onForward={onForward}
+          onDelete={handleDeleteMessage}
+          onRevoke={handleRevokeMessage}
+          onCopy={onCopy}
+          disabled={isDiabled}
+          onEnterMultiSelect={onEnterMultiSelect}
+          triggerRef={menuTriggerRef}
+          isGroupEnd={isGroupEnd}
+          roomId={roomId}
+        >
 
-          {/* MEDIA */}
-          {media.length > 0 ? (
-            <YStack
-              maxWidth={280}
-              borderRadius="$4"
-              overflow="hidden"
-              bg={isMe ? '$blue3' : '$color2'}
-            >
-              <MediaGrid
-                media={media}
-                onPressMedia={(index) => onOpenMedia(media, index)}
-              />
-              {msg.content ? (
+          <YStack space="$2">
+
+
+            {/* MEDIA */}
+            {media.length > 0 ? (
+              <YStack
+                maxWidth={280}
+                borderRadius="$4"
+                overflow="hidden"
+                bg={isMe ? '$blue3' : '$color2'}
+              >
+                <MediaGrid
+                  media={media}
+                  onPressMedia={(index) => onOpenMedia(media, index)}
+                />
+                {msg.content ? (
+                  <Pressable
+                    onLongPress={() => menuTriggerRef.current?.()}
+                    delayLongPress={250}
+                  >
+                    <YStack p="$2">
+                      {
+                        isRevoked ?
+                          <Text color={messageColor} fontStyle={messageFontStyle}>Tin nhắn đã được thu hồi</Text> :
+                          <Text color={messageColor} fontStyle={messageFontStyle}>{msg.content}</Text>
+                      }
+                    </YStack>
+                  </Pressable>
+                ) : null}
+              </YStack>
+            ) : null}
+
+            {/* WIDGETS */}
+            {msg.messageType === 'WIDGET' && (
+              <WidgetMessage msg={msg} isMe={isMe} roomId={roomId} />
+            )}
+
+            {/* TEXT ONLY */}
+            {(media.length === 0 && !file && msg.messageType !== 'WIDGET') ? (
+              <Pressable
+                onPress={selectionMode ? () => onToggleSelect(msg.id) : undefined}
+                onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
+                delayLongPress={250}
+              >
+                <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4" minWidth={100}>
+                  {msg.replyTo && renderReplyPreview()}
+                  {
+                    isRevoked ?
+                      <Text color={messageColor} fontStyle={messageFontStyle}>Tin nhắn đã được thu hồi</Text> :
+                      <Text color={messageColor} fontStyle={messageFontStyle}>{msg.content}</Text>
+                  }
+                  {isGroupEnd && !isRevoked && (
+                    <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
+                      {timeString}
+                    </Text>
+                  )}
+                </YStack>
+              </Pressable>
+            ) : null}
+            {/* FILES */}
+            {file ? (
+              <YStack space="$1">
                 <Pressable
-                  onLongPress={() => menuTriggerRef.current?.()}
+                  onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(file.fileUrl)}
+                  onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
                   delayLongPress={250}
                 >
-                  <YStack p="$2">
-                    {
-                      isRevoked ?
-                        <Text color={messageColor} fontStyle={messageFontStyle}>Tin nhắn đã được thu hồi</Text> :
-                        <Text color={messageColor} fontStyle={messageFontStyle}>{msg.content}</Text>
-                    }
-                  </YStack>
+                  <XStack
+                    p="$2.5"
+                    bg="$color3"
+                    borderRadius="$3"
+                    hoverStyle={{ bg: '$color4' }} // Thêm hiệu ứng hover nếu dùng trên web/tablet
+                    opacity={selectionMode && isSelected ? 0.6 : 1}
+                    minWidth={220}
+                    maxWidth={280}
+                    alignItems="center"
+                    borderWidth={1}
+                    borderColor="$color4"
+                  >
+                    <Circle size={35} bg="$color5" alignItems="center" justifyContent="center">
+                      <File size={18} color="$color11" />
+                    </Circle>
+
+                    <YStack flex={1} ml="$3">
+                      <Text numberOfLines={1} fontWeight="600" fontSize="$3">
+                        {file.fileName}
+                      </Text>
+                      <Text fontSize="$1" color="$color10">
+                        {(file.fileSize / 1024).toFixed(1)} KB
+                      </Text>
+                    </YStack>
+
+                    <Download size={18} color="$color10" />
+                  </XStack>
                 </Pressable>
-              ) : null}
-            </YStack>
-          ) : null}
 
-          {/* WIDGETS */}
-          {msg.messageType === 'WIDGET' && (
-            <WidgetMessage msg={msg} isMe={isMe} roomId={roomId} />
-          )}
-
-          {/* TEXT ONLY */}
-          {(media.length === 0 && !file && msg.messageType !== 'WIDGET') ? (
-            <Pressable
-              onPress={selectionMode ? () => onToggleSelect(msg.id) : undefined}
-              onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
-              delayLongPress={250}
-            >
-              <YStack p="$3" maxWidth={300} bg={isMe ? '$blue3' : '$color2'} borderRadius="$4">
-                {msg.replyTo && renderReplyPreview()}
-                {
-                  isRevoked ?
-                    <Text color={messageColor} fontStyle={messageFontStyle}>Tin nhắn đã được thu hồi</Text> :
-                    <Text color={messageColor} fontStyle={messageFontStyle}>{msg.content}</Text>
-                }
                 {isGroupEnd && !isRevoked && (
                   <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
                     {timeString}
                   </Text>
                 )}
               </YStack>
-            </Pressable>
-          ) : null}
-          {/* FILES */}
-          {file ? (
-            <YStack space="$1">
-              <Pressable
-                onPress={selectionMode ? () => onToggleSelect(msg.id) : () => Linking.openURL(file.fileUrl)}
-                onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
-                delayLongPress={250}
-              >
-                <XStack
-                  p="$2.5"
-                  bg="$color3"
-                  borderRadius="$3"
-                  hoverStyle={{ bg: '$color4' }} // Thêm hiệu ứng hover nếu dùng trên web/tablet
-                  opacity={selectionMode && isSelected ? 0.6 : 1}
-                  minWidth={220}
-                  maxWidth={280}
-                  alignItems="center"
-                  borderWidth={1}
-                  borderColor="$color4"
-                >
-                  <Circle size={35} bg="$color5" alignItems="center" justifyContent="center">
-                    <File size={18} color="$color11" />
-                  </Circle>
+            ) : null}
+          </YStack>
+        </MessageActionMenu>
 
-                  <YStack flex={1} ml="$3">
-                    <Text numberOfLines={1} fontWeight="600" fontSize="$3">
-                      {file.fileName}
-                    </Text>
-                    <Text fontSize="$1" color="$color10">
-                      {(file.fileSize / 1024).toFixed(1)} KB
-                    </Text>
-                  </YStack>
-
-                  <Download size={18} color="$color10" />
-                </XStack>
-              </Pressable>
-
-              {isGroupEnd && !isRevoked && (
-                <Text fontSize="$1" mt="$1" color="$color9" alignSelf="flex-end">
-                  {timeString}
-                </Text>
+        {/* SELECT INDICATOR */}
+        {
+          selectionMode && (
+            <YStack width={20} justifyContent="center">
+              {isSelected && (
+                <Circle size={18} bg="$blue10">
+                  <Check size={12} color="white" />
+                </Circle>
               )}
             </YStack>
-          ) : null}
-        </YStack>
-      </MessageActionMenu>
-
-      {/* SELECT INDICATOR */}
-      {selectionMode && (
-        <YStack width={20} justifyContent="center">
-          {isSelected && (
-            <Circle size={18} bg="$blue10">
-              <Check size={12} color="white" />
-            </Circle>
-          )}
-        </YStack>
-      )}
-    </XStack>
+          )
+        }
+      </XStack >
+    </YStack>
   )
 }

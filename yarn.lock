@@ -9873,6 +9873,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/emscripten@npm:^1.41.5":
+  version: 1.41.5
+  resolution: "@types/emscripten@npm:1.41.5"
+  checksum: 10/60dfcced39b2d0c94f31907c5cf5d97fe06ed35ed6cb134650a1a96bae861302722d4a6f459b484ea09588cde70cbcc034974454a746be3ce9688b52398d2953
+  languageName: node
+  linkType: hard
+
 "@types/estree@npm:1.0.8, @types/estree@npm:^1.0.0":
   version: 1.0.8
   resolution: "@types/estree@npm:1.0.8"
@@ -11411,6 +11418,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"barcode-detector@npm:^3.0.0":
+  version: 3.1.3
+  resolution: "barcode-detector@npm:3.1.3"
+  dependencies:
+    zxing-wasm: "npm:3.0.3"
+  checksum: 10/3e33b00bdc4b6f6bae67ca2a2fbe7def8861060591bf5a46ece6a8f30eadc9c66ce32776633107bb704ad0910302845a6bd520045e169410ec7ad8d4346633a7
+  languageName: node
+  linkType: hard
+
 "base-64@npm:^1.0.0":
   version: 1.0.0
   resolution: "base-64@npm:1.0.0"
@@ -12946,6 +12962,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"emoji-datasource@npm:^6.0.0":
+  version: 6.1.1
+  resolution: "emoji-datasource@npm:6.1.1"
+  checksum: 10/ca3ed78b482088142b57494a8f55bd1ed3ac83107a7da8296c8e63b6e1e70125b448b4be06d1fe2f896334b53ea5093061b68b5e226dd7153fa7fdc859d5774c
+  languageName: node
+  linkType: hard
+
 "emoji-mart@npm:^5.6.0":
   version: 5.6.0
   resolution: "emoji-mart@npm:5.6.0"
@@ -14190,6 +14213,23 @@ __metadata:
     react-native-web:
       optional: true
   checksum: 10/c274ae6b98e30b673d2dd03119da703a379c01367466022fa1d2dc1b17ce9475711488132d2c7271a88ecda3800c5d03697371761fa8330e40ca0c02f9b951fa
+  languageName: node
+  linkType: hard
+
+"expo-camera@npm:^55.0.18":
+  version: 55.0.18
+  resolution: "expo-camera@npm:55.0.18"
+  dependencies:
+    barcode-detector: "npm:^3.0.0"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+    react-native-web: "*"
+  peerDependenciesMeta:
+    react-native-web:
+      optional: true
+  checksum: 10/ff579dc7fbf64f5ef448d7d03095d779aedbf61576309dfba9dc131b811a15f6479046ab31653daa0b6c0a121c9742fa5ec6dc77d3cbbfadbf6c99f915b87498
   languageName: node
   linkType: hard
 
@@ -18070,6 +18110,7 @@ __metadata:
     emoji-picker-react: "npm:^4.19.1"
     expo: "npm:~54.0.31"
     expo-av: "npm:^16.0.8"
+    expo-camera: "npm:^55.0.18"
     expo-constants: "npm:^18.0.13"
     expo-image-picker: "npm:~17.0.10"
     expo-modules-core: "npm:^3.0.29"
@@ -18080,6 +18121,7 @@ __metadata:
     react: "npm:19.1.0"
     react-i18next: "npm:^16.5.4"
     react-native: "npm:0.81.5"
+    react-native-emoji-selector: "npm:^0.2.0"
     sonner: "npm:^2.0.7"
     turbo: "npm:^1.13.4"
     typescript: "npm:~5.8.3"
@@ -19643,6 +19685,15 @@ __metadata:
     react: ">= 17.0.1"
     react-native: ">= 0.64.3"
   checksum: 10/3a61bc300e005f9f0dc64bb8de10ea2aa0b53a430d259a615d7aa393d88c9b82c5967b393c0e0eb15a4d61cd210d7b529a526a92cb40645dddec822f305b7ace
+  languageName: node
+  linkType: hard
+
+"react-native-emoji-selector@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "react-native-emoji-selector@npm:0.2.0"
+  dependencies:
+    emoji-datasource: "npm:^6.0.0"
+  checksum: 10/e64a1a622e3f34c8eb745f7184ce980ab033c924bd0bce9c537611b1308c4ca6d3384a723a2355770f879794bb1436f8cda7bcd8b2814a2770065b4277cd4fde
   languageName: node
   linkType: hard
 
@@ -21728,6 +21779,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tagged-tag@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "tagged-tag@npm:1.0.0"
+  checksum: 10/e37653df3e495daa7ea7790cb161b810b00075bba2e4d6c93fb06a709e747e3ae9da11a120d0489833203926511b39e038a2affbd9d279cfb7a2f3fcccd30b5d
+  languageName: node
+  linkType: hard
+
 "tamagui-loader@npm:1.144.0":
   version: 1.144.0
   resolution: "tamagui-loader@npm:1.144.0"
@@ -22250,6 +22308,15 @@ __metadata:
   version: 4.41.0
   resolution: "type-fest@npm:4.41.0"
   checksum: 10/617ace794ac0893c2986912d28b3065ad1afb484cad59297835a0807dc63286c39e8675d65f7de08fafa339afcb8fe06a36e9a188b9857756ae1e92ee8bda212
+  languageName: node
+  linkType: hard
+
+"type-fest@npm:^5.6.0":
+  version: 5.6.0
+  resolution: "type-fest@npm:5.6.0"
+  dependencies:
+    tagged-tag: "npm:^1.0.0"
+  checksum: 10/2cc7a510f46a538af7a365ed50cee10e51a69bd353ca66c2a432e172b90ff12efff9ba59c7ba493d6361d07fd298c84945b9e4481ab63f85a29860c0b0430233
   languageName: node
   linkType: hard
 
@@ -23518,5 +23585,17 @@ __metadata:
   version: 3.22.4
   resolution: "zod@npm:3.22.4"
   checksum: 10/73622ca36a916f785cf528fe612a884b3e0f183dbe6b33365a7d0fc92abdbedf7804c5e2bd8df0a278e1472106d46674281397a3dd800fa9031dc3429758c6ac
+  languageName: node
+  linkType: hard
+
+"zxing-wasm@npm:3.0.3":
+  version: 3.0.3
+  resolution: "zxing-wasm@npm:3.0.3"
+  dependencies:
+    "@types/emscripten": "npm:^1.41.5"
+    type-fest: "npm:^5.6.0"
+  peerDependencies:
+    "@types/emscripten": ">=1.39.6"
+  checksum: 10/0c0636fab96a67d7f8540dede8d98b5cbb53c95313cfbe21114e2fd15262d6b860c84467d627d6e768bcdc684d75c7b5b8ef6b3d53d8d14004436e809a1d4b32
   languageName: node
   linkType: hard

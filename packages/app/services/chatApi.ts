@@ -1,4 +1,4 @@
-import { MessageResponse, PageResponse } from 'app/types/Response'
+import { MessageReactionResponse, MessageResponse, PageResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { SendMessageRequest } from 'app/types/Request'
 
@@ -153,6 +153,20 @@ export const chatApi = baseApi.injectEndpoints({
         data,
       }),
     }),
+    addReaction: builder.mutation<void, { roomId: string; messageId: string; reactionType: string }>({
+      query: ({ roomId, messageId, reactionType }) => ({
+        url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}/reactions`,
+        method: 'POST',
+        params: { reactionType },
+      }),
+
+    }),
+    getMessageReactions: builder.query<MessageReactionResponse, { roomId: string; messageId: string }>({
+      query: ({ roomId, messageId }) => ({
+        url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}/reactions`,
+        method: 'GET',
+      }),
+    }),
   }),
 })
 
@@ -164,4 +178,5 @@ export const {
   useLazyGetPresignedUrlQuery,
   useRevokeMessageMutation,
   useForwardMessagesMutation,
+  useAddReactionMutation
 } = chatApi

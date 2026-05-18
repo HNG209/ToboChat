@@ -42,11 +42,6 @@ function TabButton({
   )
 }
 
-type InboxUpdatedPayload = {
-  message: MessageResponse
-  inboxStatus: RoomStatus
-}
-
 type NewRoomPayload = {
   room: RoomResponse
   inboxStatus: RoomStatus
@@ -94,45 +89,6 @@ export default function ChatInbox() {
     const socket = getSocket()
     if (!socket) return
 
-    const handleInboxUpdated = (payload: InboxUpdatedPayload) => {
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: payload.inboxStatus }, (draft) => {
-          if (!draft?.items) return
-
-          const roomIndex = draft.items.findIndex((r) => r.id === payload.message.roomId)
-
-          if (roomIndex !== -1) {
-            draft.items[roomIndex].latestMessage = payload.message
-
-            const [updatedRoom] = draft.items.splice(roomIndex, 1)
-            draft.items.unshift(updatedRoom)
-          }
-        })
-      )
-    }
-
-    const handleUnreadUpdate = (roomId: string) => {
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-          if (!draft?.items) return
-
-          const roomIndex = draft.items.findIndex((r) => r.id === roomId)
-
-          if (roomIndex !== -1) {
-            draft.items[roomIndex].unreadMessages =
-              (draft.items[roomIndex].unreadMessages || 0) + 1
-          }
-        })
-      )
-
-      dispatch(
-        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
-          if (!draft) return
-          draft.totalUnreadMessages = (draft.totalUnreadMessages || 0) + 1
-        })
-      )
-    }
-
     const handleMessageRevoked = (payload: any) => {
       const revokedMsgId = payload.messageId
       const targetRoomId = payload.roomId
@@ -154,17 +110,6 @@ export default function ChatInbox() {
       )
     }
 
-    const handleNewRoom = (payload: NewRoomPayload) => {
-      // Cập nhật cache rtk-query để thêm nhóm mới vào danh sách phòng
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: payload.inboxStatus }, (draft) => {
-          if (draft) {
-            draft.items.unshift(payload.room);
-          }
-        })
-      );
-    }
-
     const handleGroupDisband = (roomId: string) => {
       dispatch(
         roomApi.util.updateQueryData(
@@ -181,33 +126,6 @@ export default function ChatInbox() {
       );
     }
 
-    // Self remove: người bị đá khỏi phòng
-    const handleSelfRemoved = (roomId: string) => {
-      // TODO: thêm thông báo đã bị xoá khỏi nhóm
-      if (activeRoomId === roomId) {
-        router.replace("/chat")
-      }
-
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
-          const index = draft.items?.findIndex((r) => r.id === roomId);
-          if (index !== -1 && index !== undefined) {
-            draft.items.splice(index, 1);
-          }
-        })
-      );
-
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: 'PENDING' }, (draft) => {
-          const index = draft.items?.findIndex((r) => r.id === roomId);
-          if (index !== -1 && index !== undefined) {
-            draft.items.splice(index, 1);
-          }
-        })
-      );
-
-    };
-
     const handleNewMember = (member: RoomMemberResponse) => {
       dispatch(
         roomApi.util.updateQueryData('getRoomMembers', { roomId: member.roomId }, (draft) => {
@@ -218,68 +136,12 @@ export default function ChatInbox() {
       );
     }
 
-    const handlePendingInboxUpdated = (room: RoomResponse) => {
-      // Xoá phòng khỏi tab Đang chờ nếu đã được chấp nhận
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: 'PENDING' }, (draft) => {
-          const index = draft.items?.findIndex((r) => r.id === room.id);
-          if (index !== -1 && index !== undefined) {
-            draft.items.splice(index, 1);
-          }
-        })
-      );
-
-      // Thêm phòng vào tab Tất cả nếu đã được chấp nhận
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
-          if (draft) {
-            // Nếu phòng đã tồn tại thì không thêm nữa (trường hợp nhận được nhiều sự kiện cập nhật cho cùng 1 phòng)
-            const exists = draft.items.some((r) => r.id === room.id);
-            if (!exists) {
-              draft.items.unshift(room);
-            }
-          }
-        })
-      );
-    }
-
-    const handleRoomUpdated = (event: RoomUpdateEvent) => {
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-          const roomIndex = draft?.items.findIndex((r) => r.id === event.roomId)
-          if (roomIndex !== undefined && roomIndex !== -1) {
-            const room = draft.items[roomIndex]
-
-            if (event.newRoomName) {
-              room.roomName = event.newRoomName
-            }
-
-            if (event.newRoomAvatar) {
-              room.avatarUrl = event.newRoomAvatar
-            }
-          }
-        })
-      );
-    }
-
-    socket.on('pending_inbox_updated', handlePendingInboxUpdated)
-    socket.on('room_updated', handleRoomUpdated)
-    socket.on('inbox_updated', handleInboxUpdated)
-    socket.on('unread_updated', handleUnreadUpdate)
     socket.on('message_revoked', handleMessageRevoked)
-    socket.on('new_room', handleNewRoom)
     socket.on('room_disband', handleGroupDisband)
-    socket.on('self_removed', handleSelfRemoved)
     socket.on('new_member', handleNewMember)
     return () => {
-      socket.off('pending_inbox_updated', handlePendingInboxUpdated)
-      socket.off('room_updated', handleRoomUpdated)
-      socket.off('inbox_updated', handleInboxUpdated)
-      socket.off('unread_updated', handleUnreadUpdate)
       socket.off('message_revoked', handleMessageRevoked)
-      socket.off('new_room', handleNewRoom)
       socket.off('room_disband', handleGroupDisband)
-      socket.off('self_removed', handleSelfRemoved)
       socket.off('new_member', handleNewMember)
     }
   }, [dispatch, isSocketReady, activeRoomId, status])
