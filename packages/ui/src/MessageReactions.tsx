@@ -30,10 +30,7 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
   const [showDetail, setShowDetail] = useState(false)
   const { data: cacheData } = chatApi.useGetMessageReactionsQuery({ roomId, messageId: message.id });
   const currentUser = useSelector((state: any) => state.auth.user)
-  const currentUserId = currentUser.id
-
-
-
+  const currentUserId = currentUser?.id
 
   const handleSelect = async (reactionType: string) => {
     const reactionItems = cacheData?.items || [];
@@ -63,10 +60,10 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
         } else {
           items.push({
             user: {
-              id: currentUser.id,
-              name: currentUser.name,
-              email: currentUser.email,
-              avatarUrl: currentUser.avatarUrl
+              id: currentUser?.id,
+              name: currentUser?.name,
+              email: currentUser?.email,
+              avatarUrl: currentUser?.avatarUrl
             },
             reactions: [reactionType]
           });

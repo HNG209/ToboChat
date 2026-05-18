@@ -95,7 +95,6 @@ export function MessageItem({
 
   const isRevoked = msg.messageStatus === 'REVOKED'
   const isDiabled = msg.messageType === "WIDGET" || isRevoked
-  console.log("Room ID của Message Item", roomId);
 
   const media = isRevoked
     ? []
@@ -139,7 +138,6 @@ export function MessageItem({
         borderRadius="$3"
         borderLeftWidth={3}
         borderLeftColor="$blue10"
-        space="$2"
         alignItems="center"
         onPress={(e) => {
           e.stopPropagation()
@@ -263,7 +261,8 @@ export function MessageItem({
             fontSize="$2"
             fontWeight="600"
             color="$color10"
-            ml="$7"
+            ml="$8"
+            mb="$1"
             letterSpacing={0.2}
           >
             {msg.user?.name}
@@ -272,7 +271,6 @@ export function MessageItem({
       }
       <XStack
         space="$2"
-        mb="$2"
         justifyContent={isGroupCallWidget ? 'center' : (isMe ? 'flex-end' : 'flex-start')}
       >
         {/* AVATAR */}
@@ -304,7 +302,7 @@ export function MessageItem({
           roomId={roomId}
         >
 
-          <YStack space="$2">
+          <YStack mb="$2" alignItems="center">
 
 
             {/* MEDIA */}
