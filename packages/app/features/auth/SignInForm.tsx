@@ -36,12 +36,12 @@ export function SignInForm() {
   }
 
   return (
-    <YStack space="$4" width="100%">
-      <YStack space="$1" alignItems="center">
-        <H3 fontWeight="900" fontSize="$7" color="$color12" textAlign="center">
+    <YStack space="$3" width="100%">
+      <YStack space="$3" alignItems="center">
+        <H3 fontWeight="900" fontSize="$9" color="$color12" textAlign="center">
           {step === 'SIGNIN' ? 'Đăng nhập' : step === 'CONFIRM_MFA' ? 'MFA OTP' : 'Thiết lập MFA'}
         </H3>
-        <Paragraph color="$color10" textAlign="center" fontSize="$3">
+        <Paragraph color="$color10" textAlign="center" fontSize="$3" mb="$3">
           {step === 'SIGNIN' ? 'Bắt đầu cuộc trò chuyện của bạn.' : 'Nhập mã xác thực của bạn.'}
         </Paragraph>
       </YStack>
@@ -100,16 +100,24 @@ export function SignInForm() {
         </YStack>
       )}
 
-      <Text textAlign="center" color="$blue10" py="$1" onPress={() => router.push('/forgot-password')}>
+      <Text textAlign="center" cursor="pointer" color="$blue10" onPress={() => router.push('/forgot-password')} hoverStyle={{ color: '$blue11', textDecorationLine: 'underline' }}>
         Quên mật khẩu?
       </Text>
 
-      <XStack justifyContent="center" alignItems="center" mt="$1" flexWrap="wrap">
-        <Paragraph size="$2" color="$gray10">Chưa có tài khoản?</Paragraph>
-        <XStack ml="$2" onPress={() => router.push('/signup')} alignItems="center">
-          <Text color="$blue10" fontWeight="bold" size="$2">Đăng ký ngay</Text>
-          <ChevronRight size={14} color="#1677FF" style={{ marginLeft: 2 }} />
-        </XStack>
+      <XStack justifyContent="center" alignItems="center" width="100%">
+        <Paragraph size="$4" color="$gray10" textAlign="center">
+          Chưa có tài khoản?{' '}
+          <Text
+            color="$blue10"
+            fontWeight="bold"
+            size="$4"
+            cursor="pointer"
+            hoverStyle={{ color: '$blue11', textDecorationLine: 'underline' }}
+            onPress={() => router.push('/signup')}
+          >
+            Đăng ký ngay
+          </Text>
+        </Paragraph>
       </XStack>
     </YStack>
   )

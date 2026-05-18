@@ -85,7 +85,7 @@ export function SignUpForm() {
     return (
       <YStack space="$4" width="100%" px="$2">
         <YStack space="$1" alignItems="center" mb="$2">
-          <H3 fontWeight="900" fontSize="$7" color="$color12" textAlign="center">
+          <H3 fontWeight="900" fontSize="$9" color="$color12" textAlign="center">
             Xác nhận Email
           </H3>
           <Paragraph color="$color10" textAlign="center" fontSize="$3">
@@ -108,7 +108,6 @@ export function SignUpForm() {
         <Input
           width="100%"
           placeholder="Mã xác nhận (6 số)"
-          placeholderTextColor="$colorMuted"
           backgroundColor="$background"
           keyboardType="number-pad"
           size="$4"
@@ -127,19 +126,16 @@ export function SignUpForm() {
         </Button>
 
         {/* NÚT BẤM GỬI LẠI MÃ */}
-        <Text
-          textAlign="center"
-          color="$blue10"
-          fontSize="$3"
-          py="$1"
-          fontWeight="bold"
-          onPress={handleResendCode}
-          disabled={loading}
-          style={{ cursor: 'pointer' }}
-        >
-          Không nhận được mã? Gửi lại mã
-        </Text>
-
+        <XStack justifyContent="center" alignItems="center" mt="$1" flexWrap="wrap">
+          <Paragraph size="$2" color="$gray10">Không nhận được mã?</Paragraph>
+          <XStack
+            ml="$2"
+            alignItems="center"
+          >
+            <Text cursor='pointer' color="$blue10" fontWeight="bold" size="$2" onPress={handleResendCode}
+              disabled={loading}>Gửi lại mã</Text>
+          </XStack>
+        </XStack>
         <Button variant="outlined" size="$4" width="100%" onPress={() => setStep('FILL')} disabled={loading}>
           <Text color="$color12">Quay lại</Text>
         </Button>
@@ -149,9 +145,9 @@ export function SignUpForm() {
 
   // Giao diện Bước 1: Điền thông tin tạo tài khoản
   return (
-    <YStack space="$4" width="100%" px="$2">
-      <YStack space="$1" alignItems="center" mb="$2">
-        <H3 fontWeight="900" fontSize="$7" color="$color12" textAlign="center">
+    <YStack space="$3" width="100%" px="$2">
+      <YStack space="$3" alignItems="center" mb="$2">
+        <H3 fontWeight="900" fontSize="$9" color="$color12" textAlign="center">
           Tạo tài khoản
         </H3>
         <Paragraph color="$color10" textAlign="center" fontSize="$3">
@@ -168,7 +164,6 @@ export function SignUpForm() {
       <Input
         width='100%'
         placeholder="Họ tên"
-        placeholderTextColor="$colorMuted"
         backgroundColor="$background"
         size="$4"
         onChangeText={(txt) => setForm({ ...form, name: txt })}
@@ -176,7 +171,6 @@ export function SignUpForm() {
       <Input
         width='100%'
         placeholder="Email"
-        placeholderTextColor="$colorMuted"
         backgroundColor="$background"
         size="$4"
         autoCapitalize="none"
@@ -185,7 +179,6 @@ export function SignUpForm() {
       <Input
         width='100%'
         placeholder="Mật khẩu"
-        placeholderTextColor="$colorMuted"
         backgroundColor="$background"
         size="$4"
         secureTextEntry
@@ -195,7 +188,6 @@ export function SignUpForm() {
       <Input
         width='100%'
         placeholder="Nhập lại mật khẩu"
-        placeholderTextColor="$colorMuted"
         backgroundColor="$background"
         size="$4"
         secureTextEntry
@@ -209,7 +201,6 @@ export function SignUpForm() {
         size="$4"
         onPress={handleSignUp}
         disabled={loading}
-        mt="$2"
       >
         {loading ? <Spinner color="white" /> : <Text fontWeight="bold" color="white">Đăng ký</Text>}
       </Button>
@@ -221,8 +212,7 @@ export function SignUpForm() {
           onPress={() => router.push('/login')}
           alignItems="center"
         >
-          <Text color="$blue10" fontWeight="bold" size="$2">Đăng nhập</Text>
-          <ChevronRight size={14} color="#1677FF" style={{ marginLeft: 2 }} />
+          <Text cursor='pointer' color="$blue10" fontWeight="bold" size="$2">Đăng nhập</Text>
         </XStack>
       </XStack>
     </YStack>

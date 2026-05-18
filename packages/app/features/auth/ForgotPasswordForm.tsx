@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { YStack, Input, Button, Text, Spinner, Paragraph, H3 } from 'tamagui'
+import { YStack, Input, Button, Text, Spinner, Paragraph, H3, XStack } from 'tamagui'
 import { resetPassword, confirmResetPassword } from 'aws-amplify/auth'
 import { useToastController } from '@my/ui'
 import { useRouter } from 'solito/navigation'
@@ -54,9 +54,9 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <YStack space="$4" width='100%' pt="$2" justifyContent="center">
+    <YStack space="$3" width='100%' pt="$2" justifyContent="center">
       <YStack space="$1" mb="$2" alignItems="center">
-        <H3 fontWeight="700" fontSize="$8" color="$color12" letterSpacing={-0.5} textAlign="center">
+        <H3 fontWeight="700" fontSize="$9" color="$color12" letterSpacing={-0.5} textAlign="center">
           {step === 'SEND_CODE' ? 'Quên mật khẩu' : 'Đặt lại mật khẩu'}
         </H3>
         <Paragraph color="$color10" textAlign="center">
@@ -118,14 +118,17 @@ export function ForgotPasswordForm() {
             {loading ? <Spinner color="white" /> : <Text fontWeight="bold" color="$color1">Xác nhận đổi mật khẩu</Text>}
           </Button>
 
-          <Text
-            textAlign="center"
-            color="$blue10"
-            onPress={() => setStep('SEND_CODE')}
-            mt="$2"
-          >
-            Gửi lại mã khác?
-          </Text>
+
+          {/* NÚT BẤM GỬI LẠI MÃ */}
+          <XStack justifyContent="center" alignItems="center" mt="$1" flexWrap="wrap">
+            <Paragraph size="$2" color="$gray10">Không nhận được mã?</Paragraph>
+            <XStack
+              ml="$2"
+              alignItems="center"
+            >
+              <Text cursor='pointer' color="$blue10" fontWeight="bold" size="$2" onPress={() => setStep('SEND_CODE')}>Gửi lại mã</Text>
+            </XStack>
+          </XStack>
         </YStack>
       )}
 

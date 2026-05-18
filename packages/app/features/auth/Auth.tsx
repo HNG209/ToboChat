@@ -23,8 +23,16 @@ export function Auth({ children }: { children?: ReactNode }) {
   // NẾU LÀ MOBILE: Trả về layout tràn màn hình đơn giản, sạch sẽ, không dùng Card bọc bị ép kích thước
   if (media.sm) {
     return (
-      <YStack flex={1} bg="$color1" justifyContent="center" p="$5" width="100%">
-        <YStack width="100%" maxWidth={400} alignSelf="center">
+      <YStack flex={1} justifyContent="center" p="$5" width="100%" >
+        <YStack
+          width="100%"
+          maxWidth={400}
+          alignSelf="center"
+          p="$5"
+          borderRadius={10}
+          borderWidth={1}
+          borderColor="$borderColor"
+        >
           {children}
         </YStack>
       </YStack>
