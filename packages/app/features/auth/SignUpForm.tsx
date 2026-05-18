@@ -1,7 +1,9 @@
+"use client"
 import React, { useState } from 'react'
 import { YStack, XStack, Input, Button, Text, Spinner, H3, Paragraph } from 'tamagui'
 import { ChevronRight } from '@tamagui/lucide-icons'
-import { signUp, confirmSignUp } from 'aws-amplify/auth'
+// THÊM: resendSignUpCode để kích hoạt gửi lại mã
+import { signUp, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
 
 export function SignUpForm() {
@@ -11,10 +13,11 @@ export function SignUpForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('') // Quản lý thông báo gửi lại mã thành công
 
   const handleSignUp = async () => {
-    // client-side validation before calling signUp
     setError('')
+    setSuccessMessage('')
     if (!form.name?.trim()) {
       setError('Vui lòng nhập họ tên.')
       return
@@ -35,9 +38,9 @@ export function SignUpForm() {
     setLoading(true)
     try {
       await signUp({
-        username: form.email,
+        username: form.email.trim(),
         password: form.password,
-        options: { userAttributes: { email: form.email, name: form.name } }
+        options: { userAttributes: { email: form.email.trim(), name: form.name.trim() } }
       })
       setStep('CONFIRM')
     } catch (err: any) {
@@ -47,64 +50,179 @@ export function SignUpForm() {
 
   const handleConfirm = async () => {
     setLoading(true)
+    setError('')
+    setSuccessMessage('')
     try {
       const { isSignUpComplete } = await confirmSignUp({
-        username: form.email,
-        confirmationCode: form.code
+        username: form.email.trim(),
+        confirmationCode: form.code.trim()
       })
       if (isSignUpComplete) {
         router.push('/login')
       }
-    } catch (err: any) { setError(err.message) }
-    finally { setLoading(false) }
+    } catch (err: any) {
+      setError(err.message || 'Mã xác nhận không hợp lệ.')
+    } finally { setLoading(false) }
   }
 
+  // HÀM XỬ LÝ GỬI LẠI MÃ XÁC NHẬN
+  const handleResendCode = async () => {
+    setLoading(true)
+    setError('')
+    setSuccessMessage('')
+    try {
+      await resendSignUpCode({ username: form.email.trim() })
+      setSuccessMessage('Mã xác nhận mới đã được gửi vào email của bạn!')
+    } catch (err: any) {
+      setError(err.message || 'Không thể gửi lại mã xác nhận lúc này.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Giao diện Bước 2: Nhập mã OTP xác nhận đăng ký
   if (step === 'CONFIRM') {
     return (
-      <YStack space="$3" width="100%" flex={1} justifyContent="flex-start" pt="$2">
-        <YStack space="$1" mb="$2" alignItems="center">
-          <H3 fontWeight="700" fontSize="$8" color="$color12" letterSpacing={-0.5}>
+      <YStack space="$4" width="100%" px="$2">
+        <YStack space="$1" alignItems="center" mb="$2">
+          <H3 fontWeight="900" fontSize="$7" color="$color12" textAlign="center">
             Xác nhận Email
           </H3>
-          <Paragraph color="$color10" textAlign="center">
+          <Paragraph color="$color10" textAlign="center" fontSize="$3">
             Nhập mã xác nhận đã gửi đến email của bạn.
           </Paragraph>
         </YStack>
-        <Input width="100%" placeholder="Mã xác nhận" onChangeText={(txt) => setForm({ ...form, code: txt })} />
-        <Button width="100%" onPress={handleConfirm}>{loading ? <Spinner /> : <Text>Xác nhận</Text>}</Button>
+
+        {error ? (
+          <Text color="$red10" textAlign="center" bg="$red2" p="$2" borderRadius="$4" fontSize="$2" width="100%">
+            {error}
+          </Text>
+        ) : null}
+
+        {successMessage ? (
+          <Text color="$green10" textAlign="center" bg="$green2" p="$2" borderRadius="$4" fontSize="$2" width="100%">
+            {successMessage}
+          </Text>
+        ) : null}
+
+        <Input
+          width="100%"
+          placeholder="Mã xác nhận (6 số)"
+          placeholderTextColor="$colorMuted"
+          backgroundColor="$background"
+          keyboardType="number-pad"
+          size="$4"
+          value={form.code}
+          onChangeText={(txt) => setForm({ ...form, code: txt })}
+        />
+
+        <Button
+          width="100%"
+          backgroundColor="$blue10"
+          size="$4"
+          onPress={handleConfirm}
+          disabled={loading}
+        >
+          {loading ? <Spinner color="white" /> : <Text fontWeight="bold" color="white">Xác nhận tài khoản</Text>}
+        </Button>
+
+        {/* NÚT BẤM GỬI LẠI MÃ */}
+        <Text
+          textAlign="center"
+          color="$blue10"
+          fontSize="$3"
+          py="$1"
+          fontWeight="bold"
+          onPress={handleResendCode}
+          disabled={loading}
+          style={{ cursor: 'pointer' }}
+        >
+          Không nhận được mã? Gửi lại mã
+        </Text>
+
+        <Button variant="outlined" size="$4" width="100%" onPress={() => setStep('FILL')} disabled={loading}>
+          <Text color="$color12">Quay lại</Text>
+        </Button>
       </YStack>
     )
   }
 
+  // Giao diện Bước 1: Điền thông tin tạo tài khoản
   return (
-    <YStack space="$3" flex={1} alignItems="center" justifyContent="center" pt="$2">
-      <YStack space="$1" mb="$2" alignItems="center">
-        <H3 fontWeight="900" fontSize="$8" color="$color12" letterSpacing={-0.5}>
+    <YStack space="$4" width="100%" px="$2">
+      <YStack space="$1" alignItems="center" mb="$2">
+        <H3 fontWeight="900" fontSize="$7" color="$color12" textAlign="center">
           Tạo tài khoản
         </H3>
-        <Paragraph color="$color10" textAlign="center">
+        <Paragraph color="$color10" textAlign="center" fontSize="$3">
           Điền thông tin để bắt đầu trò chuyện.
         </Paragraph>
       </YStack>
 
-      {error ? <Text color="$red10">{error}</Text> : null}
-      <Input $sm={{ width: '40%' }} placeholder="Họ tên" onChangeText={(txt) => setForm({ ...form, name: txt })} />
-      <Input $sm={{ width: '40%' }} placeholder="Email" onChangeText={(txt) => setForm({ ...form, email: txt })} />
-      <Input $sm={{ width: '40%' }} placeholder="Mật khẩu" secureTextEntry value={form.password} onChangeText={(txt) => setForm({ ...form, password: txt })} />
-      <Input $sm={{ width: '40%' }} placeholder="Nhập lại mật khẩu" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
-      <Button $sm={{ width: '40%' }} themeInverse onPress={handleSignUp} disabled={loading}>{loading ? <Spinner /> : <Text>Đăng ký</Text>}</Button>
-      <XStack justifyContent="center" alignItems="center">
+      {error ? (
+        <Text color="$red10" textAlign="center" bg="$red2" p="$2" borderRadius="$4" fontSize="$2" width="100%">
+          {error}
+        </Text>
+      ) : null}
+
+      <Input
+        width='100%'
+        placeholder="Họ tên"
+        placeholderTextColor="$colorMuted"
+        backgroundColor="$background"
+        size="$4"
+        onChangeText={(txt) => setForm({ ...form, name: txt })}
+      />
+      <Input
+        width='100%'
+        placeholder="Email"
+        placeholderTextColor="$colorMuted"
+        backgroundColor="$background"
+        size="$4"
+        autoCapitalize="none"
+        onChangeText={(txt) => setForm({ ...form, email: txt })}
+      />
+      <Input
+        width='100%'
+        placeholder="Mật khẩu"
+        placeholderTextColor="$colorMuted"
+        backgroundColor="$background"
+        size="$4"
+        secureTextEntry
+        value={form.password}
+        onChangeText={(txt) => setForm({ ...form, password: txt })}
+      />
+      <Input
+        width='100%'
+        placeholder="Nhập lại mật khẩu"
+        placeholderTextColor="$colorMuted"
+        backgroundColor="$background"
+        size="$4"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
+
+      <Button
+        width='100%'
+        backgroundColor="$blue10"
+        size="$4"
+        onPress={handleSignUp}
+        disabled={loading}
+        mt="$2"
+      >
+        {loading ? <Spinner color="white" /> : <Text fontWeight="bold" color="white">Đăng ký</Text>}
+      </Button>
+
+      <XStack justifyContent="center" alignItems="center" mt="$1" flexWrap="wrap">
         <Paragraph size="$2" color="$gray10">Đã có tài khoản?</Paragraph>
         <XStack
           ml="$2"
-          cursor="pointer"
           onPress={() => router.push('/login')}
-          hoverStyle={{ scale: 1.03 }}
-          pressStyle={{ scale: 0.97, opacity: 0.85 }}
           alignItems="center"
         >
-          <Text color="$blue10" fontWeight="bold">Đăng nhập</Text>
-          <ChevronRight size={16} color="#1677FF" style={{ marginLeft: 6 }} />
+          <Text color="$blue10" fontWeight="bold" size="$2">Đăng nhập</Text>
+          <ChevronRight size={14} color="#1677FF" style={{ marginLeft: 2 }} />
         </XStack>
       </XStack>
     </YStack>

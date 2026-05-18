@@ -1,26 +1,37 @@
-
 import React, { useEffect, useState } from 'react'
 import { YStack, Card, H3, Image, Paragraph, View, Separator, useMedia } from 'tamagui'
 import { getCurrentUser } from 'aws-amplify/auth'
 import { useRouter } from 'solito/navigation'
-
 import { ReactNode } from 'react'
 
 export function Auth({ children }: { children?: ReactNode }) {
   const router = useRouter()
   const media = useMedia()
-
   const [checkingSession, setCheckingSession] = useState(true)
+
   useEffect(() => {
     void getCurrentUser()
       .then(() => {
-        // session exists — previously we redirected to /chat here
         router.replace('/chat')
       })
       .catch(() => undefined)
       .finally(() => setCheckingSession(false))
   }, [router])
 
+  if (checkingSession) return null
+
+  // NẾU LÀ MOBILE: Trả về layout tràn màn hình đơn giản, sạch sẽ, không dùng Card bọc bị ép kích thước
+  if (media.sm) {
+    return (
+      <YStack flex={1} bg="$color1" justifyContent="center" p="$5" width="100%">
+        <YStack width="100%" maxWidth={400} alignSelf="center">
+          {children}
+        </YStack>
+      </YStack>
+    )
+  }
+
+  // NẾU LÀ DESKTOP: Giữ nguyên layout 2 cột xịn sò
   return (
     <YStack flex={1} alignItems="center" justifyContent="center" bg="$background" p="$4">
       <Card
@@ -35,19 +46,15 @@ export function Auth({ children }: { children?: ReactNode }) {
         shadowColor="$shadowColor"
         shadowOpacity={0.1}
         shadowRadius={20}
-        // FIX 1: Cố định chiều cao tối thiểu cho toàn bộ Card
         minHeight={650}
       >
-
-
+        {/* CỘT TRÁI (LOGO) */}
         <YStack
           width="60%"
           bg="$blue10"
           justifyContent="center"
           alignItems="center"
           p="$10"
-
-          $sm={{ display: 'none' }}
           position="relative"
         >
           <View
@@ -60,7 +67,6 @@ export function Auth({ children }: { children?: ReactNode }) {
             top={-100}
             left={-100}
           />
-
           <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/295/295128.png' }}
             width={100}
@@ -75,16 +81,15 @@ export function Auth({ children }: { children?: ReactNode }) {
           </Paragraph>
         </YStack>
 
-
-
+        {/* CỘT PHẢI (FORM) */}
         <YStack
-          $sm={{ width: '100%' }}
-          width={media.sm ? '100%' : '40%'}
+          width="40%"
           p="$7"
           justifyContent="center"
+          alignItems="center"
           bg="$color1"
         >
-          <View minHeight={350} justifyContent="flex-start">
+          <View width="100%">
             {children}
           </View>
         </YStack>

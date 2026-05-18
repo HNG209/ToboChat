@@ -19,7 +19,6 @@ export function ForgotPasswordForm() {
     setLoading(true)
     setError('')
     try {
-      // Amplify cần email để gửi code
       await resetPassword({ username: email.trim() })
       setStep('CONFIRM_RESET')
     } catch (err: any) {
@@ -37,7 +36,6 @@ export function ForgotPasswordForm() {
     setError('')
     try {
       await confirmResetPassword({
-        // QUAN TRỌNG: Phải có email ở đây
         username: email.trim(),
         confirmationCode: code.trim(),
         newPassword,
@@ -56,9 +54,9 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <YStack space="$4" width='100%' alignItems='center' flex={1} pt="$2" justifyContent="center">
+    <YStack space="$4" width='100%' pt="$2" justifyContent="center">
       <YStack space="$1" mb="$2" alignItems="center">
-        <H3 fontWeight="700" fontSize="$8" color="$color12" letterSpacing={-0.5}>
+        <H3 fontWeight="700" fontSize="$8" color="$color12" letterSpacing={-0.5} textAlign="center">
           {step === 'SEND_CODE' ? 'Quên mật khẩu' : 'Đặt lại mật khẩu'}
         </H3>
         <Paragraph color="$color10" textAlign="center">
@@ -75,7 +73,7 @@ export function ForgotPasswordForm() {
       ) : null}
 
       {step === 'SEND_CODE' ? (
-        < YStack space="$1" mb="$2" alignItems="center">
+        <YStack space="$3" width="100%">
           <Input
             height={50}
             width='100%'
@@ -85,16 +83,21 @@ export function ForgotPasswordForm() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          <Button mt="$4" height={50} justifyContent="center" alignItems="center" width='60%' onPress={handleSendCode} disabled={loading} themeInverse>
-            {loading ? <Spinner /> : <Text>Gửi mã xác nhận</Text>}
+          <Button
+            height={50}
+            width='100%'
+            backgroundColor="$blue10"
+            onPress={handleSendCode}
+            disabled={loading}
+          >
+            {loading ? <Spinner color="white" /> : <Text fontWeight="bold" color="$color1">Gửi mã xác nhận</Text>}
           </Button>
         </YStack>
       ) : (
-        <YStack space="$3" alignItems="center">
+        <YStack space="$3" width="100%">
           <Input
             height={50}
-            width="60%"
-            $sm={{ width: '40%' }}
+            width="100%"
             placeholder="Mã xác nhận (6 số)"
             value={code}
             onChangeText={setCode}
@@ -104,16 +107,15 @@ export function ForgotPasswordForm() {
           />
           <Input
             height={50}
-            width="60%"
-            $sm={{ width: '40%' }}
+            width="100%"
             placeholder="Mật khẩu mới"
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
             autoComplete="new-password"
           />
-          <Button height={50} width="60%" onPress={handleResetPassword} disabled={loading} themeInverse>
-            {loading ? <Spinner /> : <Text>Xác nhận đổi mật khẩu</Text>}
+          <Button height={50} width="100%" backgroundColor="$blue10" onPress={handleResetPassword} disabled={loading}>
+            {loading ? <Spinner color="white" /> : <Text fontWeight="bold" color="$color1">Xác nhận đổi mật khẩu</Text>}
           </Button>
 
           <Text
@@ -128,7 +130,7 @@ export function ForgotPasswordForm() {
       )}
 
       <Button
-        $sm={{ width: '40%' }}
+        width="100%"
         variant="outlined"
         onPress={() => {
           router.push('/login')
