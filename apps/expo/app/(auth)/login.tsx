@@ -1,5 +1,5 @@
-import { AuthScreen } from 'app/features/auth/AuthScreen'
+import { SignInForm } from 'app/features/auth/SignInForm'
 
 export default function Screen() {
-  return <AuthScreen />
+  return <SignInForm />
 }

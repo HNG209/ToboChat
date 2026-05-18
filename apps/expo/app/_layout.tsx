@@ -12,8 +12,10 @@ import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { registerGlobals } from '@livekit/react-native';
 
 Amplify.configure(amplifyConfig)
+registerGlobals();
 
 cognitoUserPoolsTokenProvider.setKeyValueStorage({
   setItem: AsyncStorage.setItem,

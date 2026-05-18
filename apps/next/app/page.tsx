@@ -1,5 +1,5 @@
 'use client'
 
-import { AuthScreen } from 'app/features/auth/AuthScreen'
+import { Auth } from 'app/features/auth/Auth'
 
-export default AuthScreen
+export default Auth

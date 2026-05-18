@@ -1,6 +1,6 @@
 'use client'
-import { AuthScreen } from 'app/features/auth/AuthScreen'
+import { SignInForm } from 'app/features/auth/SignInForm'
 
 export default function Page() {
-  return <AuthScreen></AuthScreen>
+  return <SignInForm />
 }
