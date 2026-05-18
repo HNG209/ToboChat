@@ -146,3 +146,7 @@ export interface IncomingCallDto {
   callerId: string
   room: RoomResponse
 }
+export interface MessageReactionResponse {
+  user: UserResponse
+  reactions: string[]
+}

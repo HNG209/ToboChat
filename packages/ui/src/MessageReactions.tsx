@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import { XStack, Text, View, Button, Popover } from 'tamagui'
 import { ThumbsUp } from '@tamagui/lucide-icons' // Dùng ThumbsUp cho giống ảnh
 import { Platform } from 'react-native'
-import { useDispatch } from 'react-redux'
-import { AppDispatch } from 'app/store'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, store } from 'app/store'
 import { chatApi, useAddReactionMutation } from 'app/services/chatApi'
 import { MessageResponse } from 'app/types/Response'
 import { ReactionDetailModal } from './ReactionDetailModal'
@@ -28,8 +28,53 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
   const [addReaction] = useAddReactionMutation()
   const shouldShow = message.messageType === 'USER'
   const [showDetail, setShowDetail] = useState(false)
+  const { data: cacheData } = chatApi.useGetMessageReactionsQuery({ roomId, messageId: message.id });
+  const currentUser = useSelector((state: any) => state.auth.user)
+  const currentUserId = currentUser.id
+
+
+
+
   const handleSelect = async (reactionType: string) => {
-    const currentCount = message.reactionsSummary?.[reactionType] || 0;
+    const reactionItems = cacheData?.items || [];
+    const myReactionData = reactionItems.find((item: any) => item.user.id === currentUserId);
+    const hasAlreadyReacted = myReactionData?.reactions?.includes(reactionType);
+    console.log("Reaction Items", reactionItems);
+    console.log("Reaction Data", myReactionData);
+    console.log("Already Reacted", hasAlreadyReacted);
+
+    if (hasAlreadyReacted) {
+      console.log('Bạn đã thả reaction này rồi!');
+      return;
+    }
+
+    // --- BỔ SUNG: CẬP NHẬT CACHE REACTION NGAY LẬP TỨC ĐỂ CHẶN SPAM CLICK TIẾP THEO ---
+    const patchReactionsResult = dispatch(
+      chatApi.util.updateQueryData('getMessageReactions', { roomId, messageId: message.id }, (draft) => {
+        if (!draft.items) draft.items = [];
+        const items = draft.items;
+
+        const myIndex = items.findIndex((item: any) => item.user.id === currentUserId);
+
+        if (myIndex > -1) {
+          if (!items[myIndex].reactions.includes(reactionType)) {
+            items[myIndex].reactions.push(reactionType);
+          }
+        } else {
+          items.push({
+            user: {
+              id: currentUser.id,
+              name: currentUser.name,
+              email: currentUser.email,
+              avatarUrl: currentUser.avatarUrl
+            },
+            reactions: [reactionType]
+          });
+        }
+      })
+    );
+
+    // --- GIỮ NGUYÊN TOÀN BỘ LOGIC MẪU BAN ĐẦU CỦA BẠN ---
     const patchResult = dispatch(
       chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
         const target = draft.items?.find((m) => m.id === message.id)
@@ -43,7 +88,9 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
     try {
       await addReaction({ roomId, messageId: message.id, reactionType }).unwrap()
     } catch (e) {
+      // Thất bại thì hoàn tác cả số đếm lẫn trạng thái cache đã lưu
       patchResult.undo()
+      patchReactionsResult.undo()
     }
   }
 
