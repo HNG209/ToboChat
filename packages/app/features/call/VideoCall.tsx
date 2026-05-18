@@ -1,10 +1,10 @@
 "use client";
 
-import { YStack, Button } from 'tamagui';
+import { YStack } from 'tamagui';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
 
-export function VideoCall({ token, onLeave }: { token: string; onLeave: () => void }) {
+export function VideoCall({ token, isVideoCall = true, onLeave }: { token: string; isVideoCall?: boolean; onLeave: () => void }) {
   const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 
   return (
@@ -13,7 +13,7 @@ export function VideoCall({ token, onLeave }: { token: string; onLeave: () => vo
         serverUrl={livekitUrl}
         token={token}
         connect={true}
-        video={true}
+        video={isVideoCall}
         audio={true}
         onDisconnected={onLeave}
         data-lk-theme="default"

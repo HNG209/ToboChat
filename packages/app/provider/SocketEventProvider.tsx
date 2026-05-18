@@ -35,6 +35,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   const activeRoomId = useSelector((state: RootState) => state.chat.activeRoomId)
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [callToken, setCallToken] = useState<string | null>(null)
+  const [isVideoCall, setIsVideoCall] = useState<boolean>(true)
   const [incomingCall, setIncomingCall] = useState<IncomingCallDto | null>(null)
   const [currentCallRoomId, setCurrentCallRoomId] = useState<string | null>(null)
 
@@ -58,10 +59,12 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     const handleCallStarted = (data: CallResponse) => {
       setCallToken(data.token);
       setCurrentCallRoomId(data.roomId);
+      setIsVideoCall(!!data.isVideoCall);
     };
 
     const handleIncomingCall = (data: IncomingCallDto) => {
       setIncomingCall(data);
+      setIsVideoCall(!!data.isVideoCall);
       dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.room.id }, () => true));
     };
 
@@ -89,6 +92,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     const handleCallJoined = (data: CallResponse) => {
       setCallToken(data.token);
       setCurrentCallRoomId(data.roomId);
+      setIsVideoCall(!!data.isVideoCall);
       // Ghi chú: Vì tham gia trễ nên không có incomingCall (không có popup),
       // chỉ cần set token là component <VideoCall /> sẽ tự động hiện lên!
     };
@@ -279,6 +283,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     return (
       <VideoCall
         token={callToken}
+        isVideoCall={isVideoCall}
         onLeave={() => {
           const socket = getSocket();
           // Nếu đang gọi mà tắt máy, gửi sự kiện báo cho server biết để server báo cho những người chưa bắt máy
@@ -311,9 +316,17 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
                 </Text>
               </YStack>
             )}
-            <Text fontSize="$4" textAlign="center" color="$color11">
-              Cuộc gọi đến
-            </Text>
+            {
+              isVideoCall ? (
+                <Text fontSize="$4" textAlign="center" color="$color11">
+                  Cuộc gọi video đến
+                </Text>
+              ) : (
+                <Text fontSize="$4" textAlign="center" color="$color11">
+                  Cuộc gọi thoại đến
+                </Text>
+              )
+            }
             <XStack space="$8" justifyContent="center" alignItems="center">
               <YStack alignItems="center" space="$2">
                 <Button

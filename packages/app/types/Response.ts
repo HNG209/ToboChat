@@ -139,12 +139,14 @@ export interface GroupPendingRequestResponse {
 export interface CallResponse {
   token: string
   roomId: string
+  isVideoCall?: boolean
 }
 
 export interface IncomingCallDto {
   token: string
   callerId: string
   room: RoomResponse
+  isVideoCall?: boolean
 }
 export interface MessageReactionResponse {
   user: UserResponse

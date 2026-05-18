@@ -11,20 +11,26 @@ type Props = {
   insets: { top: number; bottom: number; left: number; right: number } | undefined,
   linkProps: React.ComponentProps<typeof Button>
   onInfoPress?: () => void
-  onCallPress?: () => void
 }
 
-export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, linkProps, onInfoPress, onCallPress }: Props) => {
+export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, linkProps, onInfoPress }: Props) => {
   const isGroup = roomData?.roomType === 'GROUP';
   const { data: callStatusData } = useGetCallStatusQuery(
     { roomId },
     { skip: !roomId, refetchOnMountOrArgChange: true }
   );
 
-  const handleJoinCall = () => {
+  const handleStartCall = (isVideoCall?: boolean) => {
     const socket = getSocket();
     if (socket) {
-      socket.emit('join_ongoing_call', { roomId: roomId });
+      socket.emit('request_call', { roomId: roomId, isVideoCall: isVideoCall ?? true });
+    }
+  };
+
+  const handleJoinCall = (isVideoCall?: boolean) => {
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('join_ongoing_call', { roomId: roomId, isVideoCall: isVideoCall ?? true });
     }
   }
 
@@ -74,14 +80,14 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
             borderRadius={20}
             fontWeight="bold"
             paddingHorizontal={16}
-            onPress={handleJoinCall}
+            onPress={() => handleJoinCall(false)}
           >
             Tham gia cuộc gọi
           </Button>
         ) : (
           <>
-            <Button size="$5" circular chromeless icon={Phone} onPress={onCallPress} />
-            <Button size="$5" circular chromeless icon={Video} onPress={onCallPress} />
+            <Button size="$5" circular chromeless icon={Phone} onPress={() => handleStartCall(false)} />
+            <Button size="$5" circular chromeless icon={Video} onPress={() => handleStartCall(true)} />
           </>
         )}
         <Button size="$5" circular chromeless icon={Info} onPress={onInfoPress} />

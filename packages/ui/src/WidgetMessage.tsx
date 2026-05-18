@@ -42,6 +42,7 @@ function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; 
   const duration = metadata.duration
   const isMissed = status === 'MISSED'
   const isGroupCall = metadata.isGroupCall === 'true'
+  const isVideoCall = metadata.isVideoCall === 'true'
 
   // Định nghĩa style riêng cho nhóm
   const borderColor = isMissed ? '$red5' : (isGroupCall ? '$color6' : '$color4')
@@ -49,10 +50,15 @@ function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; 
     ? <BarChart2 size={20} color={isMissed ? '$red10' : '$purple10'} />
     : (isMissed
       ? <PhoneMissed size={20} color="$red10" />
-      : <Video size={20} color="$green10" />)
+      : (isVideoCall
+        ? <Video size={20} color="$green10" />
+        : <PhoneCall size={20} color="$green10" />)
+    );
+
   const title = isGroupCall
-    ? (isMissed ? 'Cuộc gọi nhóm nhỡ' : 'Cuộc gọi nhóm video')
-    : (isMissed ? 'Cuộc gọi nhỡ' : 'Cuộc gọi video')
+    ? (isMissed ? 'Cuộc gọi nhóm nhỡ' : (isVideoCall ? 'Cuộc gọi nhóm video' : 'Cuộc gọi nhóm thoại'))
+    : (isMissed ? 'Cuộc gọi nhỡ' : (isVideoCall ? 'Cuộc gọi video' : 'Cuộc gọi thoại'));
+
   const titleColor = isGroupCall
     ? (isMissed ? '$red10' : '$purple10')
     : (isMissed ? '$red10' : '$color12')

@@ -271,13 +271,6 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [forwardSourceMessages, setForwardSourceMessages] = useState<MessageResponse[]>([])
 
-  const handleStartCall = () => {
-    const socket = getSocket();
-    if (socket) {
-      socket.emit('request_call', { roomId: roomId });
-    }
-  };
-
   // Tự động cuộn tới tin nhắn reply sau khi fetch xong trang chứa nó
   useEffect(() => {
     if (!replyCursorRef.current) return // chỉ scroll khi có cursor reply, tránh scroll khi load more
@@ -573,9 +566,6 @@ export function ChatScreen({ roomId, insets }: Props) {
               roomId={roomId}
               roomData={roomData}
               onInfoPress={() => setShowInfo(!showInfo)}
-              onCallPress={() => {
-                handleStartCall()
-              }}
               isRoomLoading={isRoomLoading}
               insets={insets}
               linkProps={linkProps}

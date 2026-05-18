@@ -10,8 +10,10 @@ import {
   useRoomContext
 } from '@livekit/react-native';
 import { Track } from 'livekit-client';
+
 const LIVEKIT_URL = process.env.EXPO_PUBLIC_LIVEKIT_URL;
-export function VideoCall({ token, onLeave }: { token: string; onLeave: () => void }) {
+
+export function VideoCall({ token, isVideoCall = true, onLeave }: { token: string; isVideoCall?: boolean; onLeave: () => void }) {
   React.useEffect(() => {
     const start = async () => {
       await AudioSession.startAudioSession();
@@ -29,7 +31,7 @@ export function VideoCall({ token, onLeave }: { token: string; onLeave: () => vo
         token={token}
         connect={true}
         audio={true}
-        video={true}
+        video={isVideoCall}
         onDisconnected={onLeave}
       >
         <RoomContent />
@@ -140,7 +142,6 @@ function GroupLayout({ tracks }: { tracks: any[] }) {
   );
 }
 
-
 function ParticipantItem({ participant, tracks, width, height }: any) {
   const pTrack = tracks.find((t) => t.participant.sid === participant.sid);
   const isMicOn = participant.isMicrophoneEnabled;
@@ -187,7 +188,6 @@ function ParticipantItem({ participant, tracks, width, height }: any) {
   );
 }
 
-
 function chunkArray(array: any[], size: number) {
   const result: any[][] = [];
   for (let i = 0; i < array.length; i += size) {
@@ -199,7 +199,6 @@ function chunkArray(array: any[], size: number) {
 function OneOnOneLayout({ tracks }: { tracks: any[] }) {
   const { localParticipant, isCameraEnabled } = useLocalParticipant();
   const cameraPublication = localParticipant.getTrackPublication(Track.Source.Camera);
-  const localTrack = tracks.find((t) => t.participant.isLocal);
   const remoteTrack = tracks.find((t) => !t.participant.isLocal);
   const isRemoteVideoOn = remoteTrack && remoteTrack.publication?.track && !remoteTrack.publication.isMuted;
   return (
@@ -245,7 +244,6 @@ function OneOnOneLayout({ tracks }: { tracks: any[] }) {
     </YStack>
   );
 }
-
 
 function CallControls({ onLeave }: { onLeave: () => void }) {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
