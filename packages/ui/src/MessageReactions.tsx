@@ -28,68 +28,43 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
   const [addReaction] = useAddReactionMutation()
   const shouldShow = message.messageType === 'USER'
   const [showDetail, setShowDetail] = useState(false)
-  const { data: cacheData } = chatApi.useGetMessageReactionsQuery({ roomId, messageId: message.id });
   const currentUser = useSelector((state: any) => state.auth.user)
   const currentUserId = currentUser?.id
 
   const handleSelect = async (reactionType: string) => {
-    const reactionItems = cacheData?.items || [];
-    const myReactionData = reactionItems.find((item: any) => item.user.id === currentUserId);
-    const hasAlreadyReacted = myReactionData?.reactions?.includes(reactionType);
-    console.log("Reaction Items", reactionItems);
-    console.log("Reaction Data", myReactionData);
-    console.log("Already Reacted", hasAlreadyReacted);
+    // 1. Check dữ liệu gốc ban đầu, nếu đã có từ API rồi thì chặn luôn
+    const myReactionData = message.myReactions || [];
+    const hasAlreadyReacted = myReactionData.includes(reactionType);
 
     if (hasAlreadyReacted) {
       console.log('Bạn đã thả reaction này rồi!');
       return;
     }
 
-    // --- BỔ SUNG: CẬP NHẬT CACHE REACTION NGAY LẬP TỨC ĐỂ CHẶN SPAM CLICK TIẾP THEO ---
-    const patchReactionsResult = dispatch(
-      chatApi.util.updateQueryData('getMessageReactions', { roomId, messageId: message.id }, (draft) => {
-        if (!draft.items) draft.items = [];
-        const items = draft.items;
+    const patchResult = dispatch(
+      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+        const target = draft.items?.find((m) => m.id === message.id);
 
-        const myIndex = items.findIndex((item: any) => item.user.id === currentUserId);
+        if (target) {
+          if (!target.myReactions) target.myReactions = [];
+          if (!target.reactionsSummary) target.reactionsSummary = {};
 
-        if (myIndex > -1) {
-          if (!items[myIndex].reactions.includes(reactionType)) {
-            items[myIndex].reactions.push(reactionType);
+          if (target.myReactions.includes(reactionType)) {
+          } else {
+            target.myReactions.push(reactionType);
+
+            target.reactionsSummary[reactionType] = (target.reactionsSummary[reactionType] || 0) + 1;
           }
-        } else {
-          items.push({
-            user: {
-              id: currentUser?.id,
-              name: currentUser?.name,
-              email: currentUser?.email,
-              avatarUrl: currentUser?.avatarUrl
-            },
-            reactions: [reactionType]
-          });
         }
       })
     );
 
-    // --- GIỮ NGUYÊN TOÀN BỘ LOGIC MẪU BAN ĐẦU CỦA BẠN ---
-    const patchResult = dispatch(
-      chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
-        const target = draft.items?.find((m) => m.id === message.id)
-        if (target) {
-          if (!target.reactionsSummary) target.reactionsSummary = {}
-          target.reactionsSummary[reactionType] = (target.reactionsSummary[reactionType] || 0) + 1
-        }
-      })
-    )
-
     try {
-      await addReaction({ roomId, messageId: message.id, reactionType }).unwrap()
+      await addReaction({ roomId, messageId: message.id, reactionType }).unwrap();
     } catch (e) {
-      // Thất bại thì hoàn tác cả số đếm lẫn trạng thái cache đã lưu
-      patchResult.undo()
-      patchReactionsResult.undo()
+      patchResult.undo();
     }
-  }
+  };
 
   const EmojiList = (
     <XStack space="$2" p="$2" bg="$background" borderRadius="$10">
