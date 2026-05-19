@@ -7,7 +7,7 @@ import { VideoCall } from "app/features/call/VideoCall"
 import { Check, X as XIcon } from "@tamagui/lucide-icons"
 import { CallResponse, IncomingCallDto, MessageResponse, RoomResponse } from "app/types/Response"
 import { CallRequest } from "app/types/Request"
-import { callApi } from "app/services/callApi"
+import { callApi, CallStatus } from "app/services/callApi"
 import { roomApi } from "app/services/roomApi"
 import { userApi } from "app/services/userApi"
 import { RoomStatus } from "app/types/Enums"
@@ -65,7 +65,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     const handleIncomingCall = (data: IncomingCallDto) => {
       setIncomingCall(data);
       setIsVideoCall(!!data.isVideoCall);
-      dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.room.id }, () => true));
     };
 
     const handleCallCancelled = (data: CallRequest) => {
@@ -86,7 +85,22 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
       // Reset lại ID phòng đang gọi
       setCurrentCallRoomId((prevId) => prevId === data.roomId ? null : prevId);
-      dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => false));
+      // dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => false));
+    };
+
+    const handleCallAccepted = (data: CallRequest) => {
+      // Tắt popup cuộc gọi đến nếu có
+      setIncomingCall((prev) => {
+        if (prev && prev.room.id === data.roomId) {
+          return null;
+        }
+        return prev;
+      });
+      dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => 'IN_CALL' as CallStatus));
+    };
+
+    const handleCallStatusUpdated = (data: { roomId: string, status: CallStatus }) => {
+      dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => data.status));
     };
 
     const handleCallJoined = (data: CallResponse) => {
@@ -228,6 +242,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     };
 
     socket.on('call_started', handleCallStarted);
+    socket.on('call_accepted', handleCallAccepted);
+    socket.on('call_status_updated', handleCallStatusUpdated);
     socket.on('call_joined', handleCallJoined);
     socket.on('call_error', handleCallError);
     socket.on('incoming_call', handleIncomingCall);
@@ -240,6 +256,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     socket.on('pending_inbox_updated', handlePendingInboxUpdated);
     return () => {
       socket.off('call_started', handleCallStarted);
+      socket.off('call_accepted', handleCallAccepted);
+      socket.off('call_status_updated', handleCallStatusUpdated);
       socket.off('call_joined', handleCallJoined);
       socket.off('call_error', handleCallError);
       socket.off('incoming_call', handleIncomingCall);
