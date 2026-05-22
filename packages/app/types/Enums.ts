@@ -14,3 +14,4 @@ export type SystemAction =
   | 'MEMBER_REMOVED'
   | 'GROUP_INVITE_ACCEPTED'
   | 'FRIEND_ACCEPTED'
+  | 'MEMBER_ROLE_UPDATED'

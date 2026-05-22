@@ -29,6 +29,19 @@ export const formatPreviewMessage = (message: MessageResponse | null) => {
   return content
 }
 
+const buildRoleName = (role: string) => {
+  switch (role) {
+    case 'ADMIN':
+      return 'Quản trị viên'
+    case 'VICE_ADMIN':
+      return 'Phó quản trị viên'
+    case 'MEMBER':
+      return 'Thành viên'
+    default:
+      return 'Vai trò không xác định'
+  }
+}
+
 export const formatSystemMessage = (msg: MessageResponse, selfUserId?: string) => {
   const actorName = msg.user?.name || 'Ai đó'
   const meta = msg.metadata || {}
@@ -50,6 +63,8 @@ export const formatSystemMessage = (msg: MessageResponse, selfUserId?: string) =
       return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã chấp nhận lời mời tham gia nhóm.`
     case 'FRIEND_ACCEPTED':
       return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã chấp nhận lời mời kết bạn.`
+    case 'MEMBER_ROLE_UPDATED':
+      return `${msg.user?.id === selfUserId ? 'Bạn' : `${actorName}`} đã cập nhật vai trò của ${meta?.updatedMemberId === selfUserId ? 'bạn' : meta?.updatedMemberName || '1 thành viên'} trong nhóm thành ${buildRoleName(meta?.newRole) || 'vai trò mới'}.`
     default:
       // Fallback nếu không nhận diện được action
       return msg.content || `${actorName} đã cập nhật nhóm.`

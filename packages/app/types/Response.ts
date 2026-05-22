@@ -66,6 +66,9 @@ export interface MemberPermissionsResponse {
   canUpdateMetadata: boolean
   canDisbandGroup: boolean
   canApproveMember: boolean
+  canUpdateMemberRole: boolean
+  canRemoveMember: boolean
+  canGetPendingRequests: boolean
 }
 
 export interface FriendRequestResponse {
