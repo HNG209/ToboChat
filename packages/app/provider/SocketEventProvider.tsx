@@ -175,8 +175,13 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
       dispatch(
         roomApi.util.updateQueryData('getRoomMetadata', { roomId: event.roomId }, (draft) => {
-          console.log("Received room update event for room", event.roomId, "with payload", event.payload)
           if (!draft) return
+          if (event.payload.newRoomName !== undefined) {
+            draft.roomName = event.payload.newRoomName
+          }
+          if (event.payload.newRoomAvatar !== undefined) {
+            draft.avatarUrl = event.payload.newRoomAvatar
+          }
           if (event.payload.allowAddMember !== undefined) {
             draft.allowAddMember = event.payload.allowAddMember
           }
