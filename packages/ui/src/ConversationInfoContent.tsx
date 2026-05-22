@@ -69,11 +69,13 @@ export const ConversationInfoContent = ({
   const router = useRouter();
   const [checkLeave, { isLoading: isChecking }] = useCheckLeaveMutation()
   const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
-  const { data: myInfo } = useGetMyInfoQuery({ roomId });
   const [openEditAvatar, setOpenEditAvatar] = useState(false)
   const [updateRoomName] = useUpdateRoomNameMutation()
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(roomData?.roomName || '')
+
+  const { data: myInfo } = useGetMyInfoQuery({ roomId });
+
   const withCacheBuster = (url?: string) => {
     if (!url || !avatarCacheKey) return url
     return `${url}${url.includes('?') ? '&' : '?'}v=${avatarCacheKey}`
@@ -288,6 +290,9 @@ export const ConversationInfoContent = ({
               borderWidth={1}
               borderColor="$borderColor"
               aria-label="Chỉnh sửa avatar"
+              disabled={!myInfo?.permissions?.canUpdateMetadata}
+              opacity={!myInfo?.permissions?.canUpdateMetadata ? 0.4 : 1}
+              pointerEvents={!myInfo?.permissions?.canUpdateMetadata ? 'none' : 'auto'}
               onPress={() => {
                 setOpenEditAvatar(true)
               }}
@@ -344,6 +349,9 @@ export const ConversationInfoContent = ({
                       icon={Edit3}
                       hoverStyle={{ scale: 1.05 }}
                       pressStyle={{ scale: 0.95 }}
+                      disabled={!myInfo?.permissions?.canUpdateMetadata}
+                      opacity={!myInfo?.permissions?.canUpdateMetadata ? 0.4 : 1}
+                      pointerEvents={!myInfo?.permissions?.canUpdateMetadata ? 'none' : 'auto'}
                       onPress={() => {
                         setNameInput(roomData?.roomName || '')
                         setIsEditingName(true)
@@ -428,7 +436,7 @@ export const ConversationInfoContent = ({
           {/* KHO FILE */}
           <YStack p="$3" space="$3">
             <Text fontWeight="700" fontSize="$4" px="$1">File đã gửi</Text>
-            <XStack p="$3"  borderRadius="$4" alignItems="center" space="$3">
+            <XStack p="$3" borderRadius="$4" alignItems="center" space="$3">
               <Circle size={36} backgroundColor="$orange3">
                 <FileText size={18} color="$orange10" />
               </Circle>

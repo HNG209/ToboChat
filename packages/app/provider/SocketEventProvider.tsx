@@ -5,7 +5,7 @@ import { Dialog, Button, Text, XStack, YStack, Avatar } from "@my/ui"
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
 import { Check, X as XIcon } from "@tamagui/lucide-icons"
-import { CallResponse, IncomingCallDto, MessageResponse, RoomResponse } from "app/types/Response"
+import { CallResponse, IncomingCallDto, MessageResponse, RoomMemberResponse, RoomResponse } from "app/types/Response"
 import { CallRequest } from "app/types/Request"
 import { callApi, CallStatus } from "app/services/callApi"
 import { roomApi } from "app/services/roomApi"
@@ -162,13 +162,32 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
           if (roomIndex !== undefined && roomIndex !== -1) {
             const room = draft.items[roomIndex]
 
-            if (event.newRoomName) {
-              room.roomName = event.newRoomName
+            if (event.payload.newRoomName) {
+              room.roomName = event.payload.newRoomName
             }
 
-            if (event.newRoomAvatar) {
-              room.avatarUrl = event.newRoomAvatar
+            if (event.payload.newRoomAvatar) {
+              room.avatarUrl = event.payload.newRoomAvatar
             }
+          }
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId: event.roomId }, (draft) => {
+          console.log("Received room update event for room", event.roomId, "with payload", event.payload)
+          if (!draft) return
+          if (event.payload.allowAddMember !== undefined) {
+            draft.allowAddMember = event.payload.allowAddMember
+          }
+          if (event.payload.allowSendMessage !== undefined) {
+            draft.allowSendMessage = event.payload.allowSendMessage
+          }
+          if (event.payload.allowUpdateMetadata !== undefined) {
+            draft.allowUpdateMetadata = event.payload.allowUpdateMetadata
+          }
+          if (event.payload.approveMember !== undefined) {
+            draft.approveMember = event.payload.approveMember
           }
         })
       );
@@ -237,6 +256,12 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       );
     }
 
+    const handleMemberUpdated = (data: RoomMemberResponse) => {
+      dispatch(
+        roomApi.util.updateQueryData('getMyInfo', { roomId: data.roomId }, () => { return data })
+      );
+    }
+
     const handleCallError = (message: string) => {
       console.log("Lỗi tham gia gọi:", message);
     };
@@ -251,6 +276,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     socket.on('unread_updated', handleUnreadUpdate);
     socket.on('inbox_updated', handleInboxUpdated);
     socket.on('room_updated', handleRoomUpdated);
+    socket.on('member_updated', handleMemberUpdated);
     socket.on('self_removed', handleSelfRemoved);
     socket.on('new_room', handleNewRoom);
     socket.on('pending_inbox_updated', handlePendingInboxUpdated);
@@ -265,6 +291,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       socket.off('unread_updated', handleUnreadUpdate);
       socket.off('inbox_updated', handleInboxUpdated);
       socket.off('room_updated', handleRoomUpdated);
+      socket.off('member_updated', handleMemberUpdated);
       socket.off('self_removed', handleSelfRemoved);
       socket.off('new_room', handleNewRoom);
       socket.off('pending_inbox_updated', handlePendingInboxUpdated);
