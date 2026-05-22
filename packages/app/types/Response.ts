@@ -104,7 +104,7 @@ export interface MessageResponse {
   messageStatus?: MessageStatus
   attachments?: Attachment[]
   reactionsSummary: Record<string, number>;
-
+  myReactions: string[]
   // Tin nhắn hệ thống
   messageType: MessageType
   action?: SystemAction
