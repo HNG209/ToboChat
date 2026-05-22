@@ -71,19 +71,49 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
         </XStack>
       </XStack>
       <XStack space="$1" justifyContent="center" alignItems="center">
-        {callStatusData && isGroup ? (
-          <Button
-            size="$3"
-            icon={Phone}
-            backgroundColor="$green10"
-            color="white"
-            borderRadius={20}
-            fontWeight="bold"
-            paddingHorizontal={16}
-            onPress={() => handleJoinCall(false)}
-          >
-            Tham gia cuộc gọi
-          </Button>
+        {callStatusData === 'IN_CALL' ? (
+          <XStack alignItems="center" space="$2">
+            <Phone color="#22c55e" size={16} style={{
+              animation: 'blinker 1s linear infinite'
+            }} />
+            <Text
+              fontSize="$2"
+              color="$green10"
+              fontWeight="600"
+              style={{
+                animation: 'blinker 1s linear infinite'
+              }}
+            >
+              Đang trong cuộc gọi
+            </Text>
+            <style>
+              {`
+                @keyframes blinker {
+                  50% { opacity: 0.4; }
+                }
+              `}
+            </style>
+          </XStack>
+        ) : isGroup ? (
+          callStatusData === 'ACTIVE' ? (
+            <Button
+              size="$3"
+              icon={Phone}
+              backgroundColor="$green10"
+              color="white"
+              borderRadius={20}
+              fontWeight="bold"
+              paddingHorizontal={16}
+              onPress={() => handleJoinCall(false)}
+            >
+              Tham gia cuộc gọi
+            </Button>
+          ) : (
+            <>
+              <Button size="$5" circular chromeless icon={Phone} onPress={() => handleStartCall(false)} />
+              <Button size="$5" circular chromeless icon={Video} onPress={() => handleStartCall(true)} />
+            </>
+          )
         ) : (
           <>
             <Button size="$5" circular chromeless icon={Phone} onPress={() => handleStartCall(false)} />
