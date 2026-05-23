@@ -89,26 +89,26 @@ export default function ChatInbox() {
     const socket = getSocket()
     if (!socket) return
 
-    const handleMessageRevoked = (payload: any) => {
-      const revokedMsgId = payload.messageId
-      const targetRoomId = payload.roomId
-      dispatch(
-        roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-          if (!draft?.items) return
-          const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
-          if (roomIndex !== -1) {
-            const msg = draft.items[roomIndex].latestMessage
-            if (msg && msg.id === revokedMsgId) {
-              msg.messageStatus = 'REVOKED'
-            }
+    // const handleMessageRevoked = (payload: any) => {
+    //   const revokedMsgId = payload.messageId
+    //   const targetRoomId = payload.roomId
+    //   dispatch(
+    //     roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+    //       if (!draft?.items) return
+    //       const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
+    //       if (roomIndex !== -1) {
+    //         const msg = draft.items[roomIndex].latestMessage
+    //         if (msg && msg.id === revokedMsgId) {
+    //           msg.messageStatus = 'REVOKED'
+    //         }
 
-            // format lại nội dung nếu tin nhắn bị thu hồi
-            msg.content = formatPreviewMessage(msg)
-            msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
-          }
-        })
-      )
-    }
+    //         // format lại nội dung nếu tin nhắn bị thu hồi
+    //         msg.content = formatPreviewMessage(msg)
+    //         msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
+    //       }
+    //     })
+    //   )
+    // }
 
     const handleGroupDisband = (roomId: string) => {
       dispatch(
@@ -136,11 +136,11 @@ export default function ChatInbox() {
       );
     }
 
-    socket.on('message_revoked', handleMessageRevoked)
+    // socket.on('message_revoked', handleMessageRevoked)
     socket.on('room_disband', handleGroupDisband)
     socket.on('new_member', handleNewMember)
     return () => {
-      socket.off('message_revoked', handleMessageRevoked)
+      // socket.off('message_revoked', handleMessageRevoked)
       socket.off('room_disband', handleGroupDisband)
       socket.off('new_member', handleNewMember)
     }

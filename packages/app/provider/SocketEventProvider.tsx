@@ -5,7 +5,7 @@ import { Dialog, Button, Text, XStack, YStack, Avatar } from "@my/ui"
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
 import { Check, X as XIcon } from "@tamagui/lucide-icons"
-import { CallResponse, IncomingCallDto, MessageResponse, RoomMemberResponse, RoomResponse } from "app/types/Response"
+import { CallResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse } from "app/types/Response"
 import { CallRequest } from "app/types/Request"
 import { callApi, CallStatus } from "app/services/callApi"
 import { roomApi } from "app/services/roomApi"
@@ -15,7 +15,7 @@ import { RoomUpdateEvent } from "app/types/Events"
 import { useRouter } from "solito/navigation"
 
 type InboxUpdatedPayload = {
-  message: MessageResponse
+  message: LatestMessage
   inboxStatus: RoomStatus
 }
 

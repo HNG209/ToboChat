@@ -83,7 +83,7 @@ export interface RoomResponse {
   roomName: string
   avatarUrl?: string
   roomType: RoomType
-  latestMessage: MessageResponse
+  latestMessage?: LatestMessage
   createdAt: string
 
   allowAddMember: boolean
@@ -94,6 +94,20 @@ export interface RoomResponse {
   memberCount: number
   pendingCount: number
   unreadMessages: number
+}
+
+export interface LatestMessage {
+  roomId: string
+  userId: string
+  messageId: string
+  content: string
+  fileSize: number // số lượng file trong tin nhắn
+  mediaSize: number // số lượng ảnh/video
+  createdAt: string
+  messageType: MessageType
+  messageStatus: MessageStatus
+  metadata: Record<string, string>
+  action: SystemAction
 }
 
 export interface MessageResponse {

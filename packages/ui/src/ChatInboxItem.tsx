@@ -1,10 +1,10 @@
 import { Avatar, ListItem, Text, View, YStack, Circle, XStack } from '@my/ui'
-import { MessageResponse } from 'app/types/Response'
+import { LatestMessage, MessageResponse } from 'app/types/Response'
 import { Pin } from '@tamagui/lucide-icons'
 
 type Props = {
   name: string
-  latestMessage: MessageResponse
+  latestMessage?: LatestMessage
   time?: string
   avatarUrl?: string
   pinned?: boolean
