@@ -109,6 +109,8 @@ export const ChatScreenFooter = ({
         attachments: messageAttachments,
         user: myProfile,
         messageType: 'USER',
+        metadata: {},
+        myReactions: [],
       }
 
       const patchResult = dispatch(
@@ -133,17 +135,17 @@ export const ChatScreenFooter = ({
         if (messageContent.trim().length > 0 && currentReplyTo)
           setReplyTo(null)
 
-        dispatch(
-          roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-            if (!draft?.items) return
-            const roomIndex = draft.items.findIndex((room) => room.id === roomId)
-            if (roomIndex !== -1) {
-              draft.items[roomIndex].latestMessage = result
-              const [updatedRoom] = draft.items.splice(roomIndex, 1)
-              draft.items.unshift(updatedRoom)
-            }
-          })
-        )
+        // dispatch(
+        //   roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
+        //     if (!draft?.items) return
+        //     const roomIndex = draft.items.findIndex((room) => room.id === roomId)
+        //     if (roomIndex !== -1) {
+        //       draft.items[roomIndex].latestMessage = result
+        //       const [updatedRoom] = draft.items.splice(roomIndex, 1)
+        //       draft.items.unshift(updatedRoom)
+        //     }
+        //   })
+        // )
 
         dispatch(
           chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {

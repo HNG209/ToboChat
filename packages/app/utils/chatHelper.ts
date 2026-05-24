@@ -12,15 +12,50 @@ export const formatLatestMessage = (message?: LatestMessage) => {
   // Tin nhắn đã thu hồi
   if (message.messageStatus === 'REVOKED') return 'Tin nhắn đã được thu hồi'
 
-  // Tin nhắn hệ thống
-  if (message.messageType === 'SYSTEM') return 'Tin nhắn hệ thống'
-
-  // Widget gọi/ gọi nhỡ
-  if (message.messageType === 'WIDGET') {
-    if (message.metadata?.callType === 'missed') {
-      return 'Cuộc gọi nhỡ'
+  // Tin nhắn hệ thống, render tối giản cho từng action
+  if (message.messageType === 'SYSTEM') {
+    const meta = message.metadata || {}
+    switch (message.action) {
+      case 'ROOM_CREATED':
+        return 'Nhóm đã được tạo'
+      case 'ROOM_NAME_CHANGED':
+        return `Nhóm đã được đổi tên thành "${meta.newRoomName || 'tên mới'}"`
+      case 'ROOM_AVATAR_CHANGED':
+        return 'Ảnh đại diện nhóm đã được cập nhật'
+      case 'MEMBER_APPROVED':
+        return `${meta?.approvedMemberName || 'Thành viên'} đã được phê duyệt`
+      case 'MEMBER_ADDED':
+        return `${meta?.newMemberName || 'Thành viên'} đã được thêm vào nhóm`
+      case 'MEMBER_LEFT':
+        return 'Thành viên đã rời nhóm'
+      case 'MEMBER_REMOVED':
+        return `${meta?.removedMemberName || 'Thành viên'} đã bị xóa khỏi nhóm`
+      case 'GROUP_INVITE_ACCEPTED':
+        return 'Lời mời tham gia nhóm đã được chấp nhận'
+      case 'FRIEND_ACCEPTED':
+        return 'Lời mời kết bạn đã được chấp nhận'
+      case 'MEMBER_ROLE_UPDATED':
+        return 'Vai trò thành viên trong nhóm đã được cập nhật'
+      default:
+        return message.content || 'Tin nhắn hệ thống'
     }
-    return 'Cuộc gọi'
+  }
+
+  // Widget (hiện tại chỉ có cuộc gọi, sau này có thể thêm loại widget khác)
+  if (message.messageType === 'WIDGET') {
+    const widgetType = message.metadata?.widgetType
+    if (widgetType === 'CALL') {
+      const status = message.metadata?.status
+      const isGroupCall = message.metadata?.isGroupCall === 'true'
+      const isVideoCall = message.metadata?.isVideoCall === 'true'
+      if (isGroupCall) {
+        if (status === 'MISSED') return 'Cuộc gọi nhóm nhỡ'
+        return isVideoCall ? 'Cuộc gọi nhóm video' : 'Cuộc gọi nhóm thoại'
+      } else {
+        if (status === 'MISSED') return 'Cuộc gọi nhỡ'
+        return isVideoCall ? 'Cuộc gọi video' : 'Cuộc gọi thoại'
+      }
+    }
   }
 
   // Chỉ có file (fileSize > 0, mediaSize = 0, không content)
@@ -46,7 +81,7 @@ export const formatLatestMessage = (message?: LatestMessage) => {
     message.mediaSize > 0
   ) {
     const shortContent = message.content.length > 15 ? message.content.slice(0, 15) + '...' : message.content
-    return `🖼️ ${shortContent}`
+    return `[Hình ảnh] ${shortContent}`
   }
 
   // Chỉ có văn bản
