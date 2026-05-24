@@ -1,6 +1,7 @@
 import { Avatar, ListItem, Text, View, YStack, Circle, XStack } from '@my/ui'
 import { LatestMessage, MessageResponse } from 'app/types/Response'
 import { Pin } from '@tamagui/lucide-icons'
+import { formatLatestMessage } from 'app/utils/chatHelper'
 
 type Props = {
   name: string
@@ -114,7 +115,7 @@ export const ChatInboxItem = ({
             fontWeight={unreadCount > 0 && !selected ? '700' : '400'}
             opacity={latestMessage?.content ? 1 : 0.7}
           >
-            {latestMessage?.content || 'Chưa có tin nhắn'}
+            {formatLatestMessage(latestMessage)}
           </Text>
         </YStack>
         <YStack alignItems="flex-end" minWidth={60} gap="$2">

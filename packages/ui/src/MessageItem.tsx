@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux'
 import { AppDispatch, store } from 'app/store'
 import { roomApi } from 'app/services/roomApi'
 import { RoomStatus } from './ChatInbox'
-import { formatPreviewMessage, formatSystemMessage } from 'app/utils/chatHelper';
+import { formatSystemMessage } from 'app/utils/chatHelper';
 import { WidgetMessage } from './WidgetMessage'
 
 interface Props {
@@ -176,23 +176,6 @@ export function MessageItem({
       })
     )
 
-    dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        if (!draft?.items) return
-        const roomIndex = draft.items.findIndex((r) => r.id === roomId)
-        if (roomIndex !== -1) {
-          const msg = draft.items[roomIndex].latestMessage
-          if (msg && msg.id === message.id) {
-            msg.messageStatus = 'REVOKED'
-          }
-
-          // format lại nội dung nếu tin nhắn bị thu hồi
-          msg.content = formatPreviewMessage(msg)
-          msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
-        }
-      })
-    )
-
     try {
       await revokeMessage({
         roomId,
@@ -227,20 +210,6 @@ export function MessageItem({
         const idx = draft.items.findIndex((m) => m.id === message.id)
         if (idx !== -1) {
           draft.items.splice(idx, 1)
-        }
-      })
-    )
-
-    // update room list
-    dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        if (!draft?.items) return
-
-        const room = draft.items.find((r) => r.id === roomId)
-        if (!room) return
-
-        if (room.latestMessage?.id === message.id) {
-          room.latestMessage.content = formatPreviewMessage(nextMessage)
         }
       })
     )

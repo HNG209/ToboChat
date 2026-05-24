@@ -1,32 +1,68 @@
-import { MessageResponse, UserResponse } from 'app/types/Response'
+import { LatestMessage, MessageResponse } from 'app/types/Response'
+import { MessageType } from 'app/types/Enums'
 
 export const generateDirectRoomId = (myId: string, otherUserId: string) => {
   const ids = [myId, otherUserId].sort()
   return `${ids[0]}_${ids[1]}`
 }
 
-export const formatPreviewMessage = (message: MessageResponse | null) => {
+export const formatLatestMessage = (message?: LatestMessage) => {
   if (!message) return 'Chưa có tin nhắn'
 
-  let content = ''
-
-  // Nếu có content thì hiện thị content rút gọn
-  if (message.content) {
-    content = message.content.length > 15 ? message.content.slice(0, 15) + '...' : message.content
-  }
-
-  // Nếu có attachment thì thêm biểu tượng kèm theo
-  if (message.attachments && message.attachments.length > 0) {
-    content = '📎 ' + content
-  }
-
-  // Nếu chỉ có attachment mà không có content thì hiển thị "File đính kèm"
-  if (!message.content && message.attachments && message.attachments.length > 0) {
-    content = 'File đính kèm'
-  }
-
+  // Tin nhắn đã thu hồi
   if (message.messageStatus === 'REVOKED') return 'Tin nhắn đã được thu hồi'
-  return content
+
+  // Tin nhắn hệ thống
+  if (message.messageType === 'SYSTEM') return 'Tin nhắn hệ thống'
+
+  // Widget gọi/ gọi nhỡ
+  if (message.messageType === 'WIDGET') {
+    if (message.metadata?.callType === 'missed') {
+      return 'Cuộc gọi nhỡ'
+    }
+    return 'Cuộc gọi'
+  }
+
+  // Chỉ có file (fileSize > 0, mediaSize = 0, không content)
+  if (
+    !message.content &&
+    message.fileSize > 0 &&
+    (!message.mediaSize || message.mediaSize === 0)
+  ) {
+    return message.fileSize > 1 ? `Đã gửi ${message.fileSize} file` : 'File đính kèm'
+  }
+
+  // Nhóm hình ảnh (mediaSize > 1, không content)
+  if (
+    !message.content &&
+    message.mediaSize > 1
+  ) {
+    return `Đã gửi ${message.mediaSize} ảnh`
+  }
+
+  // Văn bản + hình ảnh (có content, mediaSize > 0)
+  if (
+    message.content &&
+    message.mediaSize > 0
+  ) {
+    const shortContent = message.content.length > 15 ? message.content.slice(0, 15) + '...' : message.content
+    return `🖼️ ${shortContent}`
+  }
+
+  // Chỉ có văn bản
+  if (message.content) {
+    return message.content.length > 15 ? message.content.slice(0, 15) + '...' : message.content
+  }
+
+  // Trường hợp còn lại: 1 ảnh, không content
+  if (
+    !message.content &&
+    message.mediaSize === 1
+  ) {
+    return 'Đã gửi 1 ảnh'
+  }
+
+  return 'Tin nhắn'
 }
 
 const buildRoleName = (role: string) => {
