@@ -9,6 +9,7 @@ export type SystemAction =
   | 'ROOM_CREATED'
   | 'MEMBER_ADDED'
   | 'MEMBER_LEFT'
+  | 'MEMBER_APPROVED'
   | 'ROOM_NAME_CHANGED'
   | 'ROOM_AVATAR_CHANGED'
   | 'MEMBER_REMOVED'

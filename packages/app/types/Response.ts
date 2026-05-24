@@ -146,11 +146,12 @@ export interface Attachment {
   contentType: string
   fileSize: number
 }
+
 export interface GroupPendingRequestResponse {
   roomId: string
   roomName: string
   user: UserResponse
-  requester: UserResponse
+  inviter: UserResponse
 }
 
 export interface CallResponse {
