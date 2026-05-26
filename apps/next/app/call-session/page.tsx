@@ -17,7 +17,7 @@ export default function CallSessionPage() {
   const [isSocketReady, setIsSocketReady] = useState(false);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: ReturnType<typeof setTimeout>;
     const checkSocket = () => {
       const socket = getSocket()
       if (socket) setIsSocketReady(true)
