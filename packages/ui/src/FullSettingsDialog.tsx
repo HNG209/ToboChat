@@ -1,5 +1,5 @@
 import { Dialog, Text, XStack, YStack, ListItem, Button, Switch } from '@my/ui'
-import ChangePasswordForm from '@my/ui/src/ChangePassworđForm'
+import ChangePasswordForm from '@my/ui/src/ChangePasswordForm'
 import { X } from '@tamagui/lucide-icons'
 import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'

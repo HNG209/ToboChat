@@ -8,10 +8,9 @@ import { MessageResponse } from 'app/types/Response'
 import { chatApi, useDeleteMessageMutation, useRevokeMessageMutation } from 'app/services/chatApi'
 import { useDispatch } from 'react-redux'
 import { AppDispatch, store } from 'app/store'
-import { roomApi } from 'app/services/roomApi'
 import { RoomStatus } from './ChatInbox'
-import { formatSystemMessage } from 'app/utils/chatHelper';
 import { WidgetMessage } from './WidgetMessage'
+import { SystemMessage } from './SystemMessage'
 
 interface Props {
   roomId: string
@@ -66,18 +65,28 @@ export function MessageItem({
   const [deleteMessage] = useDeleteMessageMutation()
   const [revokeMessage] = useRevokeMessageMutation()
 
+  const handleUserPress = (userId: string) => {
+    console.log("Điều hướng tới profile của user:", userId)
+    // Thực hiện navigation hoặc dispatch action tại đây
+  }
+
   // Xử lý tin nhắn hệ thống
   if (msg.messageType === 'SYSTEM') {
     return (
       <YStack alignItems="center" my="$3" width="100%">
         <XStack bg="$color4" px="$3" py="$1.5" borderRadius="$10" maxWidth="80%">
           <Text fontSize="$2" color="$color11" textAlign="center" fontWeight="500">
-            {formatSystemMessage(msg, selfUserId)}
+            <SystemMessage
+              msg={msg}
+              selfUserId={selfUserId}
+              onUserPress={handleUserPress}
+            />
           </Text>
         </XStack>
       </YStack>
     )
   }
+
   const isMe = msg.user?.id === selfUserId
 
   const newerMsg = items[index - 1]

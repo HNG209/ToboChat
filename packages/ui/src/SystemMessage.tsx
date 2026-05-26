@@ -1,0 +1,143 @@
+import { Text } from '@my/ui'
+import { MessageResponse } from 'app/types/Response'
+
+interface SystemMessageProps {
+  msg: MessageResponse
+  selfUserId?: string
+  onUserPress?: (userId: string) => void
+}
+
+const buildRoleName = (role: string) => {
+  switch (role) {
+    case 'ADMIN': return 'Quản trị viên'
+    case 'VICE_ADMIN': return 'Phó quản trị viên'
+    case 'MEMBER': return 'Thành viên'
+    default: return 'Vai trò không xác định'
+  }
+}
+
+// Sub-component giúp render link người dùng
+const UserLink = ({ 
+  id, 
+  name, 
+  isSelf, 
+  onPress 
+}: { 
+  id?: string
+  name?: string
+  isSelf: boolean
+  onPress?: (id: string) => void 
+}) => {
+  if (isSelf) return <Text fontWeight="bold">Bạn</Text>
+  
+  const displayName = name || 'Ai đó'
+  
+  return (
+    <Text
+      color="$blue10"
+      fontWeight="600"
+      cursor="pointer"
+      hoverStyle={{
+        textDecorationLine: 'underline',
+        color: '$blue11',
+      }}
+      onPress={(e) => {
+        e.stopPropagation()
+        if (id && onPress) onPress(id)
+      }}
+    >
+      {displayName}
+    </Text>
+  )
+}
+
+export const SystemMessage = ({ msg, selfUserId, onUserPress }: SystemMessageProps) => {
+  const actorId = msg.user?.id
+  const actorName = msg.user?.name
+  const isActorSelf = actorId === selfUserId
+  const meta = msg.metadata || {}
+
+  // Helper để render Actor (Người thực hiện hành động)
+  const Actor = () => (
+    <UserLink id={actorId} name={actorName} isSelf={isActorSelf} onPress={onUserPress} />
+  )
+
+  switch (msg.action) {
+    case 'ROOM_CREATED':
+      return <Text><Actor /> đã tạo nhóm này.</Text>
+      
+    case 'ROOM_NAME_CHANGED':
+      return <Text><Actor /> đã đổi tên nhóm thành "{meta.newRoomName || 'tên mới'}".</Text>
+      
+    case 'ROOM_AVATAR_CHANGED':
+      return <Text><Actor /> đã đổi ảnh đại diện nhóm.</Text>
+      
+    case 'MEMBER_APPROVED':
+      return (
+        <Text>
+          <Actor /> đã phê duyệt{' '}
+          <UserLink 
+            id={meta?.approvedMemberId} 
+            name={meta?.approvedMemberName} 
+            isSelf={meta?.approvedMemberId === selfUserId} 
+            onPress={onUserPress} 
+          />{' '}
+          tham gia nhóm.
+        </Text>
+      )
+      
+    case 'MEMBER_ADDED':
+      return (
+        <Text>
+          <Actor /> đã thêm{' '}
+          <UserLink 
+            id={meta?.newMemberId} 
+            name={meta?.newMemberName} 
+            isSelf={meta?.newMemberId === selfUserId} 
+            onPress={onUserPress} 
+          />{' '}
+          vào nhóm.
+        </Text>
+      )
+      
+    case 'MEMBER_LEFT':
+      return <Text><Actor /> đã rời nhóm.</Text>
+      
+    case 'MEMBER_REMOVED':
+      return (
+        <Text>
+          <Actor /> đã xóa{' '}
+          <UserLink 
+            id={meta?.removedMemberId} 
+            name={meta?.removedMemberName} 
+            isSelf={meta?.removedMemberId === selfUserId} 
+            onPress={onUserPress} 
+          />{' '}
+          khỏi nhóm.
+        </Text>
+      )
+      
+    case 'GROUP_INVITE_ACCEPTED':
+      return <Text><Actor /> đã chấp nhận lời mời tham gia nhóm.</Text>
+      
+    case 'FRIEND_ACCEPTED':
+      return <Text><Actor /> đã chấp nhận lời mời kết bạn.</Text>
+      
+    case 'MEMBER_ROLE_UPDATED':
+      return (
+        <Text>
+          <Actor /> đã cập nhật vai trò của{' '}
+          <UserLink 
+            id={meta?.updatedMemberId} 
+            name={meta?.updatedMemberName} 
+            isSelf={meta?.updatedMemberId === selfUserId} 
+            onPress={onUserPress} 
+          />{' '}
+          thành <Text fontWeight="bold">{buildRoleName(meta?.newRole)}</Text>.
+        </Text>
+      )
+      
+    default:
+      return <Text>{msg.content || <><Actor /> đã cập nhật nhóm.</>}</Text>
+  }
+}
