@@ -1,7 +1,7 @@
 import { AppDispatch, RootState } from "app/store"
 import { getSocket } from "app/utils/socket"
 import { useEffect, useState } from "react"
-import { Dialog, Button, Text, XStack, YStack, Avatar } from "@my/ui"
+import { Dialog, Button, Text, XStack, YStack, Avatar, Spinner } from "@my/ui"
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
 import { Check, X as XIcon } from "@tamagui/lucide-icons"
@@ -13,6 +13,7 @@ import { userApi } from "app/services/userApi"
 import { RoomStatus } from "app/types/Enums"
 import { RoomUpdateEvent } from "app/types/Events"
 import { useRouter } from "solito/navigation"
+import { Platform } from "react-native"
 
 type InboxUpdatedPayload = {
   message: LatestMessage
@@ -38,6 +39,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   const [isVideoCall, setIsVideoCall] = useState<boolean>(true)
   const [incomingCall, setIncomingCall] = useState<IncomingCallDto | null>(null)
   const [currentCallRoomId, setCurrentCallRoomId] = useState<string | null>(null)
+  const [isAcceptingCall, setIsAcceptingCall] = useState(false)
 
   // 4. Socket Connection & Listeners
   useEffect(() => {
@@ -57,9 +59,15 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     if (!socket) return
 
     const handleCallStarted = (data: CallResponse) => {
-      setCallToken(data.token);
-      setCurrentCallRoomId(data.roomId);
-      setIsVideoCall(!!data.isVideoCall);
+      if (Platform.OS === 'web') {
+        setIsAcceptingCall(false); // Tắt spinner
+        openCallPopup(data.token, data.roomId, !!data.isVideoCall);
+      } else {
+        // Logic React Native cũ của bạn giữ nguyên
+        setCallToken(data.token);
+        setCurrentCallRoomId(data.roomId);
+        setIsVideoCall(!!data.isVideoCall);
+      }
     };
 
     const handleIncomingCall = (data: IncomingCallDto) => {
@@ -104,11 +112,15 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     };
 
     const handleCallJoined = (data: CallResponse) => {
-      setCallToken(data.token);
-      setCurrentCallRoomId(data.roomId);
-      setIsVideoCall(!!data.isVideoCall);
-      // Ghi chú: Vì tham gia trễ nên không có incomingCall (không có popup),
-      // chỉ cần set token là component <VideoCall /> sẽ tự động hiện lên!
+      if (Platform.OS === 'web') {
+        setIsAcceptingCall(false); // Tắt spinner
+        openCallPopup(data.token, data.roomId, !!data.isVideoCall);
+      } else {
+        // Logic React Native cũ của bạn giữ nguyên
+        setCallToken(data.token);
+        setCurrentCallRoomId(data.roomId);
+        setIsVideoCall(!!data.isVideoCall);
+      }
     };
 
     const handleUnreadUpdate = (payload: InboxUnreadUpdatePayload) => {
@@ -268,6 +280,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     }
 
     const handleCallError = (message: string) => {
+      setIsAcceptingCall(false);
       console.log("Lỗi tham gia gọi:", message);
     };
 
@@ -312,8 +325,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         socket.emit('accept_call', { roomId: incomingCall.room.id });
       }
 
-      setCallToken(incomingCall.token);
-      setCurrentCallRoomId(incomingCall.room.id);
+      setIsAcceptingCall(true);
       setIncomingCall(null);
     }
   }
@@ -321,27 +333,56 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   const handleRejectCall = () => {
     if (incomingCall) {
       const socket = getSocket();
+
       // Nếu từ chối, cũng gửi sự kiện cancel_call để báo nhỡ
       if (socket) {
         socket.emit('cancel_call', { roomId: incomingCall.room.id });
       }
+
       setIncomingCall(null);
+      setIsAcceptingCall(false);
     }
   }
 
-  if (callToken) {
+  const openCallPopup = (token: string, roomId: string, isVideo: boolean) => {
+    if (typeof window !== 'undefined') {
+      // Định hình kích thước cho cửa sổ popup
+      const width = 1200;
+      const height = 750;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+
+      const url = `/call-session?token=${encodeURIComponent(token)}&roomId=${roomId}&video=${isVideo}`;
+
+      // Mở ra một cửa sổ popup riêng biệt thay vì 1 tab mới thông thường
+      const callWindow = window.open(
+        url,
+        `ToboCall_${roomId}`,
+        `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+
+      if (callWindow) {
+        callWindow.focus();
+      }
+    }
+  };
+
+  if (callToken && Platform.OS !== 'web') {
     return (
       <VideoCall
         token={callToken}
         isVideoCall={isVideoCall}
         onLeave={() => {
           const socket = getSocket();
+
           // Nếu đang gọi mà tắt máy, gửi sự kiện báo cho server biết để server báo cho những người chưa bắt máy
           if (socket && currentCallRoomId) {
             socket.emit('cancel_call', { roomId: currentCallRoomId });
           }
+
           setCallToken(null)
           setCurrentCallRoomId(null)
+          setIsAcceptingCall(false)
         }}
       />
     );
@@ -349,6 +390,22 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
   return <>
     {children}
+
+    {isAcceptingCall && (
+      <YStack
+        position="absolute"
+        top={0} left={0} right={0} bottom={0}
+        justifyContent="center"
+        alignItems="center"
+        backgroundColor="rgba(0,0,0,0.3)" // Nền trong suốt mờ nhẹ
+        zIndex={100000} // Đảm bảo đè lên mọi UI khác
+      >
+        <YStack p="$4" borderRadius="$4" backgroundColor="rgba(255,255,255,0.1)">
+          <Spinner size="large" color="$green10" />
+        </YStack>
+      </YStack>
+    )}
+
     <Dialog open={!!incomingCall} onOpenChange={open => { if (!open) setIncomingCall(null) }}>
       <Dialog.Portal>
         <Dialog.Overlay backgroundColor="rgba(0,0,0,0.4)" />
