@@ -370,27 +370,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     }
   };
 
-  // if (callToken && Platform.OS !== 'web') {
-  //   return (
-  //     <VideoCall
-  //       token={callToken}
-  //       isVideoCall={isVideoCall}
-  //       onLeave={() => {
-  //         const socket = getSocket();
-
-  //         // Nếu đang gọi mà tắt máy, gửi sự kiện báo cho server biết để server báo cho những người chưa bắt máy
-  //         if (socket && currentCallRoomId) {
-  //           socket.emit('cancel_call', { roomId: currentCallRoomId });
-  //         }
-
-  //         setCallToken(null)
-  //         setCurrentCallRoomId(null)
-  //         setIsAcceptingCall(false)
-  //       }}
-  //     />
-  //   );
-  // }
-
   return <>
     {children}
 
@@ -400,7 +379,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         <VideoCall
           token={callToken}
           isVideoCall={isVideoCall}
-          onMinimize={() => setIsCallMinimized(true)} // Hàm thu nhỏ
+          onMinimize={() => setIsCallMinimized(true)}
           onLeave={() => {
             const socket = getSocket();
             if (socket && currentCallRoomId) {
@@ -432,7 +411,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         shadowColor="black"
         shadowOpacity={0.3}
         shadowRadius={5}
-        onPress={() => setIsCallMinimized(false)} // Bấm vào để phóng to
+        onPress={() => setIsCallMinimized(false)}
       >
         <PhoneCall size={20} color="white" />
         <Text color="white" fontWeight="bold">Đang gọi...</Text>

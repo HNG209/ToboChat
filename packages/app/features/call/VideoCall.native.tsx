@@ -37,7 +37,6 @@ export function VideoCall({ token, onMinimize, isVideoCall = true, onLeave }: { 
         <RoomContent />
         <CallControls onLeave={onLeave} />
 
-        {/* 2. NÚT THU NHỎ / TRỞ VỀ */}
         {onMinimize && (
           <YStack position="absolute" top={50} left={20} zIndex={1000}>
             <Button

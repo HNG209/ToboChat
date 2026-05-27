@@ -1,12 +1,10 @@
-import { use, useEffect, useMemo, useRef, useState } from 'react'
-import { v4 as uuidv4 } from 'uuid';
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
   Keyboard,
   useWindowDimensions,
-  Linking,
 } from 'react-native'
 import {
   YStack,
@@ -24,7 +22,7 @@ import {
   Forward,
   Trash2,
   Lock,
-  UserPlus, X, Check, XCircle
+  UserPlus, X, Check
 } from '@tamagui/lucide-icons'
 import { useLink } from 'solito/navigation'
 import {
@@ -33,16 +31,15 @@ import {
   useLazyGetMessagesQuery,
   useForwardMessagesMutation,
 } from 'app/services/chatApi'
-import { roomApi, useGetJoinedRoomsQuery, useGetMyInfoQuery, useGetRoomMembersQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
+import { roomApi, useGetMyInfoQuery, useGetRoomMembersQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { Provider, useDispatch, useSelector } from 'react-redux'
-import { Attachment, MessageResponse } from 'app/types/Response'
+import { MessageResponse } from 'app/types/Response'
 import { AppDispatch, RootState, store } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
 import { copyToClipboard } from 'app/utils/clipboard'
 import { MediaViewer } from 'app/media/MediaViewer'
-import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader';
 import { ChatScreenFooter } from '@my/ui/src/ChatScreenFooter';
 import { MessageItem } from '@my/ui/src/MessageItem';
 import { ConversationInfoContent } from '@my/ui/src/ConversationInfoContent';
@@ -53,7 +50,7 @@ import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
 import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, useGetMyFriendListQuery, useRespondFriendRequestMutation, useSendFriendRequestMutation } from 'app/services/contactApi';
 import { FriendStatus } from 'app/types/Enums';
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
-import { useGetCallStatusQuery } from 'app/services/callApi';
+import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader'
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -114,8 +111,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [showInfo, setShowInfo] = useState(false)
   const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD' | 'MEMBERS' | 'APPROVED'>('INFO');
   const listBottomSpacer = isWeb ? 0 : composerHeight
-  // Android keyboard handling: don't rely on KeyboardAvoidingView only.
-  // On some devices KAV can leave a "stuck" gap after dismiss; keyboard events are deterministic.
+
   useEffect(() => {
     if (Platform.OS !== 'android') return
 
@@ -173,10 +169,12 @@ export function ChatScreen({ roomId, insets }: Props) {
 
   // fetch thông tin của tôi trong phòng
   const { data: myInfo } = useGetMyInfoQuery({ roomId });
+
   // fetch danh sách thành viên trong phòng
-  const { data: roomMembers } = useGetRoomMembersQuery({ roomId }, { refetchOnMountOrArgChange: true });
+  useGetRoomMembersQuery({ roomId }, { refetchOnMountOrArgChange: true });
+
   // fetch danh sách bạn bè đã có trong phòng
-  const { data: myFriends } = useGetMyFriendListQuery({ limit: 20, roomId }, { refetchOnMountOrArgChange: true });
+  useGetMyFriendListQuery({ limit: 20, roomId }, { refetchOnMountOrArgChange: true });
 
   const isRoomNotFound = isError && (error as any)?.data.code === 40031
 
@@ -208,7 +206,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   )
 
   const [sendFriendRequest, { isLoading: isSending }] = useSendFriendRequestMutation()
-  const [cancelFriendRequest, { isLoading: isCancelling }] = useCancelFriendRequestMutation()
+  const [cancelFriendRequest] = useCancelFriendRequestMutation()
   const [respondFriendRequest, { isLoading: isResponding }] = useRespondFriendRequestMutation()
 
   const handleSendFriendRequest = async () => {
@@ -498,7 +496,6 @@ export function ChatScreen({ roomId, insets }: Props) {
 
     const handleMessageRevoked = (data: { messageId: string; roomId: string }) => {
       if (data.roomId !== roomId) return
-      // console.log('Received message_revoked event for messageId:', data.messageId)
 
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
@@ -652,7 +649,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     !isJumpingToReplyRef.current &&
                     data?.prevCursor &&
                     isUserAtBottomRef.current &&
-                    !justNudgedRef.current // Chặn fetch nếu vừa nudge
+                    !justNudgedRef.current
                   ) {
                     console.log('onStartReached (load newer messages)')
                     handleLoadMore('after')
@@ -903,8 +900,8 @@ export function ChatScreen({ roomId, insets }: Props) {
             }
           </YStack>
 
-
         </KeyboardAvoidingView>
+
         {/* --- SIDEBAR THÔNG TIN (CHỈ CHO WEB) --- */}
         {Platform.OS === 'web' && showInfo && (
           <YStack
@@ -951,6 +948,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             )}
           </YStack>
         )}
+
         {/* --- HIỂN THỊ TRÊN MOBILE (Dùng Sheet) --- */}
         {Platform.OS !== 'web' && (
           <Sheet
