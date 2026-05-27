@@ -63,10 +63,11 @@ function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; 
     ? (isMissed ? '$red10' : '$purple10')
     : (isMissed ? '$red10' : '$color12')
   const buttonTheme = (isGroupCall ? 'purple' : (isMissed ? 'red' : 'active')) as ThemeName;
+  
   const handleCallBack = () => {
     const socket = getSocket()
     if (socket) {
-      socket.emit('request_call', { roomId })
+      socket.emit('request_call', { roomId: roomId, isVideoCall: isVideoCall ?? true });
     }
   }
 
