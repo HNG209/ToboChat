@@ -3,8 +3,8 @@ import { getSocket } from "app/utils/socket"
 import { useEffect, useState } from "react"
 import { Dialog, Button, Text, XStack, YStack, Avatar, Spinner } from "@my/ui"
 import { useDispatch, useSelector } from "react-redux"
-import { VideoCall } from "app/features/call/VideoCall"
-import { Check, X as XIcon } from "@tamagui/lucide-icons"
+import { VideoCall } from "app/features/call/VideoCall.native"
+import { Check, Maximize2, PhoneCall, X as XIcon } from "@tamagui/lucide-icons"
 import { CallResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse } from "app/types/Response"
 import { CallRequest } from "app/types/Request"
 import { callApi, CallStatus } from "app/services/callApi"
@@ -40,6 +40,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   const [incomingCall, setIncomingCall] = useState<IncomingCallDto | null>(null)
   const [currentCallRoomId, setCurrentCallRoomId] = useState<string | null>(null)
   const [isAcceptingCall, setIsAcceptingCall] = useState(false)
+  const [isCallMinimized, setIsCallMinimized] = useState(false)
 
   // 4. Socket Connection & Listeners
   useEffect(() => {
@@ -67,6 +68,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         setCallToken(data.token);
         setCurrentCallRoomId(data.roomId);
         setIsVideoCall(!!data.isVideoCall);
+        setIsCallMinimized(false);
       }
     };
 
@@ -120,6 +122,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         setCallToken(data.token);
         setCurrentCallRoomId(data.roomId);
         setIsVideoCall(!!data.isVideoCall);
+        setIsCallMinimized(false);
       }
     };
 
@@ -367,29 +370,75 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     }
   };
 
-  if (callToken && Platform.OS !== 'web') {
-    return (
-      <VideoCall
-        token={callToken}
-        isVideoCall={isVideoCall}
-        onLeave={() => {
-          const socket = getSocket();
+  // if (callToken && Platform.OS !== 'web') {
+  //   return (
+  //     <VideoCall
+  //       token={callToken}
+  //       isVideoCall={isVideoCall}
+  //       onLeave={() => {
+  //         const socket = getSocket();
 
-          // Nếu đang gọi mà tắt máy, gửi sự kiện báo cho server biết để server báo cho những người chưa bắt máy
-          if (socket && currentCallRoomId) {
-            socket.emit('cancel_call', { roomId: currentCallRoomId });
-          }
+  //         // Nếu đang gọi mà tắt máy, gửi sự kiện báo cho server biết để server báo cho những người chưa bắt máy
+  //         if (socket && currentCallRoomId) {
+  //           socket.emit('cancel_call', { roomId: currentCallRoomId });
+  //         }
 
-          setCallToken(null)
-          setCurrentCallRoomId(null)
-          setIsAcceptingCall(false)
-        }}
-      />
-    );
-  }
+  //         setCallToken(null)
+  //         setCurrentCallRoomId(null)
+  //         setIsAcceptingCall(false)
+  //       }}
+  //     />
+  //   );
+  // }
 
   return <>
     {children}
+
+    {/* OVERLAY: MÀN HÌNH CUỘC GỌI TOÀN MÀN HÌNH */}
+    {callToken && Platform.OS !== 'web' && !isCallMinimized && (
+      <YStack position="absolute" top={0} left={0} right={0} bottom={0} zIndex={99999}>
+        <VideoCall
+          token={callToken}
+          isVideoCall={isVideoCall}
+          onMinimize={() => setIsCallMinimized(true)} // Hàm thu nhỏ
+          onLeave={() => {
+            const socket = getSocket();
+            if (socket && currentCallRoomId) {
+              socket.emit('cancel_call', { roomId: currentCallRoomId });
+            }
+            setCallToken(null);
+            setCurrentCallRoomId(null);
+            setIsAcceptingCall(false);
+            setIsCallMinimized(false);
+          }}
+        />
+      </YStack>
+    )}
+
+    {/* WIDGET THU NHỎ KHI ĐANG GỌI (MINIMIZED) */}
+    {callToken && Platform.OS !== 'web' && isCallMinimized && (
+      <XStack
+        position="absolute"
+        top={50}
+        right={20}
+        backgroundColor="$green9"
+        paddingHorizontal="$4"
+        paddingVertical="$2"
+        borderRadius="$10"
+        alignItems="center"
+        space="$3"
+        zIndex={100000}
+        elevation={5}
+        shadowColor="black"
+        shadowOpacity={0.3}
+        shadowRadius={5}
+        onPress={() => setIsCallMinimized(false)} // Bấm vào để phóng to
+      >
+        <PhoneCall size={20} color="white" />
+        <Text color="white" fontWeight="bold">Đang gọi...</Text>
+        <Maximize2 size={18} color="white" opacity={0.8} />
+      </XStack>
+    )}
 
     {isAcceptingCall && (
       <YStack
@@ -397,8 +446,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         top={0} left={0} right={0} bottom={0}
         justifyContent="center"
         alignItems="center"
-        backgroundColor="rgba(0,0,0,0.3)" // Nền trong suốt mờ nhẹ
-        zIndex={100000} // Đảm bảo đè lên mọi UI khác
+        backgroundColor="rgba(0,0,0,0.3)"
+        zIndex={100000}
       >
         <YStack p="$4" borderRadius="$4" backgroundColor="rgba(255,255,255,0.1)">
           <Spinner size="large" color="$green10" />

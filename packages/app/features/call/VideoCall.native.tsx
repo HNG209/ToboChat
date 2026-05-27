@@ -1,6 +1,6 @@
 import React from 'react';
 import { YStack, Text, Button } from 'tamagui';
-import { Mic, MicOff, PhoneOff, Video, VideoOff } from '@tamagui/lucide-icons';
+import { ChevronDown, Mic, MicOff, PhoneOff, Video, VideoOff } from '@tamagui/lucide-icons';
 import {
   LiveKitRoom,
   VideoTrack,
@@ -13,7 +13,7 @@ import { Track } from 'livekit-client';
 
 const LIVEKIT_URL = process.env.EXPO_PUBLIC_LIVEKIT_URL;
 
-export function VideoCall({ token, isVideoCall = true, onLeave }: { token: string; isVideoCall?: boolean; onLeave: () => void }) {
+export function VideoCall({ token, onMinimize, isVideoCall = true, onLeave }: { token: string; onMinimize?: () => void; isVideoCall?: boolean; onLeave: () => void }) {
   React.useEffect(() => {
     const start = async () => {
       await AudioSession.startAudioSession();
@@ -36,6 +36,19 @@ export function VideoCall({ token, isVideoCall = true, onLeave }: { token: strin
       >
         <RoomContent />
         <CallControls onLeave={onLeave} />
+
+        {/* 2. NÚT THU NHỎ / TRỞ VỀ */}
+        {onMinimize && (
+          <YStack position="absolute" top={50} left={20} zIndex={1000}>
+            <Button
+              size="$4"
+              circular
+              backgroundColor="rgba(0,0,0,0.5)"
+              icon={<ChevronDown size={24} color="white" />}
+              onPress={onMinimize}
+            />
+          </YStack>
+        )}
       </LiveKitRoom>
     </YStack>
   );
