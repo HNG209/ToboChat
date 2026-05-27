@@ -42,7 +42,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   const [isAcceptingCall, setIsAcceptingCall] = useState(false)
   const [isCallMinimized, setIsCallMinimized] = useState(false)
 
-  // 4. Socket Connection & Listeners
+  // Socket Connection & Listeners
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
     const checkSocket = () => {
@@ -59,53 +59,25 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     const socket = getSocket()
     if (!socket) return
 
-    const handleCallStarted = (data: CallResponse) => {
-      if (Platform.OS === 'web') {
-        setIsAcceptingCall(false); // Tắt spinner
-        openCallPopup(data.token, data.roomId, !!data.isVideoCall);
-      } else {
-        // Logic React Native cũ của bạn giữ nguyên
-        setCallToken(data.token);
-        setCurrentCallRoomId(data.roomId);
-        setIsVideoCall(!!data.isVideoCall);
-        setIsCallMinimized(false);
-      }
-    };
-
     const handleIncomingCall = (data: IncomingCallDto) => {
+      // Hiện popup cuộc gọi đến với thông tin cuộc gọi
       setIncomingCall(data);
       setIsVideoCall(!!data.isVideoCall);
     };
 
     const handleCallCancelled = (data: CallRequest) => {
-      setIncomingCall((prev) => {
-        // Kiểm tra xem ID phòng bị hủy có khớp với phòng đang đổ chuông không
-        if (prev && prev.room.id === data.roomId) {
-          return null; // Hủy khớp -> Tắt popup
-        }
-        return prev;
-      });
-
-      setCallToken((prevToken) => {
-        if (prevToken && currentCallRoomId === data.roomId) {
-          return null; // Xóa token -> Component VideoCall bị unmount -> Trở về giao diện bình thường
-        }
-        return prevToken;
-      });
+      setIncomingCall(null);
+      setCallToken(null);
 
       // Reset lại ID phòng đang gọi
       setCurrentCallRoomId((prevId) => prevId === data.roomId ? null : prevId);
-      // dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => false));
     };
 
     const handleCallAccepted = (data: CallRequest) => {
-      // Tắt popup cuộc gọi đến nếu có
-      setIncomingCall((prev) => {
-        if (prev && prev.room.id === data.roomId) {
-          return null;
-        }
-        return prev;
-      });
+      // Đã chấp nhận cuộc gọi, tắt popup cuộc gọi đến cho tất cả thiết bị
+      setIncomingCall(null);
+
+      // Cập nhật lại trạng thái cuộc gọi
       dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => 'IN_CALL' as CallStatus));
     };
 
@@ -113,6 +85,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => data.status));
     };
 
+    // Dùng cho cả trường hợp bắt máy và tham gia cuộc gọi đang diễn ra
     const handleCallJoined = (data: CallResponse) => {
       if (Platform.OS === 'web') {
         setIsAcceptingCall(false); // Tắt spinner
@@ -287,7 +260,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       console.log("Lỗi tham gia gọi:", message);
     };
 
-    socket.on('call_started', handleCallStarted);
     socket.on('call_accepted', handleCallAccepted);
     socket.on('call_status_updated', handleCallStatusUpdated);
     socket.on('call_joined', handleCallJoined);
@@ -302,7 +274,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     socket.on('new_room', handleNewRoom);
     socket.on('pending_inbox_updated', handlePendingInboxUpdated);
     return () => {
-      socket.off('call_started', handleCallStarted);
       socket.off('call_accepted', handleCallAccepted);
       socket.off('call_status_updated', handleCallStatusUpdated);
       socket.off('call_joined', handleCallJoined);
@@ -342,6 +313,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         socket.emit('cancel_call', { roomId: incomingCall.room.id });
       }
 
+      setCallToken(null);
+      setCurrentCallRoomId(null);
       setIncomingCall(null);
       setIsAcceptingCall(false);
     }
