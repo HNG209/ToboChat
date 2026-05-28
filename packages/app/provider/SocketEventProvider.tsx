@@ -346,13 +346,29 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   return <>
     {children}
 
-    {/* OVERLAY: MÀN HÌNH CUỘC GỌI TOÀN MÀN HÌNH */}
-    {callToken && Platform.OS !== 'web' && !isCallMinimized && (
-      <YStack position="absolute" top={0} left={0} right={0} bottom={0} zIndex={99999}>
+    {callToken && Platform.OS !== 'web' && (
+      <YStack
+        position="absolute"
+        top={isCallMinimized ? 60 : 0}
+        right={isCallMinimized ? 20 : 0}
+        left={isCallMinimized ? undefined : 0}
+        bottom={isCallMinimized ? undefined : 0}
+        width={isCallMinimized ? 120 : '100%'}
+        height={isCallMinimized ? 180 : '100%'}
+        zIndex={99999}
+        borderRadius={isCallMinimized ? 12 : 0}
+        overflow="hidden"
+        elevation={isCallMinimized ? 5 : 0}
+        shadowColor="black"
+        shadowOpacity={isCallMinimized ? 0.3 : 0}
+        shadowRadius={isCallMinimized ? 5 : 0}
+      >
         <VideoCall
           token={callToken}
           isVideoCall={isVideoCall}
+          isMinimized={isCallMinimized}
           onMinimize={() => setIsCallMinimized(true)}
+          onMaximize={() => setIsCallMinimized(false)}
           onLeave={() => {
             const socket = getSocket();
             if (socket && currentCallRoomId) {
@@ -365,31 +381,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
           }}
         />
       </YStack>
-    )}
-
-    {/* WIDGET THU NHỎ KHI ĐANG GỌI (MINIMIZED) */}
-    {callToken && Platform.OS !== 'web' && isCallMinimized && (
-      <XStack
-        position="absolute"
-        top={50}
-        right={20}
-        backgroundColor="$green9"
-        paddingHorizontal="$4"
-        paddingVertical="$2"
-        borderRadius="$10"
-        alignItems="center"
-        space="$3"
-        zIndex={100000}
-        elevation={5}
-        shadowColor="black"
-        shadowOpacity={0.3}
-        shadowRadius={5}
-        onPress={() => setIsCallMinimized(false)}
-      >
-        <PhoneCall size={20} color="white" />
-        <Text color="white" fontWeight="bold">Đang gọi...</Text>
-        <Maximize2 size={18} color="white" opacity={0.8} />
-      </XStack>
     )}
 
     {isAcceptingCall && (

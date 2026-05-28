@@ -13,7 +13,14 @@ import { Track } from 'livekit-client';
 
 const LIVEKIT_URL = process.env.EXPO_PUBLIC_LIVEKIT_URL;
 
-export function VideoCall({ token, onMinimize, isVideoCall = true, onLeave }: { token: string; onMinimize?: () => void; isVideoCall?: boolean; onLeave: () => void }) {
+export function VideoCall({
+  token,
+  onMinimize,
+  isVideoCall = true,
+  onMaximize,
+  isMinimized = false,
+  onLeave
+}: { token: string; onMinimize?: () => void; isVideoCall?: boolean; onMaximize?: () => void; isMinimized?: boolean; onLeave: () => void }) {
   React.useEffect(() => {
     const start = async () => {
       await AudioSession.startAudioSession();
@@ -25,7 +32,11 @@ export function VideoCall({ token, onMinimize, isVideoCall = true, onLeave }: { 
   }, []);
 
   return (
-    <YStack flex={1} backgroundColor="black">
+    <YStack
+      flex={1}
+      backgroundColor="black"
+      onPress={isMinimized ? onMaximize : undefined}
+    >
       <LiveKitRoom
         serverUrl={LIVEKIT_URL}
         token={token}
@@ -34,21 +45,52 @@ export function VideoCall({ token, onMinimize, isVideoCall = true, onLeave }: { 
         video={isVideoCall}
         onDisconnected={onLeave}
       >
-        <RoomContent />
-        <CallControls onLeave={onLeave} />
+        {isMinimized ? (
+          <MiniRoomContent />
+        ) : (
+          <>
+            <RoomContent />
+            <CallControls onLeave={onLeave} />
 
-        {onMinimize && (
-          <YStack position="absolute" top={50} left={20} zIndex={1000}>
-            <Button
-              size="$4"
-              circular
-              backgroundColor="rgba(0,0,0,0.5)"
-              icon={<ChevronDown size={24} color="white" />}
-              onPress={onMinimize}
-            />
-          </YStack>
+            {onMinimize && (
+              <YStack position="absolute" top={50} left={20} zIndex={1000}>
+                <Button
+                  size="$4"
+                  circular
+                  backgroundColor="rgba(0,0,0,0.5)"
+                  icon={<ChevronDown size={24} color="white" />}
+                  onPress={onMinimize}
+                />
+              </YStack>
+            )}
+          </>
         )}
       </LiveKitRoom>
+    </YStack>
+  );
+}
+
+function MiniRoomContent() {
+  const tracks = useTracks([Track.Source.Camera]);
+  // Lấy video của người khác (ưu tiên)
+  const remoteTrack = tracks.find((t) => !t.participant.isLocal);
+  // Hoặc video của chính mình
+  const localTrack = tracks.find((t) => t.participant.isLocal);
+
+  const isRemoteVideoOn = remoteTrack && remoteTrack.publication?.track && !remoteTrack.publication.isMuted;
+  const isLocalVideoOn = localTrack && localTrack.publication?.track && !localTrack.publication.isMuted;
+
+  return (
+    <YStack flex={1} backgroundColor="#111" justifyContent="center" alignItems="center">
+      {isRemoteVideoOn ? (
+        <VideoTrack trackRef={remoteTrack} style={{ flex: 1, width: '100%', height: '100%' }} zOrder={0} />
+      ) : isLocalVideoOn ? (
+        <VideoTrack trackRef={localTrack} style={{ flex: 1, width: '100%', height: '100%' }} zOrder={0} mirror />
+      ) : (
+        <YStack p="$3" borderRadius={100} backgroundColor="$gray3">
+          <PhoneOff size={24} color="$gray8" />
+        </YStack>
+      )}
     </YStack>
   );
 }
