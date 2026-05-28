@@ -76,6 +76,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     const handleCallAccepted = (data: CallRequest) => {
       // Đã chấp nhận cuộc gọi, tắt popup cuộc gọi đến cho tất cả thiết bị
       setIncomingCall(null);
+      setIsAcceptingCall(false);
 
       // Cập nhật lại trạng thái cuộc gọi
       dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => 'IN_CALL' as CallStatus));
