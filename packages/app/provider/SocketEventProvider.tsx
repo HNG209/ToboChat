@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Dialog, Button, Text, XStack, YStack, Avatar, Spinner } from "@my/ui"
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
-import { Check, X as XIcon } from "@tamagui/lucide-icons"
+import { Check, Maximize2, PhoneCall, X as XIcon } from "@tamagui/lucide-icons"
 import { CallResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse } from "app/types/Response"
 import { CallRequest } from "app/types/Request"
 import { callApi, CallStatus } from "app/services/callApi"
@@ -40,8 +40,9 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   const [incomingCall, setIncomingCall] = useState<IncomingCallDto | null>(null)
   const [currentCallRoomId, setCurrentCallRoomId] = useState<string | null>(null)
   const [isAcceptingCall, setIsAcceptingCall] = useState(false)
+  const [isCallMinimized, setIsCallMinimized] = useState(false)
 
-  // 4. Socket Connection & Listeners
+  // Socket Connection & Listeners
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
     const checkSocket = () => {
@@ -58,52 +59,26 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     const socket = getSocket()
     if (!socket) return
 
-    const handleCallStarted = (data: CallResponse) => {
-      if (Platform.OS === 'web') {
-        setIsAcceptingCall(false); // Tắt spinner
-        openCallPopup(data.token, data.roomId, !!data.isVideoCall);
-      } else {
-        // Logic React Native cũ của bạn giữ nguyên
-        setCallToken(data.token);
-        setCurrentCallRoomId(data.roomId);
-        setIsVideoCall(!!data.isVideoCall);
-      }
-    };
-
     const handleIncomingCall = (data: IncomingCallDto) => {
+      // Hiện popup cuộc gọi đến với thông tin cuộc gọi
       setIncomingCall(data);
       setIsVideoCall(!!data.isVideoCall);
     };
 
     const handleCallCancelled = (data: CallRequest) => {
-      setIncomingCall((prev) => {
-        // Kiểm tra xem ID phòng bị hủy có khớp với phòng đang đổ chuông không
-        if (prev && prev.room.id === data.roomId) {
-          return null; // Hủy khớp -> Tắt popup
-        }
-        return prev;
-      });
-
-      setCallToken((prevToken) => {
-        if (prevToken && currentCallRoomId === data.roomId) {
-          return null; // Xóa token -> Component VideoCall bị unmount -> Trở về giao diện bình thường
-        }
-        return prevToken;
-      });
+      setIncomingCall(null);
+      setCallToken(null);
 
       // Reset lại ID phòng đang gọi
       setCurrentCallRoomId((prevId) => prevId === data.roomId ? null : prevId);
-      // dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => false));
     };
 
     const handleCallAccepted = (data: CallRequest) => {
-      // Tắt popup cuộc gọi đến nếu có
-      setIncomingCall((prev) => {
-        if (prev && prev.room.id === data.roomId) {
-          return null;
-        }
-        return prev;
-      });
+      // Đã chấp nhận cuộc gọi, tắt popup cuộc gọi đến cho tất cả thiết bị
+      setIncomingCall(null);
+      setIsAcceptingCall(false);
+
+      // Cập nhật lại trạng thái cuộc gọi
       dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => 'IN_CALL' as CallStatus));
     };
 
@@ -111,6 +86,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => data.status));
     };
 
+    // Dùng cho cả trường hợp bắt máy và tham gia cuộc gọi đang diễn ra
     const handleCallJoined = (data: CallResponse) => {
       if (Platform.OS === 'web') {
         setIsAcceptingCall(false); // Tắt spinner
@@ -120,6 +96,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         setCallToken(data.token);
         setCurrentCallRoomId(data.roomId);
         setIsVideoCall(!!data.isVideoCall);
+        setIsCallMinimized(false);
       }
     };
 
@@ -284,7 +261,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       console.log("Lỗi tham gia gọi:", message);
     };
 
-    socket.on('call_started', handleCallStarted);
     socket.on('call_accepted', handleCallAccepted);
     socket.on('call_status_updated', handleCallStatusUpdated);
     socket.on('call_joined', handleCallJoined);
@@ -299,7 +275,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     socket.on('new_room', handleNewRoom);
     socket.on('pending_inbox_updated', handlePendingInboxUpdated);
     return () => {
-      socket.off('call_started', handleCallStarted);
       socket.off('call_accepted', handleCallAccepted);
       socket.off('call_status_updated', handleCallStatusUpdated);
       socket.off('call_joined', handleCallJoined);
@@ -339,6 +314,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         socket.emit('cancel_call', { roomId: incomingCall.room.id });
       }
 
+      setCallToken(null);
+      setCurrentCallRoomId(null);
       setIncomingCall(null);
       setIsAcceptingCall(false);
     }
@@ -367,29 +344,45 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     }
   };
 
-  if (callToken && Platform.OS !== 'web') {
-    return (
-      <VideoCall
-        token={callToken}
-        isVideoCall={isVideoCall}
-        onLeave={() => {
-          const socket = getSocket();
-
-          // Nếu đang gọi mà tắt máy, gửi sự kiện báo cho server biết để server báo cho những người chưa bắt máy
-          if (socket && currentCallRoomId) {
-            socket.emit('cancel_call', { roomId: currentCallRoomId });
-          }
-
-          setCallToken(null)
-          setCurrentCallRoomId(null)
-          setIsAcceptingCall(false)
-        }}
-      />
-    );
-  }
-
   return <>
     {children}
+
+    {callToken && Platform.OS !== 'web' && (
+      <YStack
+        position="absolute"
+        top={isCallMinimized ? 60 : 0}
+        right={isCallMinimized ? 20 : 0}
+        left={isCallMinimized ? undefined : 0}
+        bottom={isCallMinimized ? undefined : 0}
+        width={isCallMinimized ? 120 : '100%'}
+        height={isCallMinimized ? 180 : '100%'}
+        zIndex={99999}
+        borderRadius={isCallMinimized ? 12 : 0}
+        overflow="hidden"
+        elevation={isCallMinimized ? 5 : 0}
+        shadowColor="black"
+        shadowOpacity={isCallMinimized ? 0.3 : 0}
+        shadowRadius={isCallMinimized ? 5 : 0}
+      >
+        <VideoCall
+          token={callToken}
+          isVideoCall={isVideoCall}
+          isMinimized={isCallMinimized}
+          onMinimize={() => setIsCallMinimized(true)}
+          onMaximize={() => setIsCallMinimized(false)}
+          onLeave={() => {
+            const socket = getSocket();
+            if (socket && currentCallRoomId) {
+              socket.emit('cancel_call', { roomId: currentCallRoomId });
+            }
+            setCallToken(null);
+            setCurrentCallRoomId(null);
+            setIsAcceptingCall(false);
+            setIsCallMinimized(false);
+          }}
+        />
+      </YStack>
+    )}
 
     {isAcceptingCall && (
       <YStack
@@ -397,8 +390,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
         top={0} left={0} right={0} bottom={0}
         justifyContent="center"
         alignItems="center"
-        backgroundColor="rgba(0,0,0,0.3)" // Nền trong suốt mờ nhẹ
-        zIndex={100000} // Đảm bảo đè lên mọi UI khác
+        backgroundColor="rgba(0,0,0,0.3)"
+        zIndex={100000}
       >
         <YStack p="$4" borderRadius="$4" backgroundColor="rgba(255,255,255,0.1)">
           <Spinner size="large" color="$green10" />

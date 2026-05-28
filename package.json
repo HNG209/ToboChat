@@ -6,7 +6,7 @@
     "./packages/*"
   ],
   "scripts": {
-    "native": "cd apps/expo && yarn start",
+    "native": "cd apps/expo && yarn start -c",
     "native:prebuild": "cd apps/expo && yarn prebuild",
     "ios": "cd apps/expo && yarn ios",
     "android": "cd apps/expo && yarn android",

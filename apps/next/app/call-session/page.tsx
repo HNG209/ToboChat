@@ -4,7 +4,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { VideoCall } from 'app/features/call/VideoCall';
-import { getSocket } from 'app/utils/socket'; // Hàm khởi tạo/lấy socket của bạn
+import { getSocket } from 'app/utils/socket';
 import { YStack, Text } from 'tamagui';
 import { CallRequest } from 'app/types/Request';
 
@@ -27,7 +27,6 @@ export default function CallSessionPage() {
     return () => clearTimeout(timeoutId)
   }, [])
 
-  // 1. Kết nối và quản lý Socket riêng cho cửa sổ này
   useEffect(() => {
     if (!isSocketReady) return
     const socket = getSocket()
@@ -36,10 +35,9 @@ export default function CallSessionPage() {
     socket.emit('join_room', roomId);
 
     const handleCallCancelled = (data: CallRequest) => {
-      console.log("Received call_cancelled event:", data);
       if (data.roomId === roomId) {
         console.log("Cuộc gọi bị hủy từ xa, đang đóng cửa sổ...");
-        window.close(); // Tự động đóng tab/cửa sổ này lại
+        window.close();
       }
     };
 
@@ -66,7 +64,6 @@ export default function CallSessionPage() {
       isVideoCall={isVideoCall}
       onLeave={() => {
         const socket = getSocket();
-        // Khi bấm nút cúp máy chủ động trong phòng LiveKit
         if (socket) {
           socket.emit('cancel_call', { roomId: roomId });
         }

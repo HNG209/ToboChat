@@ -1,3 +1,4 @@
+import React from 'react'
 import { Avatar, Button, Circle, Text, XStack, YStack } from "tamagui"
 import { ChevronLeft, Info, Phone, Video } from "@tamagui/lucide-icons"
 import { RoomResponse } from "app/types/Response"
@@ -70,29 +71,14 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
           </YStack>
         </XStack>
       </XStack>
+      
       <XStack space="$1" justifyContent="center" alignItems="center">
         {callStatusData === 'IN_CALL' ? (
-          <XStack alignItems="center" space="$2">
-            <Phone color="#22c55e" size={16} style={{
-              animation: 'blinker 1s linear infinite'
-            }} />
-            <Text
-              fontSize="$2"
-              color="$green10"
-              fontWeight="600"
-              style={{
-                animation: 'blinker 1s linear infinite'
-              }}
-            >
+          <XStack alignItems="center" space="$2" px="$2">
+            <Phone color="#22c55e" size={16} />
+            <Text fontSize="$2" color="$green10" fontWeight="600">
               Đang trong cuộc gọi
             </Text>
-            <style>
-              {`
-                @keyframes blinker {
-                  50% { opacity: 0.4; }
-                }
-              `}
-            </style>
           </XStack>
         ) : isGroup ? (
           callStatusData === 'ACTIVE' ? (
