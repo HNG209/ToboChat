@@ -1,6 +1,7 @@
 import { MessageReactionResponse, MessageResponse, PageResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { SendMessageRequest } from 'app/types/Request'
+import { PollCreateRequest } from '@my/ui/src/CreatePollSheet';
 
 export const chatApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -153,6 +154,7 @@ export const chatApi = baseApi.injectEndpoints({
         data,
       }),
     }),
+
     addReaction: builder.mutation<void, { roomId: string; messageId: string; reactionType: string }>({
       query: ({ roomId, messageId, reactionType }) => ({
         url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}/reactions`,
@@ -161,10 +163,27 @@ export const chatApi = baseApi.injectEndpoints({
       }),
 
     }),
+
     getMessageReactions: builder.query<MessageReactionResponse, { roomId: string; messageId: string }>({
       query: ({ roomId, messageId }) => ({
         url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}/reactions`,
         method: 'GET',
+      }),
+    }),
+
+    createPoll: builder.mutation<void, { roomId: string; data: PollCreateRequest }>({
+      query: ({ roomId, data }) => ({
+        url: `/chat/rooms/${roomId}/polls`,
+        method: 'POST',
+        data,
+      }),
+    }),
+
+    votePoll: builder.mutation<void, { roomId: string; pollId: string; optionId: string }>({
+      query: ({ roomId, pollId, optionId }) => ({
+        url: `/chat/rooms/${roomId}/polls/${encodeURIComponent(pollId)}`,
+        method: 'PATCH',
+        params: { optionId },
       }),
     }),
   }),
@@ -178,5 +197,7 @@ export const {
   useLazyGetPresignedUrlQuery,
   useRevokeMessageMutation,
   useForwardMessagesMutation,
-  useAddReactionMutation
+  useAddReactionMutation,
+  useCreatePollMutation,
+  useVotePollMutation,
 } = chatApi

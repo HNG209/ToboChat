@@ -1,5 +1,5 @@
-import { Button, Circle, Image, Input, Text, XStack, YStack, ZStack } from "tamagui"
-import { MoreHorizontal, Image as ImageIcon, SendHorizontal, Heart, X, Video, FileText } from "@tamagui/lucide-icons"
+import { Button, Circle, Image, Input, Sheet, Text, XStack, YStack, ZStack } from "tamagui"
+import { MoreHorizontal, Image as ImageIcon, SendHorizontal, Heart, X, Video, FileText, Plus, BarChart2, MapPin } from "@tamagui/lucide-icons"
 import { ActivityIndicator, Platform } from "react-native"
 import { useState } from "react";
 import { Attachment, MessageResponse } from "app/types/Response"
@@ -13,6 +13,7 @@ import { RoomStatus } from "./ChatInbox";
 import { StyledFlatList } from "./StyledFlatList";
 import { useGetProfileQuery } from "app/services/userApi";
 import ChatEmojiPicker from "./emoji/ChatEmojiPicker";
+import { CreatePollSheet, PollCreateRequest } from "./CreatePollSheet";
 
 type Props = {
   roomId: string,
@@ -45,6 +46,9 @@ export const ChatScreenFooter = ({
 
   const [localMessage, setLocalMessage] = useState('')
   const dispatch = useDispatch<AppDispatch>()
+
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const [isCreatePollOpen, setIsCreatePollOpen] = useState(false);
 
   const onSend = () => {
     const trimmedMsg = localMessage.trim();
@@ -135,18 +139,6 @@ export const ChatScreenFooter = ({
         if (messageContent.trim().length > 0 && currentReplyTo)
           setReplyTo(null)
 
-        // dispatch(
-        //   roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        //     if (!draft?.items) return
-        //     const roomIndex = draft.items.findIndex((room) => room.id === roomId)
-        //     if (roomIndex !== -1) {
-        //       draft.items[roomIndex].latestMessage = result
-        //       const [updatedRoom] = draft.items.splice(roomIndex, 1)
-        //       draft.items.unshift(updatedRoom)
-        //     }
-        //   })
-        // )
-
         dispatch(
           chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
             if (!draft?.items) return
@@ -200,6 +192,21 @@ export const ChatScreenFooter = ({
       await sendSingleMessage('', mediaQueue);
     }
   }
+
+  const handleCreatePollSubmit = async (pollData: PollCreateRequest) => {
+    try {
+      // 1. Gọi API Backend để tạo widget
+      // await createPollWidget({ roomId, data: pollData }).unwrap();
+
+      console.log("Đã gửi dữ liệu tạo Poll:", pollData);
+
+      // 2. (Tùy chọn) Đóng menu nếu mở
+      setIsCreatePollOpen(false);
+    } catch (error) {
+      console.error("Lỗi khi tạo Poll", error);
+      alert("Không thể tạo bình chọn lúc này!");
+    }
+  };
 
   return (
     <YStack>
@@ -368,6 +375,25 @@ export const ChatScreenFooter = ({
         borderWidth={1}
         space="$2"
       >
+        {/* NÚT MỞ MENU CÔNG CỤ (TẠO POLL, GỬI VỊ TRÍ, V.V...) */}
+        {
+          isToolsMenuOpen ?
+            <Button
+              size="$3"
+              circular
+              chromeless
+              icon={<X size={24} color="$color10" />}
+              onPress={() => setIsToolsMenuOpen(false)}
+            /> :
+            <Button
+              size="$3"
+              circular
+              chromeless
+              icon={<Plus size={24} color="$color10" />}
+              onPress={() => setIsToolsMenuOpen(true)}
+            />
+        }
+
         <ChatEmojiPicker
           onEmojiSelect={(emoji) => {
             setLocalMessage((prev) => prev + emoji)
@@ -414,6 +440,59 @@ export const ChatScreenFooter = ({
           <Button size="$3" circular chromeless icon={<Heart size={24} color="$color10" />} />
         )}
       </XStack>
+
+      {isToolsMenuOpen && (
+        <YStack
+          px="$4"
+          pt="$2"
+          pb={Platform.OS === 'web' ? '$4' : (insets?.bottom ?? 0) + 16} // Đẩy padding an toàn xuống tận cùng
+          bg="$background"
+          borderTopWidth={1}
+          borderColor="$color3"
+          animation="quick"
+          enterStyle={{ opacity: 0, y: -20 }} // Hiệu ứng trượt nhẹ từ trên xuống
+          exitStyle={{ opacity: 0, y: -20 }}
+        >
+          <XStack space="$5" flexWrap="wrap">
+            {/* Nút Tạo Poll */}
+            <YStack
+              alignItems="center"
+              space="$2"
+              onPress={() => {
+                setIsToolsMenuOpen(false);
+                setIsCreatePollOpen(true); // Vẫn mở Modal Sheet cho Form tạo Poll
+              }}
+            >
+              <Circle size={56} bg="$blue3">
+                <BarChart2 size={24} color="$blue10" />
+              </Circle>
+              <Text fontSize="$2" color="$color11">Bình chọn</Text>
+            </YStack>
+
+            {/* Nút Vị Trí (Ví dụ) */}
+            <YStack alignItems="center" space="$2">
+              <Circle size={56} bg="$green3">
+                <MapPin size={24} color="$green10" />
+              </Circle>
+              <Text fontSize="$2" color="$color11">Vị trí</Text>
+            </YStack>
+
+            {/* Nút Tài liệu (Ví dụ) */}
+            <YStack alignItems="center" space="$2">
+              <Circle size={56} bg="$orange3">
+                <FileText size={24} color="$orange10" />
+              </Circle>
+              <Text fontSize="$2" color="$color11">Tài liệu</Text>
+            </YStack>
+          </XStack>
+        </YStack>
+      )}
+
+      <CreatePollSheet
+        isOpen={isCreatePollOpen}
+        roomId={roomId}
+        onOpenChange={setIsCreatePollOpen}
+      />
     </YStack>
   )
 }
