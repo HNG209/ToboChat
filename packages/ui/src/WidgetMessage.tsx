@@ -1,16 +1,11 @@
 import { YStack, XStack, Text, Circle, Button, ThemeName, ZStack } from '@my/ui'
 import { PhoneMissed, PhoneCall, Video, MapPin, BarChart2, CheckCircle2, Edit3 } from '@tamagui/lucide-icons'
-import { chatApi } from 'app/services/chatApi'
 import { useGetProfileQuery } from 'app/services/userApi'
-import { AppDispatch } from 'app/store'
 import { MessageResponse } from 'app/types/Response'
 import { getSocket } from 'app/utils/socket'
-import { useDispatch } from 'react-redux'
-import { useVotePollMutation } from 'app/services/chatApi'
-import { useState } from 'react'
-import { CreatePollSheet } from './CreatePollSheet'
-import { PollDetailDialog } from './PollDetailDialog'
 import { PollDetail } from './PollDetail'
+import { PollDetailDialog } from './PollDetailDialog'
+import { useState } from 'react'
 
 interface WidgetMessageProps {
   msg: MessageResponse
@@ -49,6 +44,7 @@ export function WidgetMessage({ msg, isMe, roomId }: WidgetMessageProps) {
 }
 
 function PollWidget({ msg, roomId }: { msg: MessageResponse; roomId: string }) {
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { data: myProfile } = useGetProfileQuery();
   const currentUserId = myProfile?.id;
 
@@ -64,9 +60,18 @@ function PollWidget({ msg, roomId }: { msg: MessageResponse; roomId: string }) {
       borderRadius="$4"
       borderWidth={1}
       borderColor="$borderColor"
-      space="$3"
     >
       <PollDetail msg={msg} roomId={roomId} mode="PREVIEW" currentUserId={currentUserId} />
+      <Button marginBottom="$2" onPress={() => setIsDetailOpen(true)} backgroundColor="$blue10" variant="outlined" chromeless>
+        <Text color="white">Bình chọn</Text>
+      </Button>
+
+      <PollDetailDialog
+        isOpen={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        roomId={roomId}
+        pollId={msg.id}
+      />
     </YStack>
   )
 }

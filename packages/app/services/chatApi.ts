@@ -155,6 +155,7 @@ export const chatApi = baseApi.injectEndpoints({
         },
       }),
     }),
+
     // forward tin nhan
     forwardMessages: builder.mutation<
       void,
@@ -199,11 +200,11 @@ export const chatApi = baseApi.injectEndpoints({
       }),
     }),
 
-    votePoll: builder.mutation<void, { roomId: string; pollId: string; optionId: string }>({
-      query: ({ roomId, pollId, optionId }) => ({
+    votePoll: builder.mutation<void, { roomId: string; pollId: string; optionIds: string[] }>({
+      query: ({ roomId, pollId, optionIds }) => ({
         url: `/chat/rooms/${roomId}/polls/${encodeURIComponent(pollId)}`,
         method: 'PATCH',
-        params: { optionId },
+        data: { optionIds }, // Gửi qua body (data) thay vì params vì là mảng
       }),
     }),
   }),
