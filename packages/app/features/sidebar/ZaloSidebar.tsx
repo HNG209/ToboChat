@@ -202,11 +202,33 @@ export const ZaloSidebar = () => {
       )
     }
 
+    const handleGroupRequestUnreadUpdate = (payload: number) => {
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.groupRequestCount = (draft.groupRequestCount || 0) + 1
+        })
+      )
+    }
+
+    const handleGroupRequestResetUnread = () => {
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.groupRequestCount = 0
+        })
+      )
+    }
+
     socket.on('friend_request_unread_update', handleFriendRequestUnreadUpdate)
     socket.on('friend_request_unread_reset', handleFriendRequestResetUnread)
+    socket.on('group_request_unread_update', handleGroupRequestUnreadUpdate)
+    socket.on('group_request_unread_reset', handleGroupRequestResetUnread)
     return () => {
       socket.off('friend_request_unread_update', handleFriendRequestUnreadUpdate)
       socket.off('friend_request_unread_reset', handleFriendRequestResetUnread)
+      socket.off('group_request_unread_update', handleGroupRequestUnreadUpdate)
+      socket.off('group_request_unread_reset', handleGroupRequestResetUnread)
     }
   }, [dispatch, isSocketReady])
 
