@@ -1,5 +1,6 @@
 import { Text } from '@my/ui'
 import { MessageResponse } from 'app/types/Response'
+import { useState } from 'react'
 
 interface SystemMessageProps {
   msg: MessageResponse
@@ -81,14 +82,16 @@ const PollLink = ({
 }
 
 export const SystemMessage = ({ msg, selfUserId, onUserPress }: SystemMessageProps) => {
+  const [isPollDetailOpen, setIsPollDetailOpen] = useState(false)
+  const [selectedPollId, setSelectedPollId] = useState<string | null>(null)
   const actorId = msg.user?.id
   const actorName = msg.user?.name
   const isActorSelf = actorId === selfUserId
   const meta = msg.metadata || {}
 
   const onPollPress = (pollId: string) => {
-    console.log('Poll ID được nhấn:', pollId)
-    // Bạn có thể thêm logic điều hướng hoặc hiển thị chi tiết cuộc thăm dò ở đây
+    setIsPollDetailOpen(true)
+    setSelectedPollId(pollId)
   }
 
   // Helper để render Actor (Người thực hiện hành động)
@@ -180,9 +183,11 @@ export const SystemMessage = ({ msg, selfUserId, onUserPress }: SystemMessagePro
 
     case 'POLL_VOTED':
       return (
-        <Text>
-          <Actor /> đã tham gia bình chọn. <PollLink pollId={meta?.pollId} question={'Xem chi tiết'} onPress={onPollPress} />
-        </Text>
+        <>
+          <Text>
+            <Actor /> đã tham gia bình chọn. <PollLink pollId={meta?.pollId} question={'Xem chi tiết'} onPress={onPollPress} />
+          </Text>
+        </>
       )
 
     default:
