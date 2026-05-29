@@ -97,7 +97,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
 
       {/* RIGHT: Các nút hành động */}
       <XStack gap="$2" alignItems="center">
-        {!isGroup ? (
+        {isGroup ? (
           <></>
         ) : (
           <>
