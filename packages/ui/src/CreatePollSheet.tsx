@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Input, Sheet, Text, XStack, YStack, ScrollView, Switch, Label } from 'tamagui';
 import { X, Plus, Trash2 } from '@tamagui/lucide-icons';
 import { KeyboardAvoidingView, Platform } from 'react-native';
-import { useCreatePollMutation } from 'app/services/chatApi';
+import { useCreatePollMutation, useUpdatePollMutation } from 'app/services/chatApi';
+import { MessageResponse } from 'app/types/Response';
 
-// Định nghĩa đúng theo cấu trúc DTO bạn vừa làm ở BE
-export type PollCreateRequest = {
+export type PollOptionDto = {
+  id?: string;
+  text: string;
+};
+
+export type PollSubmitRequest = { // create + update chung 1 type
   question: string;
-  options: string[];
+  options: PollOptionDto[];
   multipleChoice: boolean;
   allowAddOption: boolean;
   deadline?: string;
@@ -16,73 +21,95 @@ export type PollCreateRequest = {
 type Props = {
   isOpen: boolean;
   roomId: string;
+  initialPoll?: MessageResponse | null; // Truyền thẳng object Poll vào đây
   onOpenChange: (open: boolean) => void;
 };
 
-export const CreatePollSheet = ({ isOpen, roomId, onOpenChange }: Props) => {
+export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: Props) => {
+  const isEditMode = !!initialPoll;
+
   const [question, setQuestion] = useState('');
-  const [options, setOptions] = useState<string[]>(['', '']); // Mặc định 2 ô trống
+  const [options, setOptions] = useState<PollOptionDto[]>([{ text: '' }, { text: '' }]);
   const [multipleChoice, setMultipleChoice] = useState(false);
   const [allowAddOption, setAllowAddOption] = useState(false);
 
   const [createPoll] = useCreatePollMutation();
+  const [updatePoll] = useUpdatePollMutation();
 
-  const handleCreatePollSubmit = async (pollData: PollCreateRequest) => {
-    try {
-      // 1. Gọi API Backend để tạo widget
-      await createPoll({ roomId, data: pollData }).unwrap();
+  useEffect(() => {
+    if (isOpen && initialPoll && initialPoll.metadata?.pollData) {
+      // NẾU LÀ CHẾ ĐỘ SỬA: Parse dữ liệu từ object truyền vào
+      try {
+        const parsedData = JSON.parse(initialPoll.metadata.pollData);
+        setQuestion(parsedData.question || '');
 
-      console.log("Đã gửi dữ liệu tạo Poll:", pollData);
-    } catch (error) {
-      console.error("Lỗi khi tạo Poll", error);
-      alert("Không thể tạo bình chọn lúc này!");
+        if (parsedData.options && parsedData.options.length > 0) {
+          setOptions(parsedData.options.map((o: any) => ({ id: o.id, text: o.text })));
+        }
+
+        setMultipleChoice(parsedData.multipleChoice || false);
+        setAllowAddOption(parsedData.allowAddOption || false);
+      } catch (error) {
+        console.error("Lỗi parse dữ liệu Poll để sửa:", error);
+      }
+    } else if (isOpen && !initialPoll) {
+      // NẾU LÀ CHẾ ĐỘ TẠO MỚI: Reset form cho sạch sẽ
+      setQuestion('');
+      setOptions([{ text: '' }, { text: '' }]);
+      setMultipleChoice(false);
+      setAllowAddOption(false);
     }
-  };
+  }, [isOpen, initialPoll]);
 
   const handleAddOption = () => {
-    if (options.length >= 20) return; // Giới hạn 20 lựa chọn
-    setOptions([...options, '']);
+    if (options.length >= 20) return;
+    setOptions([...options, { text: '' }]);
   };
 
   const handleRemoveOption = (indexToRemove: number) => {
-    if (options.length <= 2) return; // Phải giữ lại ít nhất 2 ô
+    if (options.length <= 2) return;
     setOptions(options.filter((_, index) => index !== indexToRemove));
   };
 
   const handleChangeOption = (text: string, index: number) => {
     const newOptions = [...options];
-    newOptions[index] = text;
+    newOptions[index].text = text;
     setOptions(newOptions);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmedQuestion = question.trim();
-    const validOptions = options.map(o => o.trim()).filter(o => o.length > 0);
+    const validOptions = options
+      .map(o => ({ ...o, text: o.text.trim() }))
+      .filter(o => o.text.length > 0);
 
     if (!trimmedQuestion) {
       alert('Vui lòng nhập câu hỏi bình chọn!');
       return;
     }
     if (validOptions.length < 2) {
-      alert('Vui lòng nhập ít nhất 2 lựa chọn!');
+      alert('Vui lòng nhập ít nhất 2 lựa chọn hợp lệ!');
       return;
     }
 
-    const pollData: PollCreateRequest = {
+    const pollData: PollSubmitRequest = {
       question: trimmedQuestion,
       options: validOptions,
       multipleChoice,
       allowAddOption,
     };
 
-    handleCreatePollSubmit(pollData);
-
-    // Reset form sau khi gửi
-    setQuestion('');
-    setOptions(['', '']);
-    setMultipleChoice(false);
-    setAllowAddOption(false);
-    onOpenChange(false); // Đóng sheet
+    try {
+      if (isEditMode && initialPoll) {
+        await updatePoll({ roomId, pollId: initialPoll.id, data: pollData }).unwrap();
+      } else {
+        await createPoll({ roomId, data: pollData }).unwrap();
+      }
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Lỗi khi xử lý Poll:", error);
+      alert(isEditMode ? "Không thể cập nhật bình chọn!" : "Không thể tạo bình chọn lúc này!");
+    }
   };
 
   return (
@@ -101,22 +128,23 @@ export const CreatePollSheet = ({ isOpen, roomId, onOpenChange }: Props) => {
         transition="lazy"
         bg="$shadow6"
         enterStyle={{ opacity: 0 }}
-        exitStyle={{ opacity: 0 }} />
+        exitStyle={{ opacity: 0 }}
+      />
       <Sheet.Handle />
       <Sheet.Frame flex={1} bg="$background" padding="$4" borderTopLeftRadius="$4" borderTopRightRadius="$4">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <YStack flex={1} space="$4">
 
-            {/* Tiêu đề & Nút tắt */}
             <XStack justifyContent="space-between" alignItems="center">
-              <Text fontSize="$6" fontWeight="bold">Tạo bình chọn</Text>
+              <Text fontSize="$6" fontWeight="bold">
+                {isEditMode ? 'Cập nhật bình chọn' : 'Tạo bình chọn'}
+              </Text>
               <Button size="$3" circular chromeless icon={X} onPress={() => onOpenChange(false)} />
             </XStack>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-              <YStack space="$4">
+              <YStack space="$2">
 
-                {/* Câu hỏi */}
                 <YStack space="$2">
                   <Label fontWeight="bold">Câu hỏi</Label>
                   <Input
@@ -128,7 +156,6 @@ export const CreatePollSheet = ({ isOpen, roomId, onOpenChange }: Props) => {
                   />
                 </YStack>
 
-                {/* Danh sách lựa chọn */}
                 <YStack space="$3">
                   <Label fontWeight="bold">Các lựa chọn</Label>
                   {options.map((option, index) => (
@@ -136,7 +163,7 @@ export const CreatePollSheet = ({ isOpen, roomId, onOpenChange }: Props) => {
                       <Input
                         flex={1}
                         placeholder={`Lựa chọn ${index + 1}`}
-                        value={option}
+                        value={option.text}
                         onChangeText={(text) => handleChangeOption(text, index)}
                         size="$4"
                         borderRadius="$3"
@@ -167,11 +194,15 @@ export const CreatePollSheet = ({ isOpen, roomId, onOpenChange }: Props) => {
                   )}
                 </YStack>
 
-                {/* Các tuỳ chọn (Cấu hình) */}
                 <YStack space="$3" mt="$4" p="$3" bg="$color3" borderRadius="$4">
                   <XStack alignItems="center" space="$4">
-                    <Switch size="$2" checked={multipleChoice} onCheckedChange={setMultipleChoice}>
-                      <Switch.Thumb animation="quick" />
+                    <Switch
+                      size="$2"
+                      checked={multipleChoice}
+                      onCheckedChange={setMultipleChoice}
+                      bg={multipleChoice ? '$blue9' : '$color5'}
+                    >
+                      <Switch.Thumb animation="quick" backgroundColor="white" />
                     </Switch>
                     <Label flex={1} onPress={() => setMultipleChoice(!multipleChoice)}>
                       Cho phép chọn nhiều phương án
@@ -179,21 +210,28 @@ export const CreatePollSheet = ({ isOpen, roomId, onOpenChange }: Props) => {
                   </XStack>
 
                   <XStack alignItems="center" space="$4">
-                    <Switch size="$2" checked={allowAddOption} onCheckedChange={setAllowAddOption}>
-                      <Switch.Thumb animation="quick" />
+                    <Switch
+                      size="$2"
+                      checked={allowAddOption}
+                      onCheckedChange={setAllowAddOption}
+                      bg={allowAddOption ? '$blue9' : '$color5'}
+                    >
+                      <Switch.Thumb animation="quick" backgroundColor="white" />
                     </Switch>
                     <Label flex={1} onPress={() => setAllowAddOption(!allowAddOption)}>
                       Thành viên có thể thêm lựa chọn
                     </Label>
                   </XStack>
+
                 </YStack>
 
               </YStack>
             </ScrollView>
 
-            {/* Nút Submit */}
-            <Button size="$5" theme="blue" borderRadius="$4" onPress={handleSubmit}>
-              <Text color="white" fontWeight="bold">Tạo bình chọn</Text>
+            <Button size="$5" backgroundColor="$blue10" borderRadius="$4" onPress={handleSubmit}>
+              <Text color="white" fontWeight="bold">
+                {isEditMode ? 'Lưu thay đổi' : 'Tạo bình chọn'}
+              </Text>
             </Button>
 
           </YStack>

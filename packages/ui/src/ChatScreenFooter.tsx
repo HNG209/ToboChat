@@ -8,12 +8,11 @@ import { AppDispatch } from "app/store";
 import { useDispatch } from 'react-redux'
 import { chatApi, useSendMessageMutation } from 'app/services/chatApi'
 import { useChatAttachment } from 'app/hooks/useChatAttachment'
-import { roomApi, useGetMyInfoQuery } from "app/services/roomApi";
 import { RoomStatus } from "./ChatInbox";
 import { StyledFlatList } from "./StyledFlatList";
 import { useGetProfileQuery } from "app/services/userApi";
 import ChatEmojiPicker from "./emoji/ChatEmojiPicker";
-import { CreatePollSheet, PollCreateRequest } from "./CreatePollSheet";
+import { CreatePollSheet } from "./CreatePollSheet";
 
 type Props = {
   roomId: string,
@@ -192,21 +191,6 @@ export const ChatScreenFooter = ({
       await sendSingleMessage('', mediaQueue);
     }
   }
-
-  const handleCreatePollSubmit = async (pollData: PollCreateRequest) => {
-    try {
-      // 1. Gọi API Backend để tạo widget
-      // await createPollWidget({ roomId, data: pollData }).unwrap();
-
-      console.log("Đã gửi dữ liệu tạo Poll:", pollData);
-
-      // 2. (Tùy chọn) Đóng menu nếu mở
-      setIsCreatePollOpen(false);
-    } catch (error) {
-      console.error("Lỗi khi tạo Poll", error);
-      alert("Không thể tạo bình chọn lúc này!");
-    }
-  };
 
   return (
     <YStack>

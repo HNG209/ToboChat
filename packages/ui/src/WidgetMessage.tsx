@@ -1,5 +1,5 @@
 import { YStack, XStack, Text, Circle, Button, ThemeName, ZStack } from '@my/ui'
-import { PhoneMissed, PhoneCall, Video, MapPin, BarChart2, CheckCircle2 } from '@tamagui/lucide-icons'
+import { PhoneMissed, PhoneCall, Video, MapPin, BarChart2, CheckCircle2, Edit3 } from '@tamagui/lucide-icons'
 import { chatApi } from 'app/services/chatApi'
 import { useGetProfileQuery } from 'app/services/userApi'
 import { AppDispatch } from 'app/store'
@@ -7,6 +7,8 @@ import { MessageResponse } from 'app/types/Response'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch } from 'react-redux'
 import { useVotePollMutation } from 'app/services/chatApi'
+import { useState } from 'react'
+import { CreatePollSheet } from './CreatePollSheet'
 
 interface WidgetMessageProps {
   msg: MessageResponse
@@ -31,10 +33,9 @@ export function WidgetMessage({ msg, isMe, roomId }: WidgetMessageProps) {
       return <CallWidget metadata={metadata} isMe={isMe} roomId={roomId} />
 
     case 'POLL':
-      return <PollWidget msgId={msg.id} metadata={metadata} roomId={roomId} />
+      return <PollWidget msg={msg} roomId={roomId} />
 
     // Thêm các case mới ở đây trong tương lai
-    // case 'POLL': return <PollWidget metadata={metadata} />
 
     default:
       return (
@@ -45,10 +46,15 @@ export function WidgetMessage({ msg, isMe, roomId }: WidgetMessageProps) {
   }
 }
 
-function PollWidget({ msgId, metadata, roomId }: { msgId: string; metadata: any; roomId: string }) {
-  console.log("pollId", msgId);
+function PollWidget({ msg, roomId }: { msg: MessageResponse; roomId: string }) {
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const metadata = msg.metadata || {};
+  const msgId = msg.id;
+
   const { data: myProfile } = useGetProfileQuery();
   const currentUserId = myProfile?.id;
+  const isCreator = msg.user?.id === currentUserId;
 
   const dispatch = useDispatch<AppDispatch>();
   const [votePoll] = useVotePollMutation();
@@ -129,13 +135,24 @@ function PollWidget({ msgId, metadata, roomId }: { msgId: string; metadata: any;
       borderColor="$borderColor"
       space="$3"
     >
-      <XStack alignItems="center" space="$2">
-        <Circle size={28} bg="$blue3">
-          <BarChart2 size={16} color="$blue10" />
-        </Circle>
-        <Text fontSize="$2" color="$color11" fontWeight="600">
-          Cuộc bình chọn
-        </Text>
+      <XStack alignItems="center" justifyContent="space-between">
+        <XStack alignItems="center" space="$2">
+          <Circle size={28} bg="$blue3">
+            <BarChart2 size={16} color="$blue10" />
+          </Circle>
+          <Text fontSize="$2" color="$color11" fontWeight="600">
+            Cuộc bình chọn
+          </Text>
+        </XStack>
+
+        {/* Nút Mở Form Chỉnh Sửa */}
+        <Button
+          size="$2"
+          circular
+          chromeless
+          icon={<Edit3 size={16} color="$color10" />}
+          onPress={() => setIsEditOpen(true)}
+        />
       </XStack>
 
       <Text fontWeight="bold" fontSize="$5" color="$color12">
@@ -201,6 +218,13 @@ function PollWidget({ msgId, metadata, roomId }: { msgId: string; metadata: any;
           </Text>
         )}
       </XStack>
+
+      <CreatePollSheet
+        isOpen={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        roomId={roomId}
+        initialPoll={msg} // Truyền thẳng message hiện tại vào
+      />
     </YStack>
   )
 }
