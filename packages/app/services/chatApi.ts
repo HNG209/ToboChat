@@ -5,6 +5,7 @@ import { PollSubmitRequest } from '@my/ui/src/CreatePollSheet';
 
 export const chatApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Gửi tin nhắn mới vào phòng chat
     sendMessage: builder.mutation<MessageResponse, SendMessageRequest>({
       query: (sendMessageRequest) => ({
         url: `/chat/rooms/${sendMessageRequest.roomId}/messages`,
@@ -18,6 +19,7 @@ export const chatApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Lấy danh sách tin nhắn trong phòng chat với phân trang cursor-based
     getMessages: builder.query<
       PageResponse<MessageResponse>,
       { roomId: string; cursor?: string; limit?: number; direction?: 'before' | 'after' | 'both' }
@@ -106,6 +108,16 @@ export const chatApi = baseApi.injectEndpoints({
 
       providesTags: (result, error, arg) => [{ type: 'Messages', id: arg.roomId }],
     }),
+
+    // Lấy chi tiết 1 tin nhắn
+    getMessage: builder.query<MessageResponse, { roomId: string; messageId: string }>({
+      query: ({ roomId, messageId }) => ({
+        url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, arg) => [{ type: 'Messages', id: arg.messageId }],
+    }),
+
     getPresignedUrl: builder.query<any, { roomId: string; fileName: string; contentType: string }>({
       query: (params) => ({
         url: `/chat/upload/${params.roomId}`,
@@ -199,6 +211,7 @@ export const chatApi = baseApi.injectEndpoints({
 
 export const {
   useGetMessagesQuery,
+  useGetMessageQuery,
   useLazyGetMessagesQuery,
   useSendMessageMutation,
   useDeleteMessageMutation,

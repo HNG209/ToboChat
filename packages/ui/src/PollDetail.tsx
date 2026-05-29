@@ -77,16 +77,17 @@ export const PollDetail = ({ msg, roomId, mode = 'PREVIEW', currentUserId }: Pol
   return (
     <YStack space="$3" width="100%">
       <XStack alignItems="center" justifyContent="space-between">
-        <XStack alignItems="center" space="$2">
-          <Circle size={28} bg="$blue3">
-            <BarChart2 size={16} color="$blue10" />
-          </Circle>
-          <Text fontSize="$2" color="$color11" fontWeight="600">
-            {
-              mode === 'PREVIEW' ? 'Cuộc bình chọn' : 'Chi tiết cuộc bình chọn'
-            }
-          </Text>
-        </XStack>
+        {
+          mode === 'PREVIEW' &&
+          <XStack alignItems="center" space="$2">
+            <Circle size={28} bg="$blue3">
+              <BarChart2 size={16} color="$blue10" />
+            </Circle>
+            <Text fontSize="$2" color="$color11" fontWeight="600">
+              Cuộc bình chọn
+            </Text>
+          </XStack>
+        }
 
         {/* Nút Mở Form Chỉnh Sửa */}
         {

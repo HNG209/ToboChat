@@ -540,6 +540,14 @@ export function ChatScreen({ roomId, insets }: Props) {
           }
         })
       )
+
+      dispatch(
+        chatApi.util.updateQueryData('getMessage', { roomId, messageId: pollData.id }, (draft) => {
+          if (draft) {
+            draft.metadata = pollData.metadata
+          }
+        })
+      )
     }
 
     socket.on('poll_updated', handlePollUpdated)

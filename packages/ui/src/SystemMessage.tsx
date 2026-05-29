@@ -1,6 +1,7 @@
 import { Text } from '@my/ui'
 import { MessageResponse } from 'app/types/Response'
 import { useState } from 'react'
+import { PollDetailDialog } from './PollDetailDialog'
 
 interface SystemMessageProps {
   msg: MessageResponse
@@ -187,6 +188,16 @@ export const SystemMessage = ({ msg, selfUserId, onUserPress }: SystemMessagePro
           <Text>
             <Actor /> đã tham gia bình chọn. <PollLink pollId={meta?.pollId} question={'Xem chi tiết'} onPress={onPollPress} />
           </Text>
+
+          <PollDetailDialog
+            isOpen={isPollDetailOpen}
+            pollId={selectedPollId!}
+            onOpenChange={(open) => {
+              if (!open) setSelectedPollId(null)
+              setIsPollDetailOpen(open)
+            }}
+            roomId={msg.roomId}
+          />
         </>
       )
 
