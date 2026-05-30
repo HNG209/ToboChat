@@ -39,7 +39,8 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
     }
 
     const { question, options = [], multipleChoice, allowAddOption } = pollData
-    const isCreator = msg?.user && msg?.user.id === currentUser?.id || allowAddOption
+    const isCreator = msg?.user && msg?.user.id === currentUser?.id
+    const canAddOption = allowAddOption || isCreator
 
     const initialSelectedIds = options
       .filter((o: any) => o.votedUserIds.includes(currentUser?.id))
@@ -154,7 +155,7 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
             </XStack>
           )}
 
-          {(mode === 'PREVIEW' && isCreator) && (
+          {(mode === 'PREVIEW' && canAddOption) && (
             <Button size="$2" circular chromeless icon={<Edit3 size={16} color="$color10" />} onPress={() => setIsEditOpen(true)} />
           )}
         </XStack>

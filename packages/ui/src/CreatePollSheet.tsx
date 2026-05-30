@@ -4,6 +4,7 @@ import { X, Plus, Trash2 } from '@tamagui/lucide-icons';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import { useCreatePollMutation, useUpdatePollMutation } from 'app/services/chatApi';
 import { MessageResponse } from 'app/types/Response';
+import { useGetProfileQuery } from 'app/services/userApi';
 
 export type PollOptionDto = {
   id?: string;
@@ -27,7 +28,7 @@ type Props = {
 
 export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: Props) => {
   const isEditMode = !!initialPoll;
-
+  const { data: currentUser } = useGetProfileQuery()
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<PollOptionDto[]>([{ text: '' }, { text: '' }]);
   const [multipleChoice, setMultipleChoice] = useState(false);
@@ -35,6 +36,8 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
 
   const [createPoll, { isLoading: isCreating }] = useCreatePollMutation();
   const [updatePoll, { isLoading: isUpdating }] = useUpdatePollMutation();
+
+  const isCreator = initialPoll?.user && initialPoll.user.id === currentUser?.id;
 
   useEffect(() => {
     if (isOpen && initialPoll && initialPoll.metadata?.pollData) {
@@ -201,6 +204,8 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                       checked={multipleChoice}
                       onCheckedChange={setMultipleChoice}
                       bg={multipleChoice ? '$blue9' : '$color5'}
+                      disabled={!isCreator}
+                      opacity={!isCreator ? 0.5 : 1}
                     >
                       <Switch.Thumb animation="quick" backgroundColor="white" />
                     </Switch>
@@ -215,11 +220,13 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                       checked={allowAddOption}
                       onCheckedChange={setAllowAddOption}
                       bg={allowAddOption ? '$blue9' : '$color5'}
+                      disabled={!isCreator}
+                      opacity={!isCreator ? 0.5 : 1}
                     >
                       <Switch.Thumb animation="quick" backgroundColor="white" />
                     </Switch>
                     <Label flex={1} onPress={() => setAllowAddOption(!allowAddOption)}>
-                      Cho phép người khác chỉnh sửa
+                      Cho phép người khác thêm lựa chọn
                     </Label>
                   </XStack>
 
