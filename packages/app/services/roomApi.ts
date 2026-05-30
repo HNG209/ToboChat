@@ -67,11 +67,30 @@ export const roomApi = baseApi.injectEndpoints({
     }),
 
     // Lấy danh sách lời mời tham gia nhóm
-    getGroupInvites: builder.query<PageResponse<GroupAcceptRequestResponse>, void>({
-      query: () => ({
+    getGroupInvites: builder.query<PageResponse<GroupAcceptRequestResponse>, { cursor?: string; limit?: number }>({
+      query: (params) => ({
         url: '/group-invites',
         method: 'GET',
+        params: {
+          cursor: params.cursor,
+          limit: params.limit,
+        },
       }),
+      serializeQueryArgs: ({ endpointName }) => {
+        return endpointName 
+      },
+      merge: (currentCache, newData, { arg }) => {
+        if (!arg?.cursor) {
+          return newData
+        }
+        if (!currentCache.items) {
+          currentCache.items = []
+        }
+        const existingIds = new Set(currentCache.items.map((i) => i.roomId))
+        const newItems = newData.items.filter((i) => !existingIds.has(i.roomId))
+        currentCache.items.push(...newItems)
+        currentCache.nextCursor = newData.nextCursor
+      },
       providesTags: ['Rooms'],
     }),
 

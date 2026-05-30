@@ -30,7 +30,7 @@ export default function GroupRequestPage() {
       const isAccept = action === 'join';
 
       dispatch(
-        roomApi.util.updateQueryData('getGroupInvites', undefined, (draft) => {
+        roomApi.util.updateQueryData('getGroupInvites', { limit: 20, cursor: undefined }, (draft) => {
           const index = draft.items?.findIndex((r) => r.roomId === id);
           if (index !== -1 && index !== undefined) {
             draft.items.splice(index, 1);
