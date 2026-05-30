@@ -50,11 +50,11 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <Provider>
+    <Provider>
+      <SafeAreaProvider>
         <RootLayoutNav />
-      </Provider>
-    </SafeAreaProvider>
+      </SafeAreaProvider>
+    </Provider>
   )
 }
 
