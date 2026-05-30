@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Sheet, Text, XStack, YStack, ScrollView, Switch, Label } from 'tamagui';
+import { Button, Input, Sheet, Text, XStack, YStack, ScrollView, Switch, Label, Spinner } from 'tamagui';
 import { X, Plus, Trash2 } from '@tamagui/lucide-icons';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import { useCreatePollMutation, useUpdatePollMutation } from 'app/services/chatApi';
@@ -33,8 +33,8 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
   const [multipleChoice, setMultipleChoice] = useState(false);
   const [allowAddOption, setAllowAddOption] = useState(false);
 
-  const [createPoll] = useCreatePollMutation();
-  const [updatePoll] = useUpdatePollMutation();
+  const [createPoll, { isLoading: isCreating }] = useCreatePollMutation();
+  const [updatePoll, { isLoading: isUpdating }] = useUpdatePollMutation();
 
   useEffect(() => {
     if (isOpen && initialPoll && initialPoll.metadata?.pollData) {
@@ -219,7 +219,7 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                       <Switch.Thumb animation="quick" backgroundColor="white" />
                     </Switch>
                     <Label flex={1} onPress={() => setAllowAddOption(!allowAddOption)}>
-                      Thành viên có thể thêm lựa chọn
+                      Cho phép người khác chỉnh sửa
                     </Label>
                   </XStack>
 
@@ -229,9 +229,14 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
             </ScrollView>
 
             <Button size="$5" backgroundColor="$blue10" borderRadius="$4" onPress={handleSubmit}>
-              <Text color="white" fontWeight="bold">
-                {isEditMode ? 'Lưu thay đổi' : 'Tạo bình chọn'}
-              </Text>
+              {
+                (isCreating || isUpdating) ?
+                  <Spinner size="small" color="white" />
+                  :
+                  <Text color="white" fontWeight="bold">
+                    {isEditMode ? 'Lưu thay đổi' : 'Tạo bình chọn'}
+                  </Text>
+              }
             </Button>
 
           </YStack>

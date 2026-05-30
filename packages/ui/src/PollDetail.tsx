@@ -38,22 +38,19 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
       return <Text color="$red10">Dữ liệu bình chọn bị lỗi</Text>
     }
 
-    const { question, options = [], multipleChoice } = pollData
+    const { question, options = [], multipleChoice, allowAddOption } = pollData
+    const isCreator = msg?.user && msg?.user.id === currentUser?.id || allowAddOption
 
-    // 1. TÍNH TOÁN DỮ LIỆU BAN ĐẦU TỪ DATABASE
     const initialSelectedIds = options
       .filter((o: any) => o.votedUserIds.includes(currentUser?.id))
       .map((o: any) => o.id)
 
-    // 2. KHỞI TẠO STATE ẢO (DRAFT) ĐỂ RENDER UI NGAY LẬP TỨC
     const [draftSelectedIds, setDraftSelectedIds] = useState<string[]>(initialSelectedIds)
 
-    // Reset lại state ảo nếu có data real-time từ DB đổ về
     useEffect(() => {
       setDraftSelectedIds(initialSelectedIds)
     }, [msgId, metadata.pollData])
 
-    // 3. XỬ LÝ CLICK: Chỉ thay đổi UI, KHÔNG gọi API hay Redux
     const handleOptionClick = (clickedOptionId: string) => {
       if (!currentUser?.id || mode === 'PREVIEW') return
 
@@ -68,7 +65,7 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
       }
     }
 
-    // 4. MỞ HÀM SUBMIT CHO COMPONENT CHA GỌI (Khi bấm nút Xác Nhận)
+    // MỞ HÀM SUBMIT CHO COMPONENT CHA GỌI (Khi bấm nút Xác Nhận)
     useImperativeHandle(ref, () => ({
       submit: async () => {
         if (JSON.stringify(initialSelectedIds.sort()) === JSON.stringify(draftSelectedIds.sort())) {
@@ -157,7 +154,7 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
             </XStack>
           )}
 
-          {mode === 'PREVIEW' && (
+          {(mode === 'PREVIEW' && isCreator) && (
             <Button size="$2" circular chromeless icon={<Edit3 size={16} color="$color10" />} onPress={() => setIsEditOpen(true)} />
           )}
         </XStack>
@@ -180,7 +177,6 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
                   borderColor={isVotedByMe ? '$blue8' : '$borderColor'}
                   borderRadius="$3" overflow="hidden"
                   onPress={() => handleOptionClick(opt.id)}
-                  // KHÓA MỌI TƯƠNG TÁC NẾU LÀ PREVIEW
                   pointerEvents={mode === 'PREVIEW' ? 'none' : 'auto'}
                 >
                   <ZStack fullscreen>

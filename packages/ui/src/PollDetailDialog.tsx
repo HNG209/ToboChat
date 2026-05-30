@@ -1,9 +1,9 @@
-import { useRef } from 'react'; // THÊM IMPORT NÀY
+import { useRef } from 'react';
 import { Dialog, YStack, XStack, Text, Button, Circle, ScrollView, Spinner } from 'tamagui';
 import { MessageResponse } from 'app/types/Response';
 import { useGetProfileQuery } from 'app/services/userApi';
 import { useGetMessageQuery, useVotePollMutation } from 'app/services/chatApi';
-import { PollDetail, PollDetailRef } from './PollDetail'; // THÊM PollDetailRef
+import { PollDetail, PollDetailRef } from './PollDetail';
 import { BarChart2, X } from '@tamagui/lucide-icons';
 
 type Props = {
@@ -76,12 +76,12 @@ export const PollDetailDialog = ({ isOpen, pollId, msg, onOpenChange, roomId }: 
             ) : displayMsg ? (
               <ScrollView maxHeight={500} showsVerticalScrollIndicator={false} mt="$3">
                 <PollDetail
-                  ref={pollDetailRef} // GẮN REF VÀO ĐÂY
+                  ref={pollDetailRef}
                   msg={displayMsg}
                   roomId={roomId}
                   mode="DETAIL"
                   currentUserId={myProfile?.id}
-                  onSubmit={handleSubmitApi} // TRUYỀN HÀM API VÀO
+                  onSubmit={handleSubmitApi}
                 />
               </ScrollView>) :
               (<YStack alignItems="center" justifyContent="center" flex={1}>
