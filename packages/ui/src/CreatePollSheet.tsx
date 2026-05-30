@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Input, Sheet, Text, XStack, YStack, ScrollView, Switch, Label, Spinner } from 'tamagui';
-import { X, Plus, Trash2 } from '@tamagui/lucide-icons';
+import { X, Plus, Trash2, Sparkles, Paperclip, Send } from '@tamagui/lucide-icons';
 import { KeyboardAvoidingView, Platform } from 'react-native';
-import { useCreatePollMutation, useUpdatePollMutation } from 'app/services/chatApi';
+import { useCreatePollMutation, useGeneratePollMutation, useUpdatePollMutation } from 'app/services/chatApi';
 import { MessageResponse } from 'app/types/Response';
 import { useGetProfileQuery } from 'app/services/userApi';
+import { getSocket } from 'app/utils/socket';
 
 export type PollOptionDto = {
   id?: string;
@@ -18,6 +19,10 @@ export type PollSubmitRequest = { // create + update chung 1 type
   allowAddOption: boolean;
   deadline?: string;
 };
+
+export type PollGenerateRequest = {
+  prompt: string;
+}
 
 type Props = {
   isOpen: boolean;
@@ -36,8 +41,39 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
 
   const [createPoll, { isLoading: isCreating }] = useCreatePollMutation();
   const [updatePoll, { isLoading: isUpdating }] = useUpdatePollMutation();
+  const [generatePoll] = useGeneratePollMutation();
+
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const isCreator = initialPoll?.user && initialPoll.user.id === currentUser?.id;
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !isOpen) return;
+
+    const handleAiGenerated = (data: any) => {
+      if (data.question) setQuestion(data.question);
+      if (data.options && Array.isArray(data.options)) {
+        setOptions(data.options.map((opt: any) => ({ text: opt.text })));
+      }
+      setIsAiLoading(false);
+      setAiPrompt('');
+    };
+
+    const handleAiError = () => {
+      setIsAiLoading(false);
+      alert("AI đang bận, vui lòng thử lại sau!");
+    };
+
+    socket.on('poll_generated', handleAiGenerated);
+    socket.on('poll_generated_error', handleAiError);
+
+    return () => {
+      socket.off('poll_generated', handleAiGenerated);
+      socket.off('poll_generated_error', handleAiError);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && initialPoll && initialPoll.metadata?.pollData) {
@@ -78,6 +114,18 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
     const newOptions = [...options];
     newOptions[index].text = text;
     setOptions(newOptions);
+  };
+
+  const handleAskAi = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsAiLoading(true);
+
+    try {
+      await generatePoll({ prompt: aiPrompt }).unwrap();
+    } catch (error) {
+      setIsAiLoading(false);
+      alert("Lỗi kết nối Server");
+    }
   };
 
   const handleSubmit = async () => {
@@ -147,6 +195,47 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
               <YStack space="$2">
+
+                {!isEditMode && (
+                  <YStack space="$2" mb="$4" p="$3" bg="$purple2" borderRadius="$4" borderWidth={1} borderColor="$purple5">
+                    <XStack alignItems="center" space="$2">
+                      <Sparkles size={16} color="$purple10" />
+                      <Label fontWeight="bold" color="$purple10" m={0}>Trợ lý AI tạo bình chọn</Label>
+                    </XStack>
+
+                    <XStack space="$2" alignItems="center">
+                      <Input
+                        flex={1}
+                        placeholder="VD: Gợi ý món ăn trưa..."
+                        value={aiPrompt}
+                        onChangeText={setAiPrompt}
+                        bg="$background"
+                        disabled={isAiLoading}
+                      />
+
+                      {/* Nút Đính kèm file */}
+                      <Button
+                        size="$3"
+                        circular
+                        chromeless
+                        icon={<Paperclip size={20} color="$color10" />}
+                        disabled={isAiLoading}
+                        onPress={() => alert('Chức năng đính kèm file đang phát triển')}
+                      />
+
+                      {/* Nút Gửi Prompt */}
+                      <Button
+                        size="$3"
+                        circular
+                        bg="$purple10"
+                        color="white"
+                        icon={isAiLoading ? <Spinner color="white" /> : <Send size={16} />}
+                        onPress={handleAskAi}
+                        disabled={isAiLoading || !aiPrompt.trim()}
+                      />
+                    </XStack>
+                  </YStack>
+                )}
 
                 <YStack space="$2">
                   <Label fontWeight="bold">Câu hỏi</Label>

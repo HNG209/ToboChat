@@ -1,7 +1,7 @@
 import { MessageReactionResponse, MessageResponse, PageResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { SendMessageRequest } from 'app/types/Request'
-import { PollSubmitRequest } from '@my/ui/src/CreatePollSheet';
+import { PollGenerateRequest, PollSubmitRequest } from '@my/ui/src/CreatePollSheet';
 
 export const chatApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -192,6 +192,14 @@ export const chatApi = baseApi.injectEndpoints({
       }),
     }),
 
+    generatePoll: builder.mutation<void, PollGenerateRequest>({
+      query: (data) => ({
+        url: `/chat/polls`,
+        method: 'POST',
+        data,
+      }),
+    }),
+
     updatePoll: builder.mutation<void, { roomId: string; pollId: string; data: PollSubmitRequest }>({
       query: ({ roomId, pollId, data }) => ({
         url: `/chat/rooms/${roomId}/polls/${encodeURIComponent(pollId)}`,
@@ -223,4 +231,5 @@ export const {
   useCreatePollMutation,
   useUpdatePollMutation,
   useVotePollMutation,
+  useGeneratePollMutation,
 } = chatApi
