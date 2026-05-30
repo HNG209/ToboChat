@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { YStack, XStack, Text, Spinner } from 'tamagui'
 import { ContactHeader, UserCard } from '@my/ui'
 import { FriendRequestType } from '../../types/Request'
@@ -18,11 +18,15 @@ export default function GroupRequestPage() {
   const [isFetchingMore, setIsFetchingMore] = useState(false)
 
   // Truyền thêm param phân trang, giữ nguyên tên biến data của bạn
-  const { data, isLoading } = useGetGroupInvitesQuery({ cursor, limit: 20 })
+  const { data, isLoading, refetch } = useGetGroupInvitesQuery({ cursor, limit: 20 })
   const groupInvitesData = data?.items as GroupAcceptRequestResponse[] | undefined
   const isWeb = Platform.OS === 'web'
   const dispatch = useDispatch<AppDispatch>()
   const [respondGroupInvite] = useRespondGroupInviteMutation()
+
+  useEffect(() => {
+    refetch()
+  }, [])
 
   // Không đụng gì đến logic action của bạn
   const handleAction = async (action: string, id: string) => {

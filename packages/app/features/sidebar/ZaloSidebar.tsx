@@ -228,15 +228,11 @@ export const ZaloSidebar = () => {
 
     const handleGroupRequestUnreadUpdate = (payload: GroupAcceptRequestResponse) => {
       console.log('>>> SOCKET RECEIVED payload:', JSON.stringify(payload, null, 2))
-      dispatch(
-        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
-          if (!draft) return
-          draft.groupRequestCount = (draft.groupRequestCount || 0) + 1
-        })
-      )
-
-      dispatch(
-        roomApi.util.updateQueryData('getGroupInvites', { limit: 20, cursor: undefined }, (draft) => {
+      const isAtGroupRequestPage = pathname === '/contacts/group-requests'
+      if (isAtGroupRequestPage) {
+        console.log('>>> Currently at group request page, skipping unread count update')
+        dispatch(
+        roomApi.util.updateQueryData('getGroupInvites', { cursor: undefined, limit: 20 }, (draft) => {
           if (!draft) return
           if (!draft.items) {
             draft.items = []
@@ -248,6 +244,14 @@ export const ZaloSidebar = () => {
           }
         })
       )
+      } else {
+        dispatch(
+          userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+            if (!draft) return
+            draft.groupRequestCount = (draft.groupRequestCount || 0) + 1
+          })
+        )
+      }
     }
 
     const handleGroupRequestResetUnread = () => {
