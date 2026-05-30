@@ -170,3 +170,9 @@ export interface MessageReactionResponse {
   user: UserResponse
   reactions: string[]
 }
+export interface AttachmentItemResponse {
+  attachmentId: string
+  messageId: string
+  senderId: string
+  detail: Attachment
+}

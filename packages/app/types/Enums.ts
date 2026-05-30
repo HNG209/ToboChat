@@ -16,3 +16,4 @@ export type SystemAction =
   | 'GROUP_INVITE_ACCEPTED'
   | 'FRIEND_ACCEPTED'
   | 'MEMBER_ROLE_UPDATED'
+export type AttachmentType = 'MEDIA' | 'FILE'

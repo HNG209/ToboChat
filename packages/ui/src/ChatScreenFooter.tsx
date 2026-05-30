@@ -119,6 +119,31 @@ export const ChatScreenFooter = ({
           draft.items.unshift(optimisticMessage)
         })
       )
+      const attachmentPatchResults = messageAttachments.map((attachment) => {
+        const type = isMediaType(attachment.contentType) ? 'MEDIA' : 'FILE'
+
+        return dispatch(
+          roomApi.util.updateQueryData(
+            'getRoomAttachments',
+            {
+              roomId,
+              type,
+              limit: 15,
+              cursor: undefined,
+            },
+            (draft) => {
+              if (!draft?.items) return
+
+              draft.items.unshift({
+                attachmentId: `${tempId}-${attachment.fileUrl}`,
+                messageId: tempId,
+                senderId: myProfile?.id,
+                detail: attachment,
+              })
+            }
+          )
+        )
+      })
 
       try {
         const result = await sendMessage({
@@ -161,6 +186,7 @@ export const ChatScreenFooter = ({
         console.error('Lỗi gửi:', error)
         if (currentReplyTo) setReplyTo(currentReplyTo)
         patchResult.undo()
+        attachmentPatchResults.forEach((patch) => patch.undo())
       }
     }
 

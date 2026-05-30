@@ -51,6 +51,7 @@ import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, us
 import { FriendStatus } from 'app/types/Enums';
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader'
+import { ConversationAttachments } from '@my/ui/src/ConversationAttachments'
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -109,7 +110,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const [direction, setDirection] = useState<'before' | 'after' | 'both' | undefined>(undefined)
   // Show infor screen
   const [showInfo, setShowInfo] = useState(false)
-  const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD' | 'MEMBERS' | 'APPROVED'>('INFO');
+  const [infoView, setInfoView] = useState<'INFO' | 'MANAGEMENT' | 'ADD' | 'MEMBERS' | 'APPROVED' | 'ATTACHMENTS'>('INFO');
   const listBottomSpacer = isWeb ? 0 : composerHeight
 
   useEffect(() => {
@@ -920,6 +921,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onAddMember={() => setInfoView('ADD')}
                 onViewMembers={() => setInfoView('MEMBERS')}
                 onApproveMembers={() => setInfoView('APPROVED')}
+                onViewAttachments={() => setInfoView('ATTACHMENTS')}
                 avatarCacheKey={avatarCacheKey}
                 avatarUrlOverride={optimisticAvatarUrl}
                 onSaveAvatar={handleSaveAvatar}
@@ -940,8 +942,13 @@ export function ChatScreen({ roomId, insets }: Props) {
                 roomId={roomId}
                 onClose={() => setInfoView('INFO')}
               />
-            ) : (
+            ) : infoView === 'APPROVED' ? (
               <ApproveMembersContent
+                roomId={roomId}
+                onClose={() => setInfoView('INFO')}
+              />
+            ) : (
+              <ConversationAttachments
                 roomId={roomId}
                 onClose={() => setInfoView('INFO')}
               />
@@ -988,11 +995,17 @@ export function ChatScreen({ roomId, insets }: Props) {
                     roomId={roomId}
                     onClose={() => setInfoView('INFO')}
                   />
-                ) : (
+                ) : infoView === 'APPROVED' ? (
                   <ApproveMembersContent
                     roomId={roomId}
                     onClose={() => setInfoView('INFO')}
-                  />)}
+                  />
+                ) : (
+                  <ConversationAttachments
+                    roomId={roomId}
+                    onClose={() => setInfoView('INFO')}
+                  />
+                )}
               </Provider>
             </Sheet.Frame>
           </Sheet>

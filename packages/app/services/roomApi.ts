@@ -7,10 +7,12 @@ import {
   LeaveCheckResponse,
   GroupPendingRequestResponse,
   FriendResponse,
+  AttachmentItemResponse,
 } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { RoomStatus } from '@my/ui'
 import { MemberUpdateRequest, RoomCreateRequest, RoomUpdateRequest } from 'app/types/Request'
+import { AttachmentType } from 'app/types/Enums'
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -240,6 +242,45 @@ export const roomApi = baseApi.injectEndpoints({
         { type: 'Rooms' },
       ],
     }),
+    getRoomAttachments: builder.query<
+      PageResponse<AttachmentItemResponse>,
+      { roomId: string; type: AttachmentType; limit?: number; cursor?: string }
+    >({
+      query: ({ roomId, type, limit = 20, cursor }) => ({
+        url: `/chat/rooms/${roomId}/attachments`,
+        method: 'GET',
+        params: { type, limit, cursor: cursor || undefined },
+      }),
+
+      serializeQueryArgs: ({ queryArgs, endpointName }) => {
+        // Tách biệt hoàn toàn phân vùng lưu trữ cho MEDIA và FILE
+        return `${endpointName}-${queryArgs.roomId}-${queryArgs.type}`
+      },
+
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor && currentArg?.cursor !== undefined
+      },
+
+      // CHỈNH SỬA TẠI ĐÂY:
+      merge: (currentCache, newData, { arg }) => {
+        // Lấy item đầu tiên trong cache hiện tại để kiểm tra xem nó thuộc loại nào (MEDIA hay FILE)
+        const currentCacheType = currentCache.items?.[0]?.detail?.contentType;
+        const newDataType = newData.items?.[0]?.detail?.contentType;
+
+        // Nếu KHÔNG có cursor (tải trang đầu), hoặc mảng cũ trống, 
+        // hoặc loại dữ liệu trong cache hiện tại khác hoàn toàn loại dữ liệu mới gửi về (ví dụ chuyển từ hình sang file)
+        if (!arg.cursor || !currentCache.items || currentCache.items.length === 0) {
+          return newData // Thay thế hoàn toàn, xóa sạch vết tích tab cũ
+        }
+
+        // Chỉ tiến hành gộp mảng khi và chỉ khi đang thực hiện "Xem thêm" trên CÙNG MỘT TAB
+        const existingIds = new Set(currentCache.items.map((i) => i.attachmentId))
+        const newItems = newData.items.filter((i) => !existingIds.has(i.attachmentId))
+
+        currentCache.items.push(...newItems)
+        currentCache.nextCursor = newData.nextCursor
+      },
+    }),
   }),
   overrideExisting: true,
 })
@@ -264,4 +305,5 @@ export const {
   useGetGroupImageUploadUrlMutation,
   useUpdateRoomAvatarMutation,
   useUpdateRoomNameMutation,
+  useGetRoomAttachmentsQuery,
 } = roomApi
