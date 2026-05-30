@@ -49,17 +49,22 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
       bg="$color1"
       elevation="$2"
     >
-      <XStack alignItems="center" space="$3">
+      <XStack alignItems="center" space="$3" flex={1} minWidth={0}>
         <Button size="$3" circular chromeless icon={ChevronLeft} {...linkProps} />
-        <XStack alignItems="center" space="$2">
+        <XStack alignItems="center" space="$2" flex={1} minWidth={0}>
           <Avatar circular size="$4" marginRight="$2">
             <Avatar.Image
               src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
             />
             <Avatar.Fallback borderColor="gray" />
           </Avatar>
-          <YStack>
-            <Text fontWeight="bold" fontSize="$4">
+          <YStack flex={1} minWidth={0}>
+            <Text
+              fontWeight="bold"
+              fontSize="$4"
+              numberOfLines={1}
+              flexShrink={1}
+            >
               {isRoomLoading ? 'Đang tải...' : roomData?.roomName || 'Tên phòng'}
             </Text>
             <XStack alignItems="center" space="$1.5">
@@ -71,7 +76,7 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
           </YStack>
         </XStack>
       </XStack>
-      
+
       <XStack space="$1" justifyContent="center" alignItems="center">
         {callStatusData === 'IN_CALL' ? (
           <XStack alignItems="center" space="$2" px="$2">
@@ -108,6 +113,6 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
         )}
         <Button size="$5" circular chromeless icon={Info} onPress={onInfoPress} />
       </XStack>
-    </XStack>
+    </XStack >
   )
 }

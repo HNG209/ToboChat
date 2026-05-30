@@ -339,8 +339,21 @@ export const ConversationInfoContent = ({
                   </Button>
                 </XStack>
               ) : (
-                <XStack alignItems="center" space="$2">
-                  <Heading size="$7" textAlign="center">
+                <XStack
+                  alignItems="center"
+                  justifyContent="center"
+                  space="$2"
+                  width="100%"
+                  maxWidth={280}
+                  minWidth={0}
+                >
+                  <Heading
+                    size="$7"
+                    textAlign="center"
+                    numberOfLines={1}
+                    flexShrink={1}
+                    maxWidth="100%"
+                  >
                     {roomData?.roomName}
                   </Heading>
 
