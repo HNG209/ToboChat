@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Button, Input, Sheet, Text, XStack, YStack, ScrollView, Switch, Label, Spinner } from 'tamagui';
 import { X, Plus, Trash2, Sparkles, Paperclip, Send } from '@tamagui/lucide-icons';
 import { KeyboardAvoidingView, Platform } from 'react-native';
-import { useCreatePollMutation, useGeneratePollMutation, useUpdatePollMutation } from 'app/services/chatApi';
+import { useCreatePollMutation, useGeneratePollMutation, useLazyGetPresignedUrlQuery, useUpdatePollMutation } from 'app/services/chatApi';
 import { MessageResponse } from 'app/types/Response';
 import { useGetProfileQuery } from 'app/services/userApi';
 import { getSocket } from 'app/utils/socket';
-
+import { useDocumentUpload } from 'app/hooks/useDocumentUpload';
 export type PollOptionDto = {
   id?: string;
   text: string;
@@ -22,6 +22,7 @@ export type PollSubmitRequest = { // create + update chung 1 type
 
 export type PollGenerateRequest = {
   prompt: string;
+  fileUrl?: string; // URL file đính kèm (nếu có)
 }
 
 type Props = {
@@ -32,21 +33,27 @@ type Props = {
 };
 
 export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: Props) => {
-  const isEditMode = !!initialPoll;
-  const { data: currentUser } = useGetProfileQuery()
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<PollOptionDto[]>([{ text: '' }, { text: '' }]);
   const [multipleChoice, setMultipleChoice] = useState(false);
   const [allowAddOption, setAllowAddOption] = useState(false);
 
+  const { data: currentUser } = useGetProfileQuery()
   const [createPoll, { isLoading: isCreating }] = useCreatePollMutation();
   const [updatePoll, { isLoading: isUpdating }] = useUpdatePollMutation();
+  const [getPresignedUrl] = useLazyGetPresignedUrlQuery();
   const [generatePoll] = useGeneratePollMutation();
+
+  const { pick } = useDocumentUpload();
+  const [attachedFile, setAttachedFile] = useState<{ name: string, url: string } | null>(null);
 
   const [aiPrompt, setAiPrompt] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const isCreator = initialPoll?.user && initialPoll.user.id === currentUser?.id;
+  const isEditMode = !!initialPoll;
+  const isDisabledSettings = isEditMode && !isCreator;
 
   useEffect(() => {
     const socket = getSocket();
@@ -121,11 +128,65 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
     setIsAiLoading(true);
 
     try {
-      await generatePoll({ prompt: aiPrompt }).unwrap();
+      await generatePoll({ prompt: aiPrompt, fileUrl: attachedFile?.url }).unwrap();
     } catch (error) {
       setIsAiLoading(false);
       alert("Lỗi kết nối Server");
     }
+  };
+
+  const handleAttachFile = async () => {
+    try {
+      const selectedFile = await pick();
+      if (!selectedFile) return;
+
+      setIsUploadingFile(true);
+
+      // Lấy Presigned URL từ Backend
+      const presignedRes = await getPresignedUrl({
+        roomId,
+        fileName: selectedFile.name,
+        contentType: selectedFile.type || 'application/pdf',
+      }).unwrap();
+
+      const uploadUrl = presignedRes.uploadUrl;
+      const finalFileUrl = presignedRes.fileUrl;
+
+      // Xử lý file body để đẩy lên S3 (cho cả Web và Native)
+      let bodyToUpload: any;
+
+      if (Platform.OS === 'web' && selectedFile.file) {
+        // Trên web, nhét thẳng object File gốc vào
+        bodyToUpload = selectedFile.file;
+      } else {
+        // Trên Mobile, đọc file từ URI thành dạng Blob
+        const response = await fetch(selectedFile.uri);
+        bodyToUpload = await response.blob();
+      }
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: bodyToUpload,
+        headers: {
+          'Content-Type': selectedFile.type || 'application/pdf',
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Lỗi tải lên S3: " + uploadResponse.statusText);
+      }
+
+      setAttachedFile({ name: selectedFile.name, url: finalFileUrl });
+    } catch (error) {
+      console.error("Lỗi đính kèm file:", error);
+      alert("Đính kèm file thất bại! Vui lòng thử lại.");
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setAttachedFile(null);
   };
 
   const handleSubmit = async () => {
@@ -214,14 +275,16 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                       />
 
                       {/* Nút Đính kèm file */}
-                      <Button
-                        size="$3"
-                        circular
-                        chromeless
-                        icon={<Paperclip size={20} color="$color10" />}
-                        disabled={isAiLoading}
-                        onPress={() => alert('Chức năng đính kèm file đang phát triển')}
-                      />
+                      {!attachedFile && (
+                        <Button
+                          size="$3"
+                          circular
+                          chromeless
+                          icon={<Paperclip size={20} color="$color10" />}
+                          disabled={isAiLoading || isUploadingFile || (!aiPrompt.trim() && !attachedFile)}
+                          onPress={handleAttachFile}
+                        />
+                      )}
 
                       {/* Nút Gửi Prompt */}
                       <Button
@@ -234,6 +297,23 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                         disabled={isAiLoading || !aiPrompt.trim()}
                       />
                     </XStack>
+
+                    {/* HIỂN THỊ TRẠNG THÁI LOADING UPLOAD */}
+                    {isUploadingFile && (
+                      <XStack alignItems="center" space="$2" mt="$2" p="$2" bg="$gray3" borderRadius="$3">
+                        <Spinner size="small" color="$gray10" />
+                        <Text fontSize="$2" color="$gray11" flex={1}>Đang tải tài liệu lên an toàn...</Text>
+                      </XStack>
+                    )}
+
+                    {/* HIỂN THỊ FILE ĐÃ ĐÍNH KÈM THÀNH CÔNG */}
+                    {attachedFile && !isUploadingFile && (
+                      <XStack alignItems="center" space="$2" mt="$2" p="$2" bg="$purple3" borderRadius="$3" borderWidth={1} borderColor="$purple5">
+                        <Paperclip size={14} color="$purple10" />
+                        <Text fontSize="$2" color="$purple11" flex={1} numberOfLines={1}>{attachedFile.name}</Text>
+                        <Button size="$2" circular chromeless icon={<X size={16} color="$purple10" />} onPress={handleRemoveFile} disabled={isAiLoading} />
+                      </XStack>
+                    )}
                   </YStack>
                 )}
 
@@ -293,8 +373,8 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                       checked={multipleChoice}
                       onCheckedChange={setMultipleChoice}
                       bg={multipleChoice ? '$blue9' : '$color5'}
-                      disabled={!isCreator}
-                      opacity={!isCreator ? 0.5 : 1}
+                      disabled={isDisabledSettings} // Chỉ creator mới có quyền bật/tắt multiple choice, và chỉ khi đang tạo mới (edit mode thì không cho chỉnh)
+                      opacity={isDisabledSettings ? 0.5 : 1}
                     >
                       <Switch.Thumb animation="quick" backgroundColor="white" />
                     </Switch>
@@ -309,8 +389,8 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                       checked={allowAddOption}
                       onCheckedChange={setAllowAddOption}
                       bg={allowAddOption ? '$blue9' : '$color5'}
-                      disabled={!isCreator}
-                      opacity={!isCreator ? 0.5 : 1}
+                      disabled={isDisabledSettings} // Chỉ creator mới có quyền bật/tắt allow add option, và chỉ khi đang tạo mới (edit mode thì không cho chỉnh)
+                      opacity={isDisabledSettings ? 0.5 : 1}
                     >
                       <Switch.Thumb animation="quick" backgroundColor="white" />
                     </Switch>

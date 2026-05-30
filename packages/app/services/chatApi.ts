@@ -1,4 +1,4 @@
-import { MessageReactionResponse, MessageResponse, PageResponse } from 'app/types/Response'
+import { MessageReactionResponse, MessageResponse, PageResponse, PresignedUrlResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { SendMessageRequest } from 'app/types/Request'
 import { PollGenerateRequest, PollSubmitRequest } from '@my/ui/src/CreatePollSheet';
@@ -118,7 +118,7 @@ export const chatApi = baseApi.injectEndpoints({
       providesTags: (result, error, arg) => [{ type: 'Messages', id: arg.messageId }],
     }),
 
-    getPresignedUrl: builder.query<any, { roomId: string; fileName: string; contentType: string }>({
+    getPresignedUrl: builder.query<PresignedUrlResponse, { roomId: string; fileName: string; contentType: string }>({
       query: (params) => ({
         url: `/chat/upload/${params.roomId}`,
         method: 'GET',
@@ -127,11 +127,6 @@ export const chatApi = baseApi.injectEndpoints({
           contentType: params.contentType,
         },
       }),
-      // Bóc lớp vỏ 'result' ngay tại đây
-      transformResponse: (response: any) => {
-        console.log('Raw Response từ Backend:', response) // Log để bạn tự soi trong Console
-        return response
-      },
     }),
 
     // Xoá tin nhắn ở phía tôi
