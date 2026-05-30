@@ -464,7 +464,49 @@ export function ChatScreen({ roomId, insets }: Props) {
     if (!socket) return
 
     socket.emit('join_room', roomId)
+    const addAttachmentsToCache = (message: MessageResponse) => {
+      if (!message.attachments?.length) return
 
+      message.attachments.forEach((attachment, index) => {
+        const type =
+          attachment.contentType?.startsWith('image/') ||
+            attachment.contentType?.startsWith('video/')
+            ? 'MEDIA'
+            : 'FILE'
+
+        dispatch(
+          roomApi.util.updateQueryData(
+            'getRoomAttachments',
+            {
+              roomId: message.roomId,
+              type,
+              limit: 15,
+              cursor: undefined,
+            },
+            (draft) => {
+              if (!draft?.items) return
+
+              const attachmentId = `${message.id}-${index}`
+
+              const existed = draft.items.some(
+                (item: any) =>
+                  item.messageId === message.id &&
+                  item.detail?.fileUrl === attachment.fileUrl
+              )
+
+              if (existed) return
+
+              draft.items.unshift({
+                attachmentId,
+                messageId: message.id,
+                senderId: message.user?.id,
+                detail: attachment,
+              })
+            }
+          )
+        )
+      })
+    }
     const handleReceiveMessage = (message: MessageResponse) => {
       if (message.roomId !== roomId) return
       dispatch(
@@ -481,8 +523,31 @@ export function ChatScreen({ roomId, insets }: Props) {
           draft.items.unshift(message)
         })
       )
+      addAttachmentsToCache(message)
     }
 
+    const removeAttachmentsFromCache = (targetRoomId: string, messageId: string) => {
+      ; (['MEDIA', 'FILE'] as const).forEach((type) => {
+        dispatch(
+          roomApi.util.updateQueryData(
+            'getRoomAttachments',
+            {
+              roomId: targetRoomId,
+              type,
+              limit: 15,
+              cursor: undefined,
+            },
+            (draft) => {
+              if (!draft?.items) return
+
+              draft.items = draft.items.filter(
+                (item: any) => item.messageId !== messageId
+              )
+            }
+          )
+        )
+      })
+    }
     const handleMessageDeleted = async (message: MessageResponse) => {
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
@@ -493,6 +558,7 @@ export function ChatScreen({ roomId, insets }: Props) {
           }
         })
       )
+      removeAttachmentsFromCache(message.roomId || roomId, message.id)
     }
 
     const handleMessageRevoked = (data: { messageId: string; roomId: string }) => {
@@ -509,7 +575,7 @@ export function ChatScreen({ roomId, insets }: Props) {
           }
         })
       )
-
+      removeAttachmentsFromCache(data.roomId, data.messageId)
       setLocallyDeletedIds((prev) => {
         const next = new Set(prev)
         next.delete(data.messageId)
