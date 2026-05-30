@@ -22,8 +22,11 @@ import {
   useUpdateMeMutation,
   userApi,
 } from 'app/services/userApi'
+import { contactApi } from 'app/services/contactApi'
 import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 import { getSocket } from 'app/utils/socket'
+import { FriendRequestResponse, GroupPendingRequestResponse } from 'app/types/Response'
+import { FriendRequestType } from 'app/types/Request'
 
 export const ZaloSidebar = () => {
   const dispatch = useDispatch<AppDispatch>()
@@ -184,11 +187,23 @@ export const ZaloSidebar = () => {
     const socket = getSocket()
     if (!socket) return
 
-    const handleFriendRequestUnreadUpdate = (payload: number) => {
+    const handleFriendRequestUnreadUpdate = (payload: FriendRequestResponse) => {
+      console.log('>>> SOCKET RECEIVED payload:', JSON.stringify(payload, null, 2))
       dispatch(
         userApi.util.updateQueryData('getProfile', undefined, (draft) => {
           if (!draft) return
           draft.friendRequestCount = (draft.friendRequestCount || 0) + 1
+        })
+      )
+
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendRequests', { type: FriendRequestType.PENDING, cursor: undefined, limit: 10 }, (draft) => {
+          if (!draft) return
+          const isExisted = draft.items.some((item) => item.id === payload.id)
+          if (!isExisted) {
+            // Nhét Object người gửi lên đầu mảng (unshift) để giao diện xuất hiện thẻ UserCard ngay lập tức
+            draft.items.unshift(payload)
+          }
         })
       )
     }
@@ -202,7 +217,8 @@ export const ZaloSidebar = () => {
       )
     }
 
-    const handleGroupRequestUnreadUpdate = (payload: number) => {
+    const handleGroupRequestUnreadUpdate = (payload: GroupPendingRequestResponse) => {
+      console.log('>>> SOCKET RECEIVED payload:', JSON.stringify(payload, null, 2))
       dispatch(
         userApi.util.updateQueryData('getProfile', undefined, (draft) => {
           if (!draft) return
