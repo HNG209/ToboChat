@@ -2,15 +2,18 @@
 import { useEffect } from 'react'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { initSocket, disconnectSocket } from 'app/utils/socket'
-import { Platform } from 'react-native'
 import { getBaseUrl } from './socket-baseurl/getBaseUrl'
+import { useDeviceId } from './useDeviceId'
+
 export function useSocketConnection(isLoggedIn: boolean) {
+  const deviceId = useDeviceId()
+
   useEffect(() => {
     let isMounted = true
 
     const setupSocket = async () => {
       // 1. NẾU ĐÃ ĐĂNG NHẬP -> Tiến hành kết nối
-      if (isLoggedIn) {
+      if (isLoggedIn && deviceId) {
         try {
           const session = await fetchAuthSession()
           const token = session.tokens?.accessToken?.toString()
@@ -18,7 +21,7 @@ export function useSocketConnection(isLoggedIn: boolean) {
           if (token && isMounted) {
             const baseUrl = getBaseUrl()
 
-            initSocket(token, baseUrl)
+            initSocket(token, baseUrl, deviceId)
           }
         } catch (error) {
           console.log('Lỗi khi lấy token cho Socket:', error)
@@ -36,5 +39,5 @@ export function useSocketConnection(isLoggedIn: boolean) {
     return () => {
       isMounted = false
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, deviceId])
 }

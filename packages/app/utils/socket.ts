@@ -3,12 +3,10 @@ import { Platform } from 'react-native'
 
 let socket: Socket | null = null
 
-// Tham số baseUrl truyền từ ngoài vào vì Next.js và Expo gọi IP khác nhau
-export const initSocket = (token: string, baseUrl: string) => {
+export const initSocket = (token: string, baseUrl: string, deviceId: string) => {
   if (!socket) {
     socket = io(baseUrl, {
-      query: { token },
-      // React Native bắt buộc dùng websocket, còn Web thì có thể để tự động (polling -> websocket)
+      query: { token, deviceId },
       transports: Platform.OS === 'web' ? ['polling', 'websocket'] : ['websocket'],
       autoConnect: true,
     })

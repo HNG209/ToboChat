@@ -48,6 +48,7 @@
     "expo-av": "^16.0.8",
     "expo-camera": "^55.0.18",
     "expo-constants": "^18.0.13",
+    "expo-crypto": "^56.0.4",
     "expo-image-picker": "~17.0.10",
     "expo-modules-core": "^3.0.29",
     "husky": "^9.1.6",
