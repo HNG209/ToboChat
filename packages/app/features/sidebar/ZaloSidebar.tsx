@@ -22,8 +22,12 @@ import {
   useUpdateMeMutation,
   userApi,
 } from 'app/services/userApi'
+import { contactApi } from 'app/services/contactApi'
 import { uploadToPresignedUrl } from 'app/utils/uploadToPresignedUrl'
 import { getSocket } from 'app/utils/socket'
+import { FriendRequestResponse, GroupAcceptRequestResponse, GroupPendingRequestResponse } from 'app/types/Response'
+import { FriendRequestType } from 'app/types/Request'
+import { roomApi } from 'app/services/roomApi'
 
 export const ZaloSidebar = () => {
   const dispatch = useDispatch<AppDispatch>()
@@ -184,13 +188,33 @@ export const ZaloSidebar = () => {
     const socket = getSocket()
     if (!socket) return
 
-    const handleFriendRequestUnreadUpdate = (payload: number) => {
-      dispatch(
-        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+    const handleFriendRequestUnreadUpdate = (payload: FriendRequestResponse) => {
+      console.log('>>> SOCKET RECEIVED payload:', JSON.stringify(payload, null, 2))
+      const isAtFriendRequestPage = pathname === '/contacts/friend-requests'
+      if (isAtFriendRequestPage) {
+        console.log('>>> Currently at friend request page, skipping unread count update')
+
+        dispatch(
+        contactApi.util.updateQueryData('getMyFriendRequests', { type: FriendRequestType.PENDING, cursor: undefined, limit: 10 }, (draft) => {
           if (!draft) return
-          draft.friendRequestCount = (draft.friendRequestCount || 0) + 1
+          if (!draft.items) {
+            draft.items = []
+          }
+          const isExisted = draft.items.some((item) => item.id === payload.id)
+          if (!isExisted) {
+            // Nhét Object người gửi lên đầu mảng (unshift) để giao diện xuất hiện thẻ UserCard ngay lập tức
+            draft.items.unshift(payload)
+          }
         })
       )
+      } else {
+        dispatch(
+          userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+            if (!draft) return
+            draft.friendRequestCount = (draft.friendRequestCount || 0) + 1
+          })
+        )
+      }
     }
 
     const handleFriendRequestResetUnread = () => {
@@ -202,13 +226,54 @@ export const ZaloSidebar = () => {
       )
     }
 
+    const handleGroupRequestUnreadUpdate = (payload: GroupAcceptRequestResponse) => {
+      console.log('>>> SOCKET RECEIVED payload:', JSON.stringify(payload, null, 2))
+      const isAtGroupRequestPage = pathname === '/contacts/group-requests'
+      if (isAtGroupRequestPage) {
+        console.log('>>> Currently at group request page, skipping unread count update')
+        dispatch(
+        roomApi.util.updateQueryData('getGroupInvites', { cursor: undefined, limit: 20 }, (draft) => {
+          if (!draft) return
+          if (!draft.items) {
+            draft.items = []
+          }
+          const isExisted = draft.items.some((item) => item.roomId === payload.roomId)
+          if (!isExisted) {
+            // Nhét nhóm mới lên đầu mảng để giao diện tự động render thẻ UserCard (Group) ngay lập tức
+            draft.items.unshift(payload)
+          }
+        })
+      )
+      } else {
+        dispatch(
+          userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+            if (!draft) return
+            draft.groupRequestCount = (draft.groupRequestCount || 0) + 1
+          })
+        )
+      }
+    }
+
+    const handleGroupRequestResetUnread = () => {
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.groupRequestCount = 0
+        })
+      )
+    }
+
     socket.on('friend_request_unread_update', handleFriendRequestUnreadUpdate)
     socket.on('friend_request_unread_reset', handleFriendRequestResetUnread)
+    socket.on('group_request_unread_update', handleGroupRequestUnreadUpdate)
+    socket.on('group_request_unread_reset', handleGroupRequestResetUnread)
     return () => {
       socket.off('friend_request_unread_update', handleFriendRequestUnreadUpdate)
       socket.off('friend_request_unread_reset', handleFriendRequestResetUnread)
+      socket.off('group_request_unread_update', handleGroupRequestUnreadUpdate)
+      socket.off('group_request_unread_reset', handleGroupRequestResetUnread)
     }
-  }, [dispatch, isSocketReady])
+  }, [dispatch, isSocketReady, pathname])
 
   const openEnableMFADialog = () => {
     setPassword('')

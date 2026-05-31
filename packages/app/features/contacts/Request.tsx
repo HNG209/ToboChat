@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { YStack, XStack, Text, Select, Button, Spinner } from 'tamagui'
+import React, { useEffect, useState } from 'react'
+import { YStack, XStack, Text, Select, Button, Spinner, Separator } from 'tamagui'
 import { ChevronDown } from '@tamagui/lucide-icons'
 import { ContactHeader, UserCard } from '@my/ui'
 import { FriendRequestType } from '../../types/Request'
@@ -29,7 +29,12 @@ export default function RequestPage() {
     data: requestsData,
     isLoading: requestsLoading,
     error: requestsError,
+    refetch,
   } = useGetMyFriendRequestsQuery({ type: requestFilter, cursor, limit: 10 })
+
+  useEffect(() => {
+    refetch()
+  }, [requestFilter])
 
   const handleAction = async (action: string, targetId: string) => {
     try {
