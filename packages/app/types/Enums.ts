@@ -18,3 +18,4 @@ export type SystemAction =
   | 'MEMBER_ROLE_UPDATED'
   | 'POLL_UPDATED'
   | 'POLL_VOTED'
+export type AttachmentType = 'MEDIA' | 'FILE'

@@ -48,6 +48,7 @@ type ConversationInfoProps = {
   onViewMembers: () => void
   onApproveMembers: () => void,
   avatarCacheKey?: number
+  onViewAttachments: () => void
   avatarUrlOverride?: string
   onSaveAvatar: (data: { avatar?: File }) => void
 }
@@ -63,6 +64,7 @@ export const ConversationInfoContent = ({
   onApproveMembers,
   avatarCacheKey,
   avatarUrlOverride,
+  onViewAttachments,
   onSaveAvatar,
 }: ConversationInfoProps) => {
   const dispatch = useDispatch<AppDispatch>()
@@ -337,8 +339,21 @@ export const ConversationInfoContent = ({
                   </Button>
                 </XStack>
               ) : (
-                <XStack alignItems="center" space="$2">
-                  <Heading size="$7" textAlign="center">
+                <XStack
+                  alignItems="center"
+                  justifyContent="center"
+                  space="$2"
+                  width="100%"
+                  maxWidth={280}
+                  minWidth={0}
+                >
+                  <Heading
+                    size="$7"
+                    textAlign="center"
+                    numberOfLines={1}
+                    flexShrink={1}
+                    maxWidth="100%"
+                  >
                     {roomData?.roomName}
                   </Heading>
 
@@ -409,19 +424,29 @@ export const ConversationInfoContent = ({
             </>
           )}
 
-          {/* KHO MEDIA */}
+          {/* --- KHO MEDIA RÚT GỌN --- */}
           <YStack p="$3" space="$3">
             <XStack justifyContent="space-between" alignItems="center" px="$1">
               <Text fontWeight="700" fontSize="$4">Ảnh & Video</Text>
+              <Button
+                size="$2"
+                chromeless
+                p={0}
+                onPress={onViewAttachments}
+              >
+                <Text color="$blue10" fontSize="$2" fontWeight="600">Xem tất cả</Text>
+              </Button>
             </XStack>
 
-            <XStack gap="$2.5">
+            {/* Giao diện khung xám mẫu nguyên bản */}
+            <XStack gap="$2.5" onPress={onViewAttachments} style={{ cursor: 'pointer' }}>
               {[1, 2, 3].map((i) => (
                 <YStack
                   key={i}
                   flex={1}
                   aspectRatio={1}
                   borderRadius="$3"
+                  backgroundColor="$backgroundHover"
                   alignItems="center"
                   justifyContent="center"
                 >
@@ -433,21 +458,28 @@ export const ConversationInfoContent = ({
 
           <Separator opacity={0.5} marginVertical="$2" />
 
-          {/* KHO FILE */}
-          <YStack p="$3" space="$3">
+          {/* --- KHO FILE RÚT GỌN --- */}
+          <YStack p="$3" space="$2">
             <Text fontWeight="700" fontSize="$4" px="$1">File đã gửi</Text>
-            <XStack p="$3" borderRadius="$4" alignItems="center" space="$3">
+            <XStack
+              p="$3"
+              borderRadius="$4"
+              alignItems="center"
+              space="$3"
+              backgroundColor="$backgroundHover"
+              hoverStyle={{ backgroundColor: '$blue2', cursor: 'pointer' }}
+              onPress={onViewAttachments}
+            >
               <Circle size={36} backgroundColor="$orange3">
                 <FileText size={18} color="$orange10" />
               </Circle>
               <YStack flex={1}>
                 <Text fontSize="$3" fontWeight="600">Tài liệu và tệp tin</Text>
-                <Text fontSize="$2" color="$color10">Chưa có dữ liệu</Text>
+                <Text fontSize="$2" color="$color10">Xem toàn bộ kho dữ liệu đã chia sẻ</Text>
               </YStack>
               <ChevronRight size={16} opacity={0.5} />
             </XStack>
           </YStack>
-
           {/* DANGER ZONE */}
           {isGroup && (
             <YStack p="$4">
