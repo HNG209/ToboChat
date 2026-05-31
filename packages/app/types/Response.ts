@@ -166,13 +166,20 @@ export interface IncomingCallDto {
   room: RoomResponse
   isVideoCall?: boolean
 }
+
 export interface MessageReactionResponse {
   user: UserResponse
   reactions: string[]
 }
+
 export interface AttachmentItemResponse {
   attachmentId: string
   messageId: string
   senderId: string
   detail: Attachment
+}
+
+export interface PresignedUrlResponse {
+  uploadUrl: string; // Link có chữ ký dùng để Frontend PUT file lên
+  fileUrl: string;
 }

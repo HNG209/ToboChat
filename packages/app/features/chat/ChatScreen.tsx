@@ -598,12 +598,33 @@ export function ChatScreen({ roomId, insets }: Props) {
       );
     }
 
+    const handlePollUpdated = (pollData: MessageResponse) => {
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          const index = draft.items?.findIndex((m) => m.id === pollData.id)
+          if (index !== undefined && index !== -1) {
+            draft.items[index].metadata = pollData.metadata
+          }
+        })
+      )
+
+      dispatch(
+        chatApi.util.updateQueryData('getMessage', { roomId, messageId: pollData.id }, (draft) => {
+          if (draft) {
+            draft.metadata = pollData.metadata
+          }
+        })
+      )
+    }
+
+    socket.on('poll_updated', handlePollUpdated)
     socket.on('member_removed', handleMemberRemoved)
     socket.on('delete_message', handleMessageDeleted)
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     return () => {
       socket.emit('leave_room', roomId)
+      socket.off('poll_updated', handlePollUpdated)
       socket.off('member_removed', handleMemberRemoved)
       socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
