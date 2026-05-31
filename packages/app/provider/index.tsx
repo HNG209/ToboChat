@@ -44,16 +44,16 @@ export function Provider({ children }) {
   if (!mounted) return null
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      {/* defaultTheme giúp Tamagui biết nên render kiểu gì ban đầu */}
-      <TamaguiProvider config={config} defaultTheme={theme}>
-        {/* Component Theme này sẽ áp các token màu $background, $color... theo theme hiện tại */}
-        <I18nextProvider i18n={i18n}>
-          <PortalProvider shouldAddRootHost>
-            <Theme name={theme}>
-              {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
-              <YStack flex={1} backgroundColor="$background">
-                <ReduxProvider store={store}>
+    <ReduxProvider store={store}>
+      <ThemeContext.Provider value={{ theme, setTheme }}>
+        {/* defaultTheme giúp Tamagui biết nên render kiểu gì ban đầu */}
+        <TamaguiProvider config={config} defaultTheme={theme}>
+          {/* Component Theme này sẽ áp các token màu $background, $color... theo theme hiện tại */}
+          <I18nextProvider i18n={i18n}>
+            <PortalProvider shouldAddRootHost>
+              <Theme name={theme}>
+                {/* YStack với $background sẽ lấy màu trắng (#fff) nếu là light, màu đen (#050505) nếu là dark */}
+                <YStack flex={1} backgroundColor="$background">
                   <AuthProvider>
                     <SocketEventProvider>
                       <ToastProvider
@@ -67,12 +67,12 @@ export function Provider({ children }) {
                       </ToastProvider>
                     </SocketEventProvider>
                   </AuthProvider>
-                </ReduxProvider>
-              </YStack>
-            </Theme>
-          </PortalProvider>
-        </I18nextProvider>
-      </TamaguiProvider>
-    </ThemeContext.Provider>
+                </YStack>
+              </Theme>
+            </PortalProvider>
+          </I18nextProvider>
+        </TamaguiProvider>
+      </ThemeContext.Provider>
+    </ReduxProvider>
   )
 }

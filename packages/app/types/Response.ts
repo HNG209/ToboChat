@@ -170,3 +170,8 @@ export interface MessageReactionResponse {
   user: UserResponse
   reactions: string[]
 }
+
+export interface PresignedUrlResponse {
+  uploadUrl: string; // Link có chữ ký dùng để Frontend PUT file lên
+  fileUrl: string;
+}

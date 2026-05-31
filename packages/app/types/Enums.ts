@@ -16,3 +16,5 @@ export type SystemAction =
   | 'GROUP_INVITE_ACCEPTED'
   | 'FRIEND_ACCEPTED'
   | 'MEMBER_ROLE_UPDATED'
+  | 'POLL_UPDATED'
+  | 'POLL_VOTED'

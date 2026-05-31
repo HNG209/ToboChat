@@ -1,9 +1,11 @@
-import { MessageReactionResponse, MessageResponse, PageResponse } from 'app/types/Response'
+import { MessageReactionResponse, MessageResponse, PageResponse, PresignedUrlResponse } from 'app/types/Response'
 import { baseApi } from './baseApi'
 import { SendMessageRequest } from 'app/types/Request'
+import { PollGenerateRequest, PollSubmitRequest } from '@my/ui/src/CreatePollSheet';
 
 export const chatApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Gửi tin nhắn mới vào phòng chat
     sendMessage: builder.mutation<MessageResponse, SendMessageRequest>({
       query: (sendMessageRequest) => ({
         url: `/chat/rooms/${sendMessageRequest.roomId}/messages`,
@@ -17,6 +19,7 @@ export const chatApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Lấy danh sách tin nhắn trong phòng chat với phân trang cursor-based
     getMessages: builder.query<
       PageResponse<MessageResponse>,
       { roomId: string; cursor?: string; limit?: number; direction?: 'before' | 'after' | 'both' }
@@ -105,7 +108,17 @@ export const chatApi = baseApi.injectEndpoints({
 
       providesTags: (result, error, arg) => [{ type: 'Messages', id: arg.roomId }],
     }),
-    getPresignedUrl: builder.query<any, { roomId: string; fileName: string; contentType: string }>({
+
+    // Lấy chi tiết 1 tin nhắn
+    getMessage: builder.query<MessageResponse, { roomId: string; messageId: string }>({
+      query: ({ roomId, messageId }) => ({
+        url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, arg) => [{ type: 'Messages', id: arg.messageId }],
+    }),
+
+    getPresignedUrl: builder.query<PresignedUrlResponse, { roomId: string; fileName: string; contentType: string }>({
       query: (params) => ({
         url: `/chat/upload/${params.roomId}`,
         method: 'GET',
@@ -114,11 +127,6 @@ export const chatApi = baseApi.injectEndpoints({
           contentType: params.contentType,
         },
       }),
-      // Bóc lớp vỏ 'result' ngay tại đây
-      transformResponse: (response: any) => {
-        console.log('Raw Response từ Backend:', response) // Log để bạn tự soi trong Console
-        return response
-      },
     }),
 
     // Xoá tin nhắn ở phía tôi
@@ -142,6 +150,7 @@ export const chatApi = baseApi.injectEndpoints({
         },
       }),
     }),
+
     // forward tin nhan
     forwardMessages: builder.mutation<
       void,
@@ -153,6 +162,7 @@ export const chatApi = baseApi.injectEndpoints({
         data,
       }),
     }),
+
     addReaction: builder.mutation<void, { roomId: string; messageId: string; reactionType: string }>({
       query: ({ roomId, messageId, reactionType }) => ({
         url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}/reactions`,
@@ -161,10 +171,43 @@ export const chatApi = baseApi.injectEndpoints({
       }),
 
     }),
+
     getMessageReactions: builder.query<MessageReactionResponse, { roomId: string; messageId: string }>({
       query: ({ roomId, messageId }) => ({
         url: `/chat/rooms/${roomId}/messages/${encodeURIComponent(messageId)}/reactions`,
         method: 'GET',
+      }),
+    }),
+
+    createPoll: builder.mutation<void, { roomId: string; data: PollSubmitRequest }>({
+      query: ({ roomId, data }) => ({
+        url: `/chat/rooms/${roomId}/polls`,
+        method: 'POST',
+        data,
+      }),
+    }),
+
+    generatePoll: builder.mutation<void, PollGenerateRequest>({
+      query: (data) => ({
+        url: `/chat/polls`,
+        method: 'POST',
+        data,
+      }),
+    }),
+
+    updatePoll: builder.mutation<void, { roomId: string; pollId: string; data: PollSubmitRequest }>({
+      query: ({ roomId, pollId, data }) => ({
+        url: `/chat/rooms/${roomId}/polls/${encodeURIComponent(pollId)}`,
+        method: 'PUT',
+        data,
+      }),
+    }),
+
+    votePoll: builder.mutation<void, { roomId: string; pollId: string; optionIds: string[] }>({
+      query: ({ roomId, pollId, optionIds }) => ({
+        url: `/chat/rooms/${roomId}/polls/${encodeURIComponent(pollId)}`,
+        method: 'PATCH',
+        data: { optionIds }, // Gửi qua body (data) thay vì params vì là mảng
       }),
     }),
   }),
@@ -172,11 +215,16 @@ export const chatApi = baseApi.injectEndpoints({
 
 export const {
   useGetMessagesQuery,
+  useGetMessageQuery,
   useLazyGetMessagesQuery,
   useSendMessageMutation,
   useDeleteMessageMutation,
   useLazyGetPresignedUrlQuery,
   useRevokeMessageMutation,
   useForwardMessagesMutation,
-  useAddReactionMutation
+  useAddReactionMutation,
+  useCreatePollMutation,
+  useUpdatePollMutation,
+  useVotePollMutation,
+  useGeneratePollMutation,
 } = chatApi

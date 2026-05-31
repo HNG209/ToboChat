@@ -161,95 +161,96 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
               </Label>
 
               {/* Vùng cuộn bằng FlatList */}
-              <YStack height={300} flexShrink={1}><StyledFlatList
-                borderWidth={1}
-                borderColor="$borderColor"
-                borderRadius="$3"
-                data={friendsData?.items || []}
-                keyExtractor={(item) => item.id}
-                style={{ flex: 0, minHeight: 300 }}
+              <YStack height={300} flexShrink={1}>
+                <StyledFlatList
+                  borderWidth="$0.5"
+                  borderColor="$borderColor"
+                  borderRadius="$3"
+                  data={friendsData?.items || []}
+                  keyExtractor={(item) => item.id}
+                  style={{ flex: 0, minHeight: 300 }}
 
-                showsVerticalScrollIndicator={false}
-                ListFooterComponent={
-                  friendsLoading ? (
-                    <XStack justifyContent="center" alignItems="center" py="$4">
-                      <ActivityIndicator size="small" color="#888" />
-                    </XStack>
-                  ) : null
-                }
-                contentContainerStyle={{ gap: 8 }} // Tạo khoảng cách giữa các item tương đương YStack space
-                renderItem={({ item: friend }) => {
-                  const isSelected = selectedMembers.includes(friend.id);
-                  return (
-                    <XStack
-                      alignItems="center"
-                      justifyContent="space-between"
-                      p="$3"
-                      borderRadius="$3"
-                      borderWidth={1}
-                      borderColor={isSelected ? '#007AFF' : '#E5E5EA'}
-                      backgroundColor={isSelected ? '#E5F1FF' : 'transparent'}
-                      onPress={() => toggleMember(friend.id)}
-                      animation="quick"
-                      pressStyle={{ scale: 0.98 }}
-                    >
-                      <XStack alignItems="center" space="$3">
-                        <Avatar circular size="$4">
-                          <Avatar.Image src={friend.avatarUrl} />
-                          <Avatar.Fallback borderColor="#E5E5EA" />
-                        </Avatar>
-                        <Text fontSize="$3">
-                          {friend.name}
-                        </Text>
-
-                        {!friend.allowAutoAddToGroup && (
-                          <XStack alignItems="center" space="$1.5">
-                            <Text fontSize="$2" color="gray">Gửi yêu cầu</Text>
-
-                            <Tooltip placement="top">
-                              <Tooltip.Trigger>
-                                <Info size={14} color="gray" />
-                              </Tooltip.Trigger>
-
-                              <Tooltip.Content
-                                enterStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
-                                exitStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
-                                scale={1}
-                                x={0}
-                                y={0}
-                                opacity={1}
-                                animation={[
-                                  'quick',
-                                  { opacity: { overshootClamping: true } },
-                                ]}
-                                p="$2"
-                                borderRadius="$3"
-                                backgroundColor="$background"
-                                elevation="$2"
-                              >
-                                <Tooltip.Arrow />
-                                <Text fontSize="$2" color="$color">
-                                  Người dùng này đang tắt tự động thêm vào nhóm
-                                </Text>
-                              </Tooltip.Content>
-                            </Tooltip>
-                          </XStack>
-                        )}
+                  showsVerticalScrollIndicator={false}
+                  ListFooterComponent={
+                    friendsLoading ? (
+                      <XStack justifyContent="center" alignItems="center" py="$4">
+                        <ActivityIndicator size="small" color="#888" />
                       </XStack>
-
-                      {/* Nút Check mark / Trạng thái chọn */}
-                      <Circle
-                        size="$1"
-                        borderWidth={isSelected ? 0 : 2}
-                        borderColor="gray"
-                        backgroundColor={isSelected ? '#007AFF' : 'transparent'}
+                    ) : null
+                  }
+                  contentContainerStyle={{ gap: 8 }} // Tạo khoảng cách giữa các item tương đương YStack space
+                  renderItem={({ item: friend }) => {
+                    const isSelected = selectedMembers.includes(friend.id);
+                    return (
+                      <XStack
+                        alignItems="center"
+                        justifyContent="space-between"
+                        p="$3"
+                        borderRadius="$3"
+                        borderWidth={1}
+                        borderColor={isSelected ? '#007AFF' : '#E5E5EA'}
+                        backgroundColor={isSelected ? '#E5F1FF' : 'transparent'}
+                        onPress={() => toggleMember(friend.id)}
+                        animation="quick"
+                        pressStyle={{ scale: 0.98 }}
                       >
-                        {isSelected && <Check size={14} color="white" />}
-                      </Circle>
-                    </XStack>
-                  );
-                }}
-              />
+                        <XStack alignItems="center" space="$3">
+                          <Avatar circular size="$4">
+                            <Avatar.Image src={friend.avatarUrl} />
+                            <Avatar.Fallback borderColor="#E5E5EA" />
+                          </Avatar>
+                          <Text fontSize="$3">
+                            {friend.name}
+                          </Text>
+
+                          {!friend.allowAutoAddToGroup && (
+                            <XStack alignItems="center" space="$1.5">
+                              <Text fontSize="$2" color="gray">Gửi yêu cầu</Text>
+
+                              <Tooltip placement="top">
+                                <Tooltip.Trigger>
+                                  <Info size={14} color="gray" />
+                                </Tooltip.Trigger>
+
+                                <Tooltip.Content
+                                  enterStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
+                                  exitStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
+                                  scale={1}
+                                  x={0}
+                                  y={0}
+                                  opacity={1}
+                                  animation={[
+                                    'quick',
+                                    { opacity: { overshootClamping: true } },
+                                  ]}
+                                  p="$2"
+                                  borderRadius="$3"
+                                  backgroundColor="$background"
+                                  elevation="$2"
+                                >
+                                  <Tooltip.Arrow />
+                                  <Text fontSize="$2" color="$color">
+                                    Người dùng này đang tắt tự động thêm vào nhóm
+                                  </Text>
+                                </Tooltip.Content>
+                              </Tooltip>
+                            </XStack>
+                          )}
+                        </XStack>
+
+                        {/* Nút Check mark / Trạng thái chọn */}
+                        <Circle
+                          size="$1"
+                          borderWidth={isSelected ? 0 : 2}
+                          borderColor="gray"
+                          backgroundColor={isSelected ? '#007AFF' : 'transparent'}
+                        >
+                          {isSelected && <Check size={14} color="white" />}
+                        </Circle>
+                      </XStack>
+                    );
+                  }}
+                />
               </YStack>
 
             </YStack>
@@ -264,13 +265,15 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
             {/* Các nút hành động */}
             <YStack space="$2" mt="$3" flexDirection="row" justifyContent="flex-end">
               <Theme>
-                <Button onPress={handleCreateGroup} fontWeight="bold" disabled={isCreatingGroup}>
+                <Button backgroundColor="$blue10" onPress={handleCreateGroup} fontWeight="bold" disabled={isCreatingGroup}>
                   {isCreatingGroup ?
                     <ActivityIndicator size="small" color="#FFF" />
-                    : 'Tạo nhóm'}
+                    :
+                    <Text color="white">Tạo nhóm</Text>
+                  }
                 </Button>
               </Theme>
-              <Button onPress={handleClose} variant="outlined" chromeless>
+              <Button backgroundColor="$background" onPress={handleClose} variant="outlined" chromeless>
                 Huỷ
               </Button>
             </YStack>

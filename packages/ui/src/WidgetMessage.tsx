@@ -1,7 +1,11 @@
-import { YStack, XStack, Text, Circle, Button, ThemeName } from '@my/ui'
-import { PhoneMissed, PhoneCall, Video, MapPin, BarChart2 } from '@tamagui/lucide-icons'
+import { YStack, XStack, Text, Circle, Button, ThemeName, ZStack } from '@my/ui'
+import { PhoneMissed, PhoneCall, Video, MapPin, BarChart2, CheckCircle2, Edit3 } from '@tamagui/lucide-icons'
+import { useGetProfileQuery } from 'app/services/userApi'
 import { MessageResponse } from 'app/types/Response'
 import { getSocket } from 'app/utils/socket'
+import { PollDetail } from './PollDetail'
+import { PollDetailDialog } from './PollDetailDialog'
+import { useState } from 'react'
 
 interface WidgetMessageProps {
   msg: MessageResponse
@@ -25,8 +29,10 @@ export function WidgetMessage({ msg, isMe, roomId }: WidgetMessageProps) {
     case 'CALL':
       return <CallWidget metadata={metadata} isMe={isMe} roomId={roomId} />
 
+    case 'POLL':
+      return <PollWidget msg={msg} roomId={roomId} />
+
     // Thêm các case mới ở đây trong tương lai
-    // case 'POLL': return <PollWidget metadata={metadata} />
 
     default:
       return (
@@ -35,6 +41,39 @@ export function WidgetMessage({ msg, isMe, roomId }: WidgetMessageProps) {
         </YStack>
       )
   }
+}
+
+function PollWidget({ msg, roomId }: { msg: MessageResponse; roomId: string }) {
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const { data: myProfile } = useGetProfileQuery();
+  const currentUserId = myProfile?.id;
+
+  return (
+    <YStack
+      p="$4"
+      width="100%"
+      minWidth={300}
+      maxWidth={450}
+      alignSelf="center"
+      marginVertical="$2"
+      bg="$background"
+      borderRadius="$4"
+      borderWidth={1}
+      borderColor="$borderColor"
+    >
+      <PollDetail msg={msg} roomId={roomId} mode="PREVIEW" currentUserId={currentUserId} />
+      <Button marginBottom="$2" onPress={() => setIsDetailOpen(true)} backgroundColor="$blue10" variant="outlined" chromeless>
+        <Text color="white">Bình chọn</Text>
+      </Button>
+
+      <PollDetailDialog
+        isOpen={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        roomId={roomId}
+        pollId={msg.id}
+      />
+    </YStack>
+  )
 }
 
 function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; roomId: string }) {
@@ -63,7 +102,7 @@ function CallWidget({ metadata, isMe, roomId }: { metadata: any; isMe: boolean; 
     ? (isMissed ? '$red10' : '$purple10')
     : (isMissed ? '$red10' : '$color12')
   const buttonTheme = (isGroupCall ? 'purple' : (isMissed ? 'red' : 'active')) as ThemeName;
-  
+
   const handleCallBack = () => {
     const socket = getSocket()
     if (socket) {
