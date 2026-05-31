@@ -16,6 +16,7 @@ import { AttachmentType } from 'app/types/Enums'
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Danh sách phòng đã tham gia
     getJoinedRooms: builder.query<
       PageResponse<RoomResponse>,
       { status: RoomStatus; cursor?: string; limit?: number }
@@ -132,7 +133,7 @@ export const roomApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // Kiểm tra có thể rời nhóm
+    // Kiểm tra trạng thái trước khi rời nhóm
     checkLeave: builder.mutation<LeaveCheckResponse, { roomId: string }>({
       query: (data) => ({
         url: `/rooms/${data.roomId}/leave-check`,
@@ -186,6 +187,7 @@ export const roomApi = baseApi.injectEndpoints({
       providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
     }),
 
+    // Danh sách người dùng đang chờ duyệt vào nhóm
     getPendingRequest: builder.query<PageResponse<GroupPendingRequestResponse>, { roomId: string }>(
       {
         query: ({ roomId }) => ({
@@ -196,6 +198,7 @@ export const roomApi = baseApi.injectEndpoints({
       }
     ),
 
+    // Duyệt người dùng vào nhóm
     approveMember: builder.mutation<void, { roomId: string; userId: string; accept: boolean }>({
       query: (data) => ({
         url: `/rooms/${data.roomId}/pending-requests/${data.userId}`,
@@ -218,36 +221,32 @@ export const roomApi = baseApi.injectEndpoints({
         params: { contentType },
       }),
     }),
+
+    // Cập nhật tên phòng
     updateRoomName: builder.mutation<void, { roomId: string; roomName: string }>({
       query: ({ roomId, roomName }) => ({
         url: `/rooms/${roomId}/name`,
         method: 'PATCH',
         data: { roomName },
       }),
-
-      invalidatesTags: (result, error, arg) => [
-        { type: 'RoomMetadata', id: arg.roomId },
-        { type: 'Rooms' }, // update list chat sidebar luôn
-      ],
     }),
+
+    // Cập nhật avatar phòng
     updateRoomAvatar: builder.mutation<void, { roomId: string; avatarUrl: string }>({
       query: ({ roomId, avatarUrl }) => ({
         url: `/rooms/${roomId}/avatar`,
         method: 'PATCH',
         data: { avatarUrl },
       }),
-
-      invalidatesTags: (result, error, arg) => [
-        { type: 'RoomMetadata', id: arg.roomId },
-        { type: 'Rooms' },
-      ],
     }),
+
+    // Danh sách attachment trong đoạn phòng
     getRoomAttachments: builder.query<
       PageResponse<AttachmentItemResponse>,
       { roomId: string; type: AttachmentType; limit?: number; cursor?: string }
     >({
       query: ({ roomId, type, limit = 20, cursor }) => ({
-        url: `/chat/rooms/${roomId}/attachments`,
+        url: `/rooms/${roomId}/attachments`,
         method: 'GET',
         params: { type, limit, cursor: cursor || undefined },
       }),
@@ -261,7 +260,6 @@ export const roomApi = baseApi.injectEndpoints({
         return currentArg?.cursor !== previousArg?.cursor && currentArg?.cursor !== undefined
       },
 
-      // CHỈNH SỬA TẠI ĐÂY:
       merge: (currentCache, newData, { arg }) => {
         // Lấy item đầu tiên trong cache hiện tại để kiểm tra xem nó thuộc loại nào (MEDIA hay FILE)
         const currentCacheType = currentCache.items?.[0]?.detail?.contentType;

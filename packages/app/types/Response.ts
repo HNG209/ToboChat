@@ -120,8 +120,11 @@ export interface MessageResponse {
   createdAt: string
   messageStatus?: MessageStatus
   attachments?: Attachment[]
-  reactionsSummary: Record<string, number>;
-  myReactions: string[]
+
+  // Cảm xúc tin nhắn
+  reactionsSummary?: Record<string, number>;
+  myReactions?: string[]
+
   // Tin nhắn hệ thống
   messageType: MessageType
   action?: SystemAction

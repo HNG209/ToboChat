@@ -446,7 +446,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     };
   }, [roomId, dispatch]);
 
-  // 4. Socket Connection & Listeners
+  // Socket Connection & Listeners
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
     const checkSocket = () => {
@@ -464,6 +464,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     if (!socket) return
 
     socket.emit('join_room', roomId)
+
     const addAttachmentsToCache = (message: MessageResponse) => {
       if (!message.attachments?.length) return
 
@@ -499,7 +500,7 @@ export function ChatScreen({ roomId, insets }: Props) {
               draft.items.unshift({
                 attachmentId,
                 messageId: message.id,
-                senderId: message.user?.id,
+                senderId: message.user?.id || '',
                 detail: attachment,
               })
             }
@@ -507,6 +508,7 @@ export function ChatScreen({ roomId, insets }: Props) {
         )
       })
     }
+
     const handleReceiveMessage = (message: MessageResponse) => {
       if (message.roomId !== roomId) return
       dispatch(
@@ -548,6 +550,7 @@ export function ChatScreen({ roomId, insets }: Props) {
         )
       })
     }
+
     const handleMessageDeleted = async (message: MessageResponse) => {
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
@@ -558,6 +561,7 @@ export function ChatScreen({ roomId, insets }: Props) {
           }
         })
       )
+
       removeAttachmentsFromCache(message.roomId || roomId, message.id)
     }
 
@@ -575,7 +579,9 @@ export function ChatScreen({ roomId, insets }: Props) {
           }
         })
       )
+
       removeAttachmentsFromCache(data.roomId, data.messageId)
+
       setLocallyDeletedIds((prev) => {
         const next = new Set(prev)
         next.delete(data.messageId)
@@ -1064,6 +1070,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onAddMember={() => setInfoView('ADD')}
                     onViewMembers={() => setInfoView('MEMBERS')}
                     onApproveMembers={() => setInfoView('APPROVED')}
+                    onViewAttachments={() => setInfoView('ATTACHMENTS')}
                     onSaveAvatar={handleSaveAvatar}
                   />
                 ) : infoView === 'MANAGEMENT' ? (
