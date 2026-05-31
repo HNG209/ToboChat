@@ -19,3 +19,4 @@ export type SystemAction =
   | 'POLL_UPDATED'
   | 'POLL_VOTED'
 export type AttachmentType = 'MEDIA' | 'FILE'
+export type UserPresenceStatus = 'ONLINE' | 'OFFLINE' | 'UNAVAILABLE'

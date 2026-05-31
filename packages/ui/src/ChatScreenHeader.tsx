@@ -16,6 +16,8 @@ type Props = {
 
 export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, linkProps, onInfoPress }: Props) => {
   const isGroup = roomData?.roomType === 'GROUP';
+  const userPresence = roomData?.userPresence;
+
   const { data: callStatusData } = useGetCallStatusQuery(
     { roomId },
     { skip: !roomId, refetchOnMountOrArgChange: true }
@@ -67,12 +69,21 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
             >
               {isRoomLoading ? 'Đang tải...' : roomData?.roomName || 'Tên phòng'}
             </Text>
-            <XStack alignItems="center" space="$1.5">
-              <Circle size={8} bg="$green10" />
-              <Text fontSize="$2" color="$color10">
-                Đang hoạt động
-              </Text>
-            </XStack>
+            {
+              userPresence?.status === 'ONLINE' ?
+                <XStack alignItems="center" space="$1.5">
+                  <Circle size={8} bg="$green10" />
+                  <Text fontSize="$2" color="$color10">
+                    Đang hoạt động
+                  </Text>
+                </XStack> :
+                <XStack alignItems="center" space="$1.5">
+                  <Circle size={8} bg="$gray10" />
+                  <Text fontSize="$2" color="$color10">
+                    Ngưng hoạt động
+                  </Text>
+                </XStack>
+            }
           </YStack>
         </XStack>
       </XStack>
