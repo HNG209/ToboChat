@@ -29,7 +29,7 @@ import {
 } from "@tamagui/lucide-icons"
 import { Alert, Platform } from 'react-native'
 import { RoomMemberResponse, RoomResponse } from "app/types/Response"
-import { roomApi, useCheckLeaveMutation, useGetMyInfoQuery, useLeaveGroupMutation } from 'app/services/roomApi'
+import { roomApi, useCheckLeaveMutation, useGetMyInfoQuery, useGetRoomAttachmentsQuery, useLeaveGroupMutation } from 'app/services/roomApi'
 import { TransferAdminDialog } from './group/TransferAdminDialog'
 import { useRouter } from 'solito/navigation'
 import { AppDispatch } from 'app/store'
@@ -87,7 +87,20 @@ export const ConversationInfoContent = ({
   const [openTransferAdmin, setOpenTransferAdmin] = useState(false) // State cho Modal chuyển quyền
   const isWeb = Platform.OS === 'web'
   const isGroup = roomData?.roomType === "GROUP"
+  const { data: mediaData } = useGetRoomAttachmentsQuery({
+    roomId,
+    type: "MEDIA",
+    limit: 3,
+  })
 
+  const { data: fileData } = useGetRoomAttachmentsQuery({
+    roomId,
+    type: "FILE",
+    limit: 3,
+  })
+
+  const previewMedia = mediaData?.items ?? []
+  const previewFiles = fileData?.items ?? []
   const handleLeaveGroupPress = async () => {
     try {
       // 1. Check quyền rời nhóm
@@ -440,45 +453,117 @@ export const ConversationInfoContent = ({
 
             {/* Giao diện khung xám mẫu nguyên bản */}
             <XStack gap="$2.5" onPress={onViewAttachments} style={{ cursor: 'pointer' }}>
-              {[1, 2, 3].map((i) => (
-                <YStack
-                  key={i}
-                  flex={1}
-                  aspectRatio={1}
-                  borderRadius="$3"
-                  backgroundColor="$backgroundHover"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <ImageIcon size={20} opacity={0.2} color="$color" />
-                </YStack>
-              ))}
+              {[0, 1, 2].map((index) => {
+                const item = previewMedia[index]
+
+                return (
+                  <YStack
+                    key={item?.attachmentId || index}
+                    flex={1}
+                    aspectRatio={1}
+                    borderRadius="$3"
+                    overflow="hidden"
+                    backgroundColor="$backgroundHover"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    {item ? (
+                      <Image
+                        source={{ uri: item.detail.fileUrl }}
+                        width="100%"
+                        height="100%"
+                      />
+                    ) : (
+                      <ImageIcon size={20} opacity={0.2} color="$color" />
+                    )}
+                  </YStack>
+                )
+              })}
             </XStack>
           </YStack>
 
           <Separator opacity={0.5} marginVertical="$2" />
 
           {/* --- KHO FILE RÚT GỌN --- */}
-          <YStack p="$3" space="$2">
-            <Text fontWeight="700" fontSize="$4" px="$1">File đã gửi</Text>
-            <XStack
-              p="$3"
-              borderRadius="$4"
-              alignItems="center"
-              space="$3"
-              backgroundColor="$backgroundHover"
-              hoverStyle={{ backgroundColor: '$blue2', cursor: 'pointer' }}
-              onPress={onViewAttachments}
-            >
-              <Circle size={36} backgroundColor="$orange3">
-                <FileText size={18} color="$orange10" />
-              </Circle>
-              <YStack flex={1}>
-                <Text fontSize="$3" fontWeight="600">Tài liệu và tệp tin</Text>
-                <Text fontSize="$2" color="$color10">Xem toàn bộ kho dữ liệu đã chia sẻ</Text>
-              </YStack>
-              <ChevronRight size={16} opacity={0.5} />
+          <YStack p="$3" space="$3">
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text fontWeight="700" fontSize="$4">
+                File đã gửi
+              </Text>
+
+              <Button
+                size="$2"
+                chromeless
+                p={0}
+                onPress={onViewAttachments}
+              >
+                <Text color="$blue10" fontSize="$2" fontWeight="600">
+                  Xem tất cả
+                </Text>
+              </Button>
             </XStack>
+
+            {previewFiles.length > 0 ? (
+              <YStack space="$2">
+                {previewFiles.slice(0, 3).map((file) => (
+                  <XStack
+                    key={file.attachmentId}
+                    p="$1"
+                    borderRadius="$4"
+                    alignItems="center"
+                    space="$3"
+                    backgroundColor="$backgroundHover"
+                    hoverStyle={{
+                      backgroundColor: '$backgroundPress',
+                      cursor: 'pointer',
+                    }}
+                    onPress={onViewAttachments}
+                  >
+                    <Circle size={40} backgroundColor="$blue3">
+                      <FileText size={18} color="$blue10" />
+                    </Circle>
+
+                    <YStack flex={1} minWidth={0}>
+                      <Text
+                        fontWeight="400"
+                        numberOfLines={1}
+                      >
+                        {file.detail.fileName}
+                      </Text>
+
+
+                    </YStack>
+
+                    <ChevronRight
+                      size={16}
+                      opacity={0.4}
+                    />
+                  </XStack>
+                ))}
+              </YStack>
+            ) : (
+              <XStack
+                p="$3"
+                borderRadius="$4"
+                alignItems="center"
+                space="$3"
+                backgroundColor="$backgroundHover"
+              >
+                <Circle size={40} backgroundColor="$orange3">
+                  <FileText size={18} color="$orange10" />
+                </Circle>
+
+                <YStack flex={1}>
+                  <Text fontWeight="600">
+                    Tài liệu và tệp tin
+                  </Text>
+
+                  <Text fontSize="$2" color="$color10">
+                    Chưa có file nào được chia sẻ
+                  </Text>
+                </YStack>
+              </XStack>
+            )}
           </YStack>
           {/* DANGER ZONE */}
           {isGroup && (
