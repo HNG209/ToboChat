@@ -252,11 +252,11 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       );
     }
 
-    const handleMemberUpdated = (data: RoomMemberResponse) => {
-      dispatch(
-        roomApi.util.updateQueryData('getMyInfo', { roomId: data.roomId }, () => { return data })
-      );
-    }
+    // const handleMemberUpdated = (data: RoomMemberResponse) => {
+    //   dispatch(
+    //     roomApi.util.updateQueryData('getMyInfo', { roomId: data.roomId }, () => { return data })
+    //   );
+    // }
 
     const handleCallError = (message: string) => {
       setIsAcceptingCall(false);
@@ -294,7 +294,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     socket.on('unread_updated', handleUnreadUpdate);
     socket.on('inbox_updated', handleInboxUpdated);
     socket.on('room_updated', handleRoomUpdated);
-    socket.on('member_updated', handleMemberUpdated);
+    // socket.on('member_updated', handleMemberUpdated);
     socket.on('self_removed', handleSelfRemoved);
     socket.on('new_room', handleNewRoom);
     socket.on('pending_inbox_updated', handlePendingInboxUpdated);
@@ -309,7 +309,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       socket.off('unread_updated', handleUnreadUpdate);
       socket.off('inbox_updated', handleInboxUpdated);
       socket.off('room_updated', handleRoomUpdated);
-      socket.off('member_updated', handleMemberUpdated);
+      // socket.off('member_updated', handleMemberUpdated);
       socket.off('self_removed', handleSelfRemoved);
       socket.off('new_room', handleNewRoom);
       socket.off('pending_inbox_updated', handlePendingInboxUpdated);
