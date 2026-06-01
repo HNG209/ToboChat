@@ -67,7 +67,7 @@ export interface MemberUpdateRequest {
 export interface CallRequest {
   roomId: string
 }
-type DeleteFriendRequest = {
+export type DeleteFriendRequest = {
   userId: string
   otherId: string
 }

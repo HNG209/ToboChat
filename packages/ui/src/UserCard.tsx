@@ -4,9 +4,9 @@ import { FriendResponse, UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
 import { Platform } from 'react-native'
 import { useMedia } from 'tamagui'
-import { useDispatch } from 'react-redux'
-import { AppDispatch, store } from 'app/store'
-import { contactApi } from 'app/services/contactApi'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState, store } from 'app/store'
+import { contactApi, useDeleteFriendMutation } from 'app/services/contactApi'
 import { Popover } from 'tamagui'
 import { Dialog } from 'tamagui'
 type Props = {
@@ -23,7 +23,8 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
   const isSent = type === FriendRequestType.SENT
   const media = useMedia()
   const dispatch = useDispatch<AppDispatch>()
-
+  const selfUserId = useSelector((state: RootState) => state.auth.user?.id)
+  const [deleteFriend, { isLoading: isDeletingFriend }] = useDeleteFriendMutation()
   const buttonProps = {
     size: "$3",
     borderRadius: "$4",
@@ -37,7 +38,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
       ['FriendList']
     )
 
-    friendListCaches.forEach(({ originalArgs }) => {
+    return friendListCaches.map(({ originalArgs }) =>
       dispatch(
         contactApi.util.updateQueryData(
           'getMyFriendList',
@@ -53,7 +54,22 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
           }
         )
       )
-    })
+    )
+  }
+  const handleUnfriend = async () => {
+    if (!selfUserId) return
+
+    const patches = handleUnfriendOptimistic(user.id)
+
+    try {
+      await deleteFriend({
+        userId: selfUserId,
+        otherId: user.id,
+      }).unwrap()
+    } catch (error) {
+      patches.forEach((patch) => patch.undo())
+      console.error('Unfriend failed:', error)
+    }
   }
   return (
     <XStack
@@ -136,9 +152,9 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
                       borderRadius={0}
                       size="$3"
                       justifyContent="flex-start"
-                      onPress={() => {
-                        handleUnfriendOptimistic(user.id)
-                      }}
+                      disabled={isDeletingFriend}
+                      opacity={isDeletingFriend ? 0.5 : 1}
+                      onPress={handleUnfriend}
                     >
                       <XStack space="$2" alignItems="center">
                         <UserMinus size={16} color="$red10" />
