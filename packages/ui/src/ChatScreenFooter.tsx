@@ -1,5 +1,5 @@
 import { Button, Circle, Image, Input, Sheet, Text, XStack, YStack, ZStack } from "tamagui"
-import { MoreHorizontal, Image as ImageIcon, SendHorizontal, Heart, X, Video, FileText, Plus, BarChart2, MapPin } from "@tamagui/lucide-icons"
+import { MoreHorizontal, Image as ImageIcon, SendHorizontal, Heart, X, Video, FileText, Plus, BarChart2, MapPin, Pin, Paperclip } from "@tamagui/lucide-icons"
 import { ActivityIndicator, Platform } from "react-native"
 import { useState } from "react";
 import { Attachment, MessageResponse } from "app/types/Response"
@@ -47,7 +47,7 @@ export const ChatScreenFooter = ({
 
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const [isCreatePollOpen, setIsCreatePollOpen] = useState(false);
-
+  const isReplying = !!replyTo
   const onSend = () => {
     const trimmedMsg = localMessage.trim();
 
@@ -91,11 +91,18 @@ export const ChatScreenFooter = ({
     const totalAttachments = attachments.length
 
     if (!hasText && totalAttachments === 0) return
-
+    if (isReplying && totalAttachments > 0) {
+      setDrafts([])
+      return
+    }
     // Lưu lại replyTo cũ để revert nếu lỗi, sau đó xóa state ngay để tránh gửi lặp
-    const currentReplyTo = replyTo;
-    setDrafts([])
+    const currentReplyTo = replyTo
 
+    if (currentReplyTo) {
+      setReplyTo(null)
+    }
+
+    setDrafts([])
     const sendSingleMessage = async (messageContent: string, messageAttachments: Attachment[]) => {
       const tempId = uuidv4()
       const optimisticMessage: MessageResponse = {
@@ -132,8 +139,7 @@ export const ChatScreenFooter = ({
           attachments: messageAttachments,
         }).unwrap()
 
-        if (messageContent.trim().length > 0 && currentReplyTo)
-          setReplyTo(null)
+
 
         dispatch(
           chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
@@ -384,8 +390,13 @@ export const ChatScreenFooter = ({
           size="$3"
           circular
           chromeless
-          icon={<ImageIcon size={24} color="$color10" />}
-          onPress={handlePickFile} // Gọi hàm từ Hook của bạn
+          disabled={isReplying}
+          opacity={isReplying ? 0.4 : 1}
+          icon={<Paperclip size={24} color={isReplying ? '$color8' : '$color10'} />}
+          onPress={() => {
+            if (isReplying) return
+            handlePickFile()
+          }}
         />
 
         <Input

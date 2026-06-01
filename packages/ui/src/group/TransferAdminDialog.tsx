@@ -51,7 +51,7 @@ export function TransferAdminDialog({ open, onOpenChange, roomId, onSuccess }: T
   }) || [];
   if (!open) return null
   return (
-    <Dialog modal={false} open={open} onOpenChange={onOpenChange}>
+    <Dialog modal open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal forceMount>
         <Dialog.Overlay
           key="overlay"
