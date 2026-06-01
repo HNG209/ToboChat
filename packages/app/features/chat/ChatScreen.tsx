@@ -52,6 +52,7 @@ import { FriendStatus } from 'app/types/Enums';
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader'
 import { ConversationAttachments } from '@my/ui/src/ConversationAttachments'
+import { ChatErrorState } from '@my/ui/src/error/ChatErrorState'
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -156,7 +157,7 @@ export function ChatScreen({ roomId, insets }: Props) {
   const selectedCount = selectedIds.size
 
   // fetch messages
-  const { data, isLoading, isFetching: isFetchingInitial, isError, error } = useGetMessagesQuery(
+  const { data, isLoading, isFetching: isFetchingInitial, isError, error, refetch } = useGetMessagesQuery(
     {
       roomId,
       cursor: replyCursorRef.current,
@@ -720,9 +721,10 @@ export function ChatScreen({ roomId, insets }: Props) {
                 <ActivityIndicator size="large" color="#888" />
               </XStack>
             ) : isError && !isRoomNotFound ? (
-              <XStack justifyContent="center" alignItems="center" flex={1} bg="$background">
-                <Text color="red">Lỗi khi tải tin nhắn!</Text>
-              </XStack>
+              <ChatErrorState
+                onRetry={refetch}
+                errorMessage={(error as any)?.data?.message}
+              />
             ) : (
               <StyledFlatList<MessageResponse>
                 ref={flatListRef}
