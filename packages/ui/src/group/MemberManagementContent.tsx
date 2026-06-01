@@ -30,7 +30,6 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
 
   const handleUpdateRole = async (memberId: string, newRole: 'VICE_ADMIN' | 'MEMBER') => {
     try {
-      await updateMember({ roomId, memberId, request: { memberRole: newRole } }).unwrap()
       dispatch(
         roomApi.util.updateQueryData('getRoomMembers', { roomId }, (draft) => {
           if (!draft?.items) return
@@ -40,6 +39,7 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
           }
         })
       )
+      await updateMember({ roomId, memberId, request: { memberRole: newRole } }).unwrap()
     } catch (e) {
       console.error("Lỗi cập nhật vai trò", e)
     }
@@ -59,7 +59,7 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
             }
           })
         );
-        
+
         dispatch(
           roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
             const room = draft.items?.find((r) => r.id === roomId);
@@ -68,7 +68,7 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
             }
           })
         );
-        
+
         await removeMember({ roomId, memberId }).unwrap();
       } catch (e) {
         console.error("Lỗi xóa:", e);
@@ -103,12 +103,10 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
           {isLoading ? (
             <ActivityIndicator style={{ marginTop: 20 }} color="$blue10" />
           ) : (
-
-
             membersData?.items?.map((item: any) => {
               const member = item.member
               const role = item.role
-              const isMe = member.id === myInfo?.id
+              const isMe = item.id === myInfo?.id
               const canManage = myInfo?.permissions?.canApproveMember && !isMe
 
               return (

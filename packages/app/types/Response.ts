@@ -6,6 +6,7 @@ import {
   MessageType,
   RoomType,
   SystemAction,
+  UserPresenceStatus,
 } from './Enums'
 
 export interface ApiResponse<T = unknown> {
@@ -94,6 +95,8 @@ export interface RoomResponse {
   memberCount: number
   pendingCount: number
   unreadMessages: number
+
+  userPresence: UserPresenceResponse
 }
 
 export interface LatestMessage {
@@ -185,4 +188,9 @@ export interface AttachmentItemResponse {
 export interface PresignedUrlResponse {
   uploadUrl: string; // Link có chữ ký dùng để Frontend PUT file lên
   fileUrl: string;
+}
+
+export interface UserPresenceResponse {
+  status: UserPresenceStatus;
+  lastSeen: number;
 }

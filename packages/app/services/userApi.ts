@@ -4,13 +4,13 @@ import { FindUserByEmailRequest } from 'app/types/Request'
 
 type AvatarUploadUrlResponse =
   | {
-      presignedUrl: string
-      fileUrl: string
-    }
+    presignedUrl: string
+    fileUrl: string
+  }
   | {
-      url: string
-      fileUrl?: string
-    }
+    url: string
+    fileUrl?: string
+  }
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({

@@ -4,6 +4,7 @@ import { ChevronLeft, Info, Phone, Video } from "@tamagui/lucide-icons"
 import { RoomResponse } from "app/types/Response"
 import { useGetCallStatusQuery } from "app/services/callApi"
 import { getSocket } from "app/utils/socket"
+import { formatLastSeen } from 'app/utils/chatHelper'
 
 type Props = {
   roomId: string
@@ -16,6 +17,8 @@ type Props = {
 
 export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, linkProps, onInfoPress }: Props) => {
   const isGroup = roomData?.roomType === 'GROUP';
+  const userPresence = roomData?.userPresence;
+
   const { data: callStatusData } = useGetCallStatusQuery(
     { roomId },
     { skip: !roomId, refetchOnMountOrArgChange: true }
@@ -67,12 +70,21 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
             >
               {isRoomLoading ? 'Đang tải...' : roomData?.roomName || 'Tên phòng'}
             </Text>
-            <XStack alignItems="center" space="$1.5">
-              <Circle size={8} bg="$green10" />
-              <Text fontSize="$2" color="$color10">
-                Đang hoạt động
-              </Text>
-            </XStack>
+            {
+              userPresence?.status === 'ONLINE' ?
+                <XStack alignItems="center" space="$1.5">
+                  <Circle size={8} bg="$green10" />
+                  <Text fontSize="$2" color="$color10">
+                    Đang hoạt động
+                  </Text>
+                </XStack> :
+                <XStack alignItems="center" space="$1.5">
+                  <Circle size={8} bg="$gray10" />
+                  <Text fontSize="$2" color="$color10">
+                    {formatLastSeen(userPresence?.lastSeen)}
+                  </Text>
+                </XStack>
+            }
           </YStack>
         </XStack>
       </XStack>

@@ -5,15 +5,16 @@ import { Dialog, Button, Text, XStack, YStack, Avatar, Spinner } from "@my/ui"
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
 import { Check, Maximize2, PhoneCall, X as XIcon } from "@tamagui/lucide-icons"
-import { CallResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse } from "app/types/Response"
+import { CallResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse, UserPresenceResponse } from "app/types/Response"
 import { CallRequest } from "app/types/Request"
 import { callApi, CallStatus } from "app/services/callApi"
 import { roomApi } from "app/services/roomApi"
 import { userApi } from "app/services/userApi"
-import { RoomStatus } from "app/types/Enums"
+import { RoomStatus, UserPresenceStatus } from "app/types/Enums"
 import { RoomUpdateEvent } from "app/types/Events"
 import { useRouter } from "solito/navigation"
 import { Platform } from "react-native"
+import { generateDirectRoomId } from "app/utils/chatHelper"
 
 type InboxUpdatedPayload = {
   message: LatestMessage
@@ -34,6 +35,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
   const activeRoomId = useSelector((state: RootState) => state.chat.activeRoomId)
+  const selfUserId = useSelector((state: RootState) => state.auth.user?.id)
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [callToken, setCallToken] = useState<string | null>(null)
   const [isVideoCall, setIsVideoCall] = useState<boolean>(true)
@@ -250,16 +252,38 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       );
     }
 
-    const handleMemberUpdated = (data: RoomMemberResponse) => {
-      dispatch(
-        roomApi.util.updateQueryData('getMyInfo', { roomId: data.roomId }, () => { return data })
-      );
-    }
+    // const handleMemberUpdated = (data: RoomMemberResponse) => {
+    //   dispatch(
+    //     roomApi.util.updateQueryData('getMyInfo', { roomId: data.roomId }, () => { return data })
+    //   );
+    // }
 
     const handleCallError = (message: string) => {
       setIsAcceptingCall(false);
       console.log("Lỗi tham gia gọi:", message);
     };
+
+    const handleUserPresenceUpdated = (data: { status: UserPresenceStatus, lastSeen: number, userId: string }) => {
+      const targetRoomId = generateDirectRoomId(selfUserId || '', data.userId);
+
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId: targetRoomId }, (draft) => {
+          if (!draft) return;
+          draft.userPresence.status = data.status
+          draft.userPresence.lastSeen = data.lastSeen
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === targetRoomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items[index].userPresence.status = data.status
+            draft.items[index].userPresence.lastSeen = data.lastSeen
+          }
+        })
+      );
+    }
 
     socket.on('call_accepted', handleCallAccepted);
     socket.on('call_status_updated', handleCallStatusUpdated);
@@ -270,10 +294,11 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     socket.on('unread_updated', handleUnreadUpdate);
     socket.on('inbox_updated', handleInboxUpdated);
     socket.on('room_updated', handleRoomUpdated);
-    socket.on('member_updated', handleMemberUpdated);
+    // socket.on('member_updated', handleMemberUpdated);
     socket.on('self_removed', handleSelfRemoved);
     socket.on('new_room', handleNewRoom);
     socket.on('pending_inbox_updated', handlePendingInboxUpdated);
+    socket.on('user_presence_updated', handleUserPresenceUpdated);
     return () => {
       socket.off('call_accepted', handleCallAccepted);
       socket.off('call_status_updated', handleCallStatusUpdated);
@@ -284,10 +309,11 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       socket.off('unread_updated', handleUnreadUpdate);
       socket.off('inbox_updated', handleInboxUpdated);
       socket.off('room_updated', handleRoomUpdated);
-      socket.off('member_updated', handleMemberUpdated);
+      // socket.off('member_updated', handleMemberUpdated);
       socket.off('self_removed', handleSelfRemoved);
       socket.off('new_room', handleNewRoom);
       socket.off('pending_inbox_updated', handlePendingInboxUpdated);
+      socket.off('user_presence_updated', handleUserPresenceUpdated);
     }
   }, [activeRoomId, isSocketReady, dispatch])
 

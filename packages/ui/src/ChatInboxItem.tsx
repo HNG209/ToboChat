@@ -70,10 +70,10 @@ export const ChatInboxItem = ({
           <Avatar circular size="$6" borderWidth={2} borderColor={selected ? '$blue4' : '$color4'}>
             <Avatar.Image src={avatarUrl} />
           </Avatar>
-          {typeof isOnline === 'boolean' && (
+          {isOnline && (
             <Circle
               size={13}
-              backgroundColor={isOnline ? '$green10' : '$gray8'}
+              backgroundColor={'$green10'}
               borderWidth={2}
               borderColor="white"
               position="absolute"

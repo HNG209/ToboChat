@@ -6,6 +6,43 @@ export const generateDirectRoomId = (myId: string, otherUserId: string) => {
   return `${ids[0]}_${ids[1]}`
 }
 
+export const formatLastSeen = (lastSeen?: number): string => {
+  if (!lastSeen) return 'Bấm để xem thông tin';
+
+  const now = Date.now();
+  const diffInSeconds = Math.floor((now - lastSeen) / 1000);
+
+  // Xử lý trường hợp thời gian âm do sai lệch đồng hồ client/server
+  if (diffInSeconds < 0) return 'Vừa mới truy cập';
+
+  if (diffInSeconds < 60) {
+    return 'Vừa mới truy cập';
+  }
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `Hoạt động ${diffInMinutes} phút trước`;
+  }
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `Hoạt động ${diffInHours} giờ trước`;
+  }
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `Hoạt động ${diffInDays} ngày trước`;
+  }
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `Hoạt động ${diffInMonths} tháng trước`;
+  }
+
+  const diffInYears = Math.floor(diffInDays / 365);
+  return `Hoạt động ${diffInYears} năm trước`;
+};
+
 export const formatLatestMessage = (message?: LatestMessage) => {
   if (!message) return 'Chưa có tin nhắn'
 

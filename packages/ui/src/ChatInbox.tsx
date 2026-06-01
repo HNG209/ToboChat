@@ -1,52 +1,17 @@
-import { ScrollView, Spinner, Text, YStack, XStack } from '@my/ui'
+import { Spinner, Text, YStack, XStack } from '@my/ui'
 import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
-import { userApi } from 'app/services/userApi'
-import { MessageResponse, RoomMemberResponse, RoomResponse } from 'app/types/Response'
+import { RoomMemberResponse, RoomResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
-import { formatPreviewMessage } from 'app/utils/chatHelper'
-import { useRouter, useParams } from 'solito/navigation'
+import { useRouter } from 'solito/navigation'
 import { StyledFlatList } from './StyledFlatList'
-import { AlertTriangle, Inbox } from '@tamagui/lucide-icons'
-import { RoomUpdateEvent } from 'app/types/Events'
-import { CheckCircle, Clock } from '@tamagui/lucide-icons' // Thêm icon nếu chưa có
+import { Inbox, CheckCircle, Clock } from '@tamagui/lucide-icons'
+import { ChatInboxErrorState } from './error/ChatInboxErrorState'
 export type RoomStatus = 'ACTIVE' | 'PENDING'
-
-function TabButton({
-  active,
-  label,
-  onPress,
-}: {
-  active: boolean
-  label: string
-  onPress: () => void
-}) {
-  return (
-    <Pressable onPress={onPress} style={{ flex: 1 }}>
-      <XStack
-        height={25}
-        justifyContent="center"
-        alignItems="center"
-        borderRadius="$5"
-        backgroundColor={active ? '$blue10' : 'transparent'}
-      >
-        <Text color={active ? 'white' : '$color10'} fontWeight="600">
-          {label}
-        </Text>
-      </XStack>
-    </Pressable>
-  )
-}
-
-type NewRoomPayload = {
-  room: RoomResponse
-  inboxStatus: RoomStatus
-}
-
 export default function ChatInbox() {
   const dispatch = useDispatch<AppDispatch>()
   const activeRoomId = useSelector(
@@ -62,7 +27,7 @@ export default function ChatInbox() {
   const [pendingCursor, setPendingCursor] = useState<string | undefined>(undefined)
   const router = useRouter()
 
-  const { data, isLoading, isError } = useGetJoinedRoomsQuery(
+  const { data, isLoading, isFetching, isError, refetch } = useGetJoinedRoomsQuery(
     { status, cursor: status === 'ACTIVE' ? activeCursor : pendingCursor },
     { skip: !hasSession }
   )
@@ -88,27 +53,6 @@ export default function ChatInbox() {
 
     const socket = getSocket()
     if (!socket) return
-
-    // const handleMessageRevoked = (payload: any) => {
-    //   const revokedMsgId = payload.messageId
-    //   const targetRoomId = payload.roomId
-    //   dispatch(
-    //     roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-    //       if (!draft?.items) return
-    //       const roomIndex = draft.items.findIndex((r) => r.id === targetRoomId)
-    //       if (roomIndex !== -1) {
-    //         const msg = draft.items[roomIndex].latestMessage
-    //         if (msg && msg.id === revokedMsgId) {
-    //           msg.messageStatus = 'REVOKED'
-    //         }
-
-    //         // format lại nội dung nếu tin nhắn bị thu hồi
-    //         msg.content = formatPreviewMessage(msg)
-    //         msg.attachments = [] // ẩn attachments nếu tin nhắn bị thu hồi
-    //       }
-    //     })
-    //   )
-    // }
 
     const handleGroupDisband = (roomId: string) => {
       dispatch(
@@ -136,36 +80,15 @@ export default function ChatInbox() {
       );
     }
 
-    // socket.on('message_revoked', handleMessageRevoked)
     socket.on('room_disband', handleGroupDisband)
     socket.on('new_member', handleNewMember)
     return () => {
-      // socket.off('message_revoked', handleMessageRevoked)
       socket.off('room_disband', handleGroupDisband)
       socket.off('new_member', handleNewMember)
     }
   }, [dispatch, isSocketReady, activeRoomId, status])
 
-  const handleRoomPress = (roomId: string, unreadCount: number) => {
-    dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        const roomIndex = draft.items.findIndex((r) => r.id === roomId)
-        if (roomIndex !== -1) {
-          draft.items[roomIndex].unreadMessages = 0
-        }
-      })
-    )
-
-    dispatch(
-      userApi.util.updateQueryData('getProfile', undefined, (draft) => {
-        if (!draft) return
-        draft.totalUnreadMessages = Math.max(
-          (draft.totalUnreadMessages || 0) - unreadCount,
-          0
-        )
-      })
-    )
-
+  const handleRoomPress = (roomId: string) => {
     router.push(`/chat/${roomId}`)
   }
 
@@ -182,25 +105,6 @@ export default function ChatInbox() {
     setTimeout(() => {
       setIsFetchingMore(false)
     }, 1000)
-  }
-
-  if (isError) {
-    return (
-      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor="$color2">
-        <AlertTriangle size={48} color="#FF6B6B" />
-        <Text fontSize={18} fontWeight="700" color="#FF6B6B" marginTop={12}>
-          Đã xảy ra lỗi!
-        </Text>
-        <Text color="$color10" marginTop={4}>
-          Không thể tải danh sách phòng.
-        </Text>
-        <Pressable onPress={() => window.location.reload()} style={{ marginTop: 20 }}>
-          <XStack backgroundColor="$blue10" paddingHorizontal={20} paddingVertical={10} borderRadius="$5">
-            <Text color="white" fontWeight="600">Thử lại</Text>
-          </XStack>
-        </Pressable>
-      </YStack>
-    )
   }
 
   return (
@@ -266,44 +170,48 @@ export default function ChatInbox() {
         </XStack>
       </YStack>
 
-      {/* ===== LIST ===== */}
-      <StyledFlatList<RoomResponse>
-        data={data?.items || []}
-        keyExtractor={room => room.id}
-        renderItem={({ item: room }) => (
-          <ChatInboxItem
-            selected={activeRoomId === room.id}
-            key={room.id}
-            name={room.roomName}
-            avatarUrl={
-              room.avatarUrl ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`
+      {
+        isError ?
+          <ChatInboxErrorState onRetry={refetch} /> :
+          <StyledFlatList<RoomResponse>
+            data={data?.items || []}
+            keyExtractor={room => room.id}
+            renderItem={({ item: room }) => (
+              <ChatInboxItem
+                selected={activeRoomId === room.id}
+                key={room.id}
+                name={room.roomName}
+                avatarUrl={
+                  room.avatarUrl ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`
+                }
+                latestMessage={room.latestMessage}
+                time={room?.latestMessage?.createdAt ?? undefined}
+                pinned={false}
+                onPress={() => handleRoomPress(room.id)}
+                unreadCount={room.unreadMessages}
+                isOnline={room?.userPresence?.status === 'ONLINE'}
+              />
+            )}
+            ListEmptyComponent={
+              isLoading || isFetching ? (
+                <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+                  <Spinner size="large" color="$blue10" />
+                </YStack>
+              ) : (
+                <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
+                  <Inbox size={48} color="#A0AEC0" />
+                  <Text fontSize={18} fontWeight="700" color="$color10" marginTop={12}>
+                    Không có phòng nào
+                  </Text>
+                </YStack>
+              )
             }
-            latestMessage={room.latestMessage}
-            time={room?.latestMessage?.createdAt ?? undefined}
-            pinned={false}
-            onPress={() => handleRoomPress(room.id, room.unreadMessages || 0)}
-            unreadCount={room.unreadMessages}
+            onEndReached={handleFetchMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={isFetchingMore ? <Spinner size="small" color="$blue10" /> : null}
           />
-        )}
-        ListEmptyComponent={
-          isLoading ? (
-            <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
-              <Spinner size="large" color="$blue10" />
-            </YStack>
-          ) : (
-            <YStack flex={1} justifyContent="center" alignItems="center" padding={20}>
-              <Inbox size={48} color="#A0AEC0" />
-              <Text fontSize={18} fontWeight="700" color="$color10" marginTop={12}>
-                Không có phòng nào
-              </Text>
-            </YStack>
-          )
-        }
-        onEndReached={handleFetchMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={isFetchingMore ? <Spinner size="small" color="$blue10" /> : null}
-      />
+      }
     </YStack>
   )
 }
