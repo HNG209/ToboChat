@@ -1,18 +1,16 @@
-import { ScrollView, Spinner, Text, YStack, XStack } from '@my/ui'
+import { Spinner, Text, YStack, XStack } from '@my/ui'
 import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
 import { userApi } from 'app/services/userApi'
-import { MessageResponse, RoomMemberResponse, RoomResponse } from 'app/types/Response'
+import { RoomMemberResponse, RoomResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
 import { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
-import { formatPreviewMessage } from 'app/utils/chatHelper'
-import { useRouter, useParams } from 'solito/navigation'
+import { useRouter } from 'solito/navigation'
 import { StyledFlatList } from './StyledFlatList'
 import { AlertTriangle, Inbox } from '@tamagui/lucide-icons'
-import { RoomUpdateEvent } from 'app/types/Events'
 import { CheckCircle, Clock } from '@tamagui/lucide-icons' // Thêm icon nếu chưa có
 export type RoomStatus = 'ACTIVE' | 'PENDING'
 
@@ -284,6 +282,7 @@ export default function ChatInbox() {
             pinned={false}
             onPress={() => handleRoomPress(room.id, room.unreadMessages || 0)}
             unreadCount={room.unreadMessages}
+            isOnline={room.userPresence.status === 'ONLINE'}
           />
         )}
         ListEmptyComponent={

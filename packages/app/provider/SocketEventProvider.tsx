@@ -263,13 +263,24 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       console.log("Lỗi tham gia gọi:", message);
     };
 
-    const handleUserPresenceUpdated = (data: { status: UserPresenceStatus, userId: string }) => {
+    const handleUserPresenceUpdated = (data: { status: UserPresenceStatus, lastSeen: number, userId: string }) => {
       const targetRoomId = generateDirectRoomId(selfUserId || '', data.userId);
 
       dispatch(
         roomApi.util.updateQueryData('getRoomMetadata', { roomId: targetRoomId }, (draft) => {
           if (!draft) return;
           draft.userPresence.status = data.status
+          draft.userPresence.lastSeen = data.lastSeen
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === targetRoomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items[index].userPresence.status = data.status
+            draft.items[index].userPresence.lastSeen = data.lastSeen
+          }
         })
       );
     }

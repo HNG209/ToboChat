@@ -4,6 +4,7 @@ import { ChevronLeft, Info, Phone, Video } from "@tamagui/lucide-icons"
 import { RoomResponse } from "app/types/Response"
 import { useGetCallStatusQuery } from "app/services/callApi"
 import { getSocket } from "app/utils/socket"
+import { formatLastSeen } from 'app/utils/chatHelper'
 
 type Props = {
   roomId: string
@@ -80,7 +81,7 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
                 <XStack alignItems="center" space="$1.5">
                   <Circle size={8} bg="$gray10" />
                   <Text fontSize="$2" color="$color10">
-                    Ngưng hoạt động
+                    {formatLastSeen(userPresence?.lastSeen)}
                   </Text>
                 </XStack>
             }
