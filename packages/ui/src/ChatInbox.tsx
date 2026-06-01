@@ -2,7 +2,6 @@ import { Spinner, Text, YStack, XStack } from '@my/ui'
 import { useGetJoinedRoomsQuery, roomApi } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { useDispatch, useSelector } from 'react-redux'
-import { userApi } from 'app/services/userApi'
 import { RoomMemberResponse, RoomResponse } from 'app/types/Response'
 import { AppDispatch, RootState } from 'app/store'
 import { ChatInboxItem } from './ChatInboxItem'
@@ -89,26 +88,7 @@ export default function ChatInbox() {
     }
   }, [dispatch, isSocketReady, activeRoomId, status])
 
-  const handleRoomPress = (roomId: string, unreadCount: number) => {
-    dispatch(
-      roomApi.util.updateQueryData('getJoinedRooms', { status }, (draft) => {
-        const roomIndex = draft.items.findIndex((r) => r.id === roomId)
-        if (roomIndex !== -1) {
-          draft.items[roomIndex].unreadMessages = 0
-        }
-      })
-    )
-
-    dispatch(
-      userApi.util.updateQueryData('getProfile', undefined, (draft) => {
-        if (!draft) return
-        draft.totalUnreadMessages = Math.max(
-          (draft.totalUnreadMessages || 0) - unreadCount,
-          0
-        )
-      })
-    )
-
+  const handleRoomPress = (roomId: string) => {
     router.push(`/chat/${roomId}`)
   }
 
@@ -208,9 +188,9 @@ export default function ChatInbox() {
                 latestMessage={room.latestMessage}
                 time={room?.latestMessage?.createdAt ?? undefined}
                 pinned={false}
-                onPress={() => handleRoomPress(room.id, room.unreadMessages || 0)}
+                onPress={() => handleRoomPress(room.id)}
                 unreadCount={room.unreadMessages}
-                isOnline={room.userPresence.status === 'ONLINE'}
+                isOnline={room?.userPresence?.status === 'ONLINE'}
               />
             )}
             ListEmptyComponent={
