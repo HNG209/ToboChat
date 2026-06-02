@@ -680,50 +680,76 @@ export function ChatScreen({ roomId, insets }: Props) {
             />
 
             {isDM && otherUserId && !isFriendStatusLoading && friendStatus && (
-              <YStack mt="$2" px="$4">
+              <YStack
+                mt='$2'
+                px={Platform.OS === 'web' ? '$4' : '$3'}
+                pb={Platform.OS === 'web' ? '$0' : '$2'}
+              >
                 {friendStatus === 'STRANGER' && (
                   <Button
-                    size="$4"
+                    size={Platform.OS === 'web' ? '$4' : '$3'}
                     theme="blue"
-                    flex={1}
-                    icon={<UserPlus size={20} />}
+                    alignSelf="stretch"
+                    borderRadius="$10"
+                    icon={<UserPlus size={Platform.OS === 'web' ? 20 : 16} />}
                     onPress={handleSendFriendRequest}
                     disabled={isSending}
                   >
-                    Gửi lời mời kết bạn
+                    <Text
+                      fontSize={Platform.OS === 'web' ? '$4' : '$3'}
+                      fontWeight="600"
+                      numberOfLines={1}
+                    >
+                      Gửi lời mời kết bạn
+                    </Text>
                   </Button>
                 )}
                 {friendStatus === 'SENT' && (
                   <Button
-                    size="$4"
-                    flex={1}
-                    icon={<X size={20} />}
+                    size={Platform.OS === 'web' ? '$4' : '$3'}
+                    alignSelf="stretch"
+                    borderRadius="$10"
+                    icon={<X size={Platform.OS === 'web' ? 20 : 16} />}
                     onPress={handleCancelFriendRequest}
                   >
-                    Huỷ yêu cầu
+                    <Text
+                      fontSize={Platform.OS === 'web' ? '$4' : '$3'}
+                      fontWeight="600"
+                      numberOfLines={1}
+                    >
+                      Huỷ yêu cầu
+                    </Text>
                   </Button>
                 )}
                 {friendStatus === 'PENDING' && (
-                  <XStack space="$2" width="100%">
+                  <XStack space="$2" width="100%" flexWrap="nowrap">
                     <Button
-                      size="$4"
+                      size={Platform.OS === 'web' ? '$4' : '$3'}
                       theme="green"
                       flex={1}
-                      icon={<Check size={20} />}
+                      minWidth={0}
+                      borderRadius="$10"
+                      icon={<Check size={Platform.OS === 'web' ? 20 : 16} />}
                       onPress={() => handleRespondFriendRequest(true)}
                       disabled={isResponding}
                     >
-                      Chấp nhận
+                      <Text numberOfLines={1} fontSize={Platform.OS === 'web' ? '$4' : '$3'}>
+                        Chấp nhận
+                      </Text>
                     </Button>
                     <Button
-                      size="$4"
-                      theme="red"
+                      size={Platform.OS === 'web' ? '$4' : '$3'}
+                      theme="green"
                       flex={1}
-                      icon={<X size={20} />}
+                      minWidth={0}
+                      borderRadius="$10"
+                      icon={<Check size={Platform.OS === 'web' ? 20 : 16} />}
                       onPress={() => handleRespondFriendRequest(false)}
                       disabled={isResponding}
                     >
-                      Từ chối
+                      <Text numberOfLines={1} fontSize={Platform.OS === 'web' ? '$4' : '$3'}>
+                        Từ chối
+                      </Text>
                     </Button>
                   </XStack>
                 )}
