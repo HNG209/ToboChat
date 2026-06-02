@@ -2,7 +2,7 @@ import { Button, XStack, YStack, Text, Avatar, Adapt, Sheet } from 'tamagui'
 import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
 import { FriendResponse, UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
-import { Platform } from 'react-native'
+import { Alert, Platform } from 'react-native'
 import { useMedia } from 'tamagui'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState, store } from 'app/store'
@@ -70,6 +70,28 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
       patches.forEach((patch) => patch.undo())
       console.error('Unfriend failed:', error)
     }
+  }
+  const confirmUnfriend = () => {
+    const message = `Bạn có chắc chắn muốn hủy kết bạn với ${user.name}?`
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        handleUnfriend()
+      }
+      return
+    }
+
+    Alert.alert('Hủy kết bạn', message, [
+      {
+        text: 'Hủy',
+        style: 'cancel',
+      },
+      {
+        text: 'Hủy kết bạn',
+        style: 'destructive',
+        onPress: handleUnfriend,
+      },
+    ])
   }
   return (
     <XStack
@@ -154,7 +176,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
                       justifyContent="flex-start"
                       disabled={isDeletingFriend}
                       opacity={isDeletingFriend ? 0.5 : 1}
-                      onPress={handleUnfriend}
+                      onPress={confirmUnfriend}
                     >
                       <XStack space="$2" alignItems="center">
                         <UserMinus size={16} color="$red10" />
