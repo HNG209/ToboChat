@@ -1,169 +1,263 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
-  Dialog, Button, XStack, YStack, Text, Avatar, Theme, Circle, Label,
-} from 'tamagui';
-import { Check, X } from '@tamagui/lucide-icons';
-import { StyledFlatList } from '../StyledFlatList';
-import { ActivityIndicator } from 'react-native';
-import { useGetMyInfoQuery, useGetRoomMembersQuery, useLeaveGroupMutation } from 'app/services/roomApi';
+  Dialog,
+  Button,
+  XStack,
+  YStack,
+  Text,
+  Avatar,
+  Theme,
+  Circle,
+} from 'tamagui'
+import { Check, X } from '@tamagui/lucide-icons'
+import { StyledFlatList } from '../StyledFlatList'
+import { ActivityIndicator, Platform } from 'react-native'
+import {
+  useGetMyInfoQuery,
+  useGetRoomMembersQuery,
+  useLeaveGroupMutation,
+} from 'app/services/roomApi'
 
 interface TransferAdminDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  roomId: string;
-  onSuccess: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  roomId: string
+  onSuccess: () => void
 }
 
-export function TransferAdminDialog({ open, onOpenChange, roomId, onSuccess }: TransferAdminDialogProps) {
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
+export function TransferAdminDialog({
+  open,
+  onOpenChange,
+  roomId,
+  onSuccess,
+}: TransferAdminDialogProps) {
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const { data: membersData, isLoading: membersLoading } = useGetRoomMembersQuery({ roomId });
-  const { data: myInfo } = useGetMyInfoQuery({ roomId });
-  const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation();
+  const isWeb = Platform.OS === 'web'
+
+  const { data: membersData, isLoading: membersLoading } = useGetRoomMembersQuery(
+    { roomId },
+    { skip: !open }
+  )
+
+  const { data: myInfo } = useGetMyInfoQuery(
+    { roomId },
+    { skip: !open }
+  )
+
+  const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation()
 
   const handleTransferAndLeave = async () => {
     if (!selectedMemberId) {
-      setErrorMsg('Vui lòng chọn 1 thành viên để nhường quyền trưởng nhóm.');
-      return;
+      setErrorMsg('Vui lòng chọn 1 thành viên để nhường quyền trưởng nhóm.')
+      return
     }
 
-    setErrorMsg('');
+    setErrorMsg('')
 
     try {
-      await leaveGroup({ roomId, newAdminId: selectedMemberId }).unwrap();
-      onSuccess();
+      await leaveGroup({ roomId, newAdminId: selectedMemberId }).unwrap()
+      handleClose()
+      onSuccess()
     } catch (error) {
-      console.error('Lỗi khi nhường quyền và rời nhóm:', error);
-      setErrorMsg('Có lỗi xảy ra. Vui lòng thử lại.');
+      console.error('Lỗi khi nhường quyền và rời nhóm:', error)
+      setErrorMsg('Có lỗi xảy ra. Vui lòng thử lại.')
     }
-  };
+  }
 
   const handleClose = () => {
-    setSelectedMemberId(null);
-    setErrorMsg('');
-    onOpenChange(false);
-  };
+    if (isLeaving) return
 
-  // Lọc bỏ user hiện tại ra khỏi danh sách trước khi render
-  const filteredMembers = membersData?.items?.filter((item: any) => {
-    return !myInfo || item.id !== myInfo.id;
-  }) || [];
+    setSelectedMemberId(null)
+    setErrorMsg('')
+    onOpenChange(false)
+  }
+
+  const filteredMembers =
+    membersData?.items?.filter((item: any) => {
+      return item.member?.id !== myInfo?.id
+    }) || []
+
   if (!open) return null
+
+  const content = (
+    <>
+      <Dialog.Overlay
+        key="overlay"
+        animation="quick"
+        opacity={0.5}
+        backgroundColor="#000"
+        zIndex={100000}
+        enterStyle={{ opacity: 0 }}
+        exitStyle={{ opacity: 0 }}
+      />
+
+      <Dialog.Content
+        bordered
+        elevate
+        key="content"
+        animation={['quick', { opacity: { overshootClamping: true } }]}
+        enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
+        exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
+        x={0}
+        y={0}
+        scale={1}
+        opacity={1}
+        width="90%"
+        maxWidth={400}
+        borderRadius="$5"
+        backgroundColor="$background"
+        zIndex={100001}
+      >
+        <Button
+          position="absolute"
+          top="$3"
+          right="$3"
+          size="$2"
+          circular
+          icon={X}
+          chromeless
+          onPress={handleClose}
+          zIndex={2}
+        />
+
+        <Dialog.Title fontSize="$7" fontWeight="bold" letterSpacing={0.15} mb="$2">
+          Nhường quyền Trưởng nhóm
+        </Dialog.Title>
+
+        <Text color="$color10" fontSize="$3" mb="$4">
+          Bạn là trưởng nhóm. Vui lòng chọn một thành viên khác để tiếp quản nhóm trước khi rời đi.
+        </Text>
+
+        <YStack space="$4">
+          <YStack flexShrink={1} height={300}>
+            <StyledFlatList
+              borderWidth={1}
+              borderColor="$borderColor"
+              borderRadius="$3"
+              data={filteredMembers}
+              keyExtractor={(item: any) => item.member.id}
+              style={{ minHeight: 300 }}
+              showsVerticalScrollIndicator={false}
+              ListFooterComponent={
+                membersLoading ? (
+                  <XStack justifyContent="center" alignItems="center" py="$4">
+                    <ActivityIndicator size="small" color="#888" />
+                  </XStack>
+                ) : null
+              }
+              ListEmptyComponent={
+                !membersLoading ? (
+                  <YStack py="$6" alignItems="center">
+                    <Text color="$color10" fontSize="$3">
+                      Không có thành viên nào để nhường quyền
+                    </Text>
+                  </YStack>
+                ) : null
+              }
+              contentContainerStyle={{ gap: 8, padding: 8 }}
+              renderItem={({ item }: any) => {
+                const member = item.member
+                const isSelected = selectedMemberId === member.id
+
+                return (
+                  <XStack
+                    alignItems="center"
+                    justifyContent="space-between"
+                    p="$3"
+                    borderRadius="$3"
+                    borderWidth={1}
+                    borderColor={isSelected ? '$blue9' : '$borderColor'}
+                    backgroundColor={isSelected ? '$blue3' : 'transparent'}
+                    onPress={() => setSelectedMemberId(member.id)}
+                    animation="quick"
+                    pressStyle={{ scale: 0.98 }}
+                  >
+                    <XStack alignItems="center" space="$3" flex={1} minWidth={0}>
+                      <Avatar circular size="$4">
+                        <Avatar.Image src={member.avatarUrl} />
+                        <Avatar.Fallback backgroundColor="$gray5" />
+                      </Avatar>
+
+                      <Text
+                        fontSize="$3"
+                        fontWeight={isSelected ? '700' : '400'}
+                        numberOfLines={1}
+                        flexShrink={1}
+                      >
+                        {member.name}
+                      </Text>
+                    </XStack>
+
+                    <Circle
+                      size="$1.5"
+                      borderWidth={isSelected ? 0 : 2}
+                      borderColor="$gray8"
+                      backgroundColor={isSelected ? '$blue9' : 'transparent'}
+                    >
+                      {isSelected && <Check size={14} color="white" />}
+                    </Circle>
+                  </XStack>
+                )
+              }}
+            />
+          </YStack>
+
+          {errorMsg ? (
+            <Text color="$red10" fontSize="$3" textAlign="center">
+              {errorMsg}
+            </Text>
+          ) : null}
+
+          <XStack justifyContent="flex-end" space="$2" mt="$2">
+            <Button
+              borderRadius="$10"
+              onPress={handleClose}
+              disabled={isLeaving}
+            >
+              Huỷ
+            </Button>
+
+            <Theme name="active">
+              <Button
+                onPress={handleTransferAndLeave}
+                fontWeight="bold"
+                backgroundColor="$red9"
+                color="white"
+                borderRadius="$10"
+                hoverStyle={{ backgroundColor: '$red10' }}
+                disabled={isLeaving || !selectedMemberId}
+                opacity={isLeaving || !selectedMemberId ? 0.6 : 1}
+              >
+                {isLeaving ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  'Nhường quyền & Rời đi'
+                )}
+              </Button>
+            </Theme>
+          </XStack>
+        </YStack>
+      </Dialog.Content>
+    </>
+  )
+
   return (
     <Dialog modal open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal forceMount>
-        <Dialog.Overlay
-          key="overlay"
-          animation="quick"
-          opacity={0.5}
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
-        <Dialog.Content
-          bordered
-          elevate
-          key="content"
-          animation={['quick', { opacity: { overshootClamping: true } }]}
-          enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-          exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-          x={0} y={0} scale={1} opacity={1}
-          width="90%"
-          maxWidth={400}
-          borderRadius="$5"
+      {isWeb ? (
+        <Dialog.Portal forceMount>{content}</Dialog.Portal>
+      ) : (
+        <YStack
+          position="absolute"
+          fullscreen
           zIndex={100000}
+          alignItems="center"
+          justifyContent="center"
         >
-          <Dialog.Close asChild onPress={handleClose}>
-            <Button position="absolute" top="$3" right="$3" size="$2" circular icon={X} chromeless />
-          </Dialog.Close>
-
-          <Dialog.Title fontSize="$7" fontWeight="bold" letterSpacing={0.15} mb="$2">
-            Nhường quyền Trưởng nhóm
-          </Dialog.Title>
-          <Text color="gray" fontSize="$3" mb="$4">
-            Bạn là trưởng nhóm. Vui lòng chọn một thành viên khác để tiếp quản nhóm trước khi rời đi.
-          </Text>
-
-          <YStack space="$4">
-            <YStack flexShrink={1} height={300} >
-              <StyledFlatList
-                borderWidth={1}
-                borderColor="$borderColor"
-                borderRadius="$3"
-                data={filteredMembers} // Sử dụng danh sách đã được lọc ở đây
-                keyExtractor={(item: any) => item.id}
-                style={{ minHeight: 300 }}
-                showsVerticalScrollIndicator={false}
-                ListFooterComponent={
-                  membersLoading ? (
-                    <XStack justifyContent="center" alignItems="center" py="$4">
-                      <ActivityIndicator size="small" color="#888" />
-                    </XStack>
-                  ) : null
-                }
-                contentContainerStyle={{ gap: 8, padding: 8 }}
-                renderItem={({ item }: any) => {
-                  // Đã xoá dòng if (myInfo...) continue;
-                  const isSelected = selectedMemberId === item.member.id;
-
-                  return (
-                    <XStack
-                      alignItems="center"
-                      justifyContent="space-between"
-                      p="$3"
-                      borderRadius="$3"
-                      borderWidth={1}
-                      borderColor={isSelected ? 'transparent' : isSelected ? '#007AFF' : '#E5E5EA'}
-                      onPress={() => setSelectedMemberId(item.member.id)}
-                      animation="quick"
-                      pressStyle={{ scale: 0.98 }}
-                    >
-                      <XStack alignItems="center" space="$3">
-                        <Avatar circular size="$4">
-                          <Avatar.Image src={item.member.avatarUrl} />
-                          <Avatar.Fallback borderColor="$gray5" />
-                        </Avatar>
-                        <Text fontSize="$3" fontWeight={isSelected ? 'bold' : 'normal'}>
-                          {item.member.name}
-                        </Text>
-                      </XStack>
-
-                      <Circle
-                        size="$1"
-                        borderWidth={isSelected ? 0 : 2}
-                        borderColor="gray"
-                        backgroundColor={isSelected ? '#007AFF' : 'transparent'}
-                      >
-                        {isSelected && <Check size={14} color="white" />}
-                      </Circle>
-                    </XStack>
-                  );
-                }}
-              />
-            </YStack>
-
-            {errorMsg ? (
-              <Text color="red" fontSize="$3" textAlign="center">{errorMsg}</Text>
-            ) : null}
-
-            <YStack space="$2" mt="$2" flexDirection="row" justifyContent="flex-end">
-              <Theme name="active">
-                <Button
-                  onPress={handleTransferAndLeave}
-                  fontWeight="bold"
-                  backgroundColor="$red9"
-                  color="white"
-                  hoverStyle={{ backgroundColor: '$red10' }}
-                  disabled={isLeaving || !selectedMemberId}
-                  opacity={!selectedMemberId ? 0.6 : 1}
-                >
-                  {isLeaving ? <ActivityIndicator size="small" color="#FFF" /> : 'Nhường quyền & Rời đi'}
-                </Button>
-              </Theme>
-            </YStack>
-          </YStack>
-        </Dialog.Content>
-      </Dialog.Portal>
+          {content}
+        </YStack>
+      )}
     </Dialog>
-  );
+  )
 }

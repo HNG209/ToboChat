@@ -36,8 +36,8 @@ import { AppDispatch } from 'app/store'
 import { useDispatch } from 'react-redux';
 import { View } from 'tamagui'
 import { Image } from 'tamagui'
-import { EditAvatar } from './EditAvatar'
 import { useUpdateRoomNameMutation } from 'app/services/roomApi'
+import { EditAvatar } from './EditAvatar'
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
   roomId: string
