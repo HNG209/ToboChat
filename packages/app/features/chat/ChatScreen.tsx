@@ -34,7 +34,7 @@ import {
 import { roomApi, useGetMyInfoQuery, useGetRoomMembersQuery, useGetRoomMetadataQuery } from 'app/services/roomApi'
 import { getSocket } from 'app/utils/socket'
 import { Provider, useDispatch, useSelector } from 'react-redux'
-import { MemberPermissionsResponse, MessageResponse, RoomMemberResponse } from 'app/types/Response'
+import { MemberPermissionsResponse, MessageReactionPayload, MessageResponse, RoomMemberResponse } from 'app/types/Response'
 import { AppDispatch, RootState, store } from 'app/store'
 import { StyledFlatList } from '@my/ui/src/StyledFlatList'
 import { useAppTheme } from 'app/provider/ThemeContext'
@@ -651,12 +651,36 @@ export function ChatScreen({ roomId, insets }: Props) {
       dispatch(roomApi.util.updateQueryData('getMyInfo', { roomId }, (draft) => member))
     }
 
+    const handleReactionAdded = (data: MessageReactionPayload) => {
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
+          const msg = draft.items?.find((m) => m.id === data.messageId)
+          if (msg) {
+            // Nếu đã có reaction của user rồi thì chỉ không thêm mới
+            const isSameUser = data.userId === selfUserId
+
+            if (isSameUser) {
+              const existing = msg.myReactions?.find((r) => r === data.reactionType as string)
+              if (existing) return
+              msg?.myReactions?.push(data.reactionType as string)
+            }
+
+            // Cập nhật luôn số lượng reaction để tránh phải refetch lại message
+            if (msg.reactionsSummary) {
+              msg.reactionsSummary[data.reactionType as string] = (msg.reactionsSummary[data.reactionType as string] || 0) + 1
+            }
+          }
+        })
+      )
+    }
+
     socket.on('poll_updated', handlePollUpdated)
     socket.on('member_removed', handleMemberRemoved)
     socket.on('member_updated', handleMemberUpdated)
     socket.on('delete_message', handleMessageDeleted)
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
+    socket.on('reaction_added', handleReactionAdded)
     return () => {
       socket.emit('leave_room', roomId)
       socket.off('poll_updated', handlePollUpdated)
@@ -665,6 +689,7 @@ export function ChatScreen({ roomId, insets }: Props) {
       socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
+      socket.off('reaction_added', handleReactionAdded)
     }
   }, [roomId, isSocketReady, dispatch])
 
@@ -753,11 +778,11 @@ export function ChatScreen({ roomId, insets }: Props) {
                     </Button>
                     <Button
                       size={Platform.OS === 'web' ? '$4' : '$3'}
-                      theme="green"
+                      theme="red"
                       flex={1}
                       minWidth={0}
                       borderRadius="$10"
-                      icon={<Check size={Platform.OS === 'web' ? 20 : 16} />}
+                      icon={<X size={Platform.OS === 'web' ? 20 : 16} />}
                       onPress={() => handleRespondFriendRequest(false)}
                       disabled={isResponding}
                     >

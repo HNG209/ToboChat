@@ -4,6 +4,7 @@ import {
   MemberStatus,
   MessageStatus,
   MessageType,
+  ReactionType,
   RoomType,
   SystemAction,
   UserPresenceStatus,
@@ -193,4 +194,11 @@ export interface PresignedUrlResponse {
 export interface UserPresenceResponse {
   status: UserPresenceStatus;
   lastSeen: number;
+}
+
+export interface MessageReactionPayload {
+  roomId: string;
+  messageId: string;
+  userId: string;
+  reactionType: ReactionType;
 }

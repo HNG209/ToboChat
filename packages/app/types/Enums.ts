@@ -20,3 +20,4 @@ export type SystemAction =
   | 'POLL_VOTED'
 export type AttachmentType = 'MEDIA' | 'FILE'
 export type UserPresenceStatus = 'ONLINE' | 'OFFLINE' | 'UNAVAILABLE'
+export type ReactionType = 'HEART' | 'LIKE' | 'SAD' | 'WOW' | 'ANGRY'
