@@ -5,7 +5,7 @@ import { Dialog, Button, Text, XStack, YStack, Spinner, UserAvatar } from "@my/u
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
 import { Check, Maximize2, PhoneCall, X as XIcon } from "@tamagui/lucide-icons"
-import { CallResponse, FriendRequestResponse, FriendResponse, GroupAcceptRequestResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse, UserPresenceResponse } from "app/types/Response"
+import { CallResponse, FriendRequestResponse, FriendResponse, GroupAcceptRequestResponse, GroupPendingRequestResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse, UserPresenceResponse } from "app/types/Response"
 import { CallRequest, FriendRequestType } from "app/types/Request"
 import { callApi, CallStatus } from "app/services/callApi"
 import { roomApi } from "app/services/roomApi"
@@ -397,6 +397,21 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       )
     }
 
+    const handleNewPendingRequest = (data: GroupPendingRequestResponse) => {
+      dispatch(
+        roomApi.util.updateQueryData('getPendingRequests', { roomId: data.roomId }, (draft) => {
+          if (!draft) return
+          if (!draft.items) {
+            draft.items = []
+          }
+          const isExisted = draft.items.some((item) => item.roomId === data.roomId && item.user.id === data.user.id)
+          if (!isExisted) {
+            draft.items.unshift(data)
+          }
+        })
+      )
+    }
+
     socket.on('call_accepted', handleCallAccepted);
     socket.on('call_status_updated', handleCallStatusUpdated);
     socket.on('call_joined', handleCallJoined);
@@ -419,6 +434,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
     socket.on('group_request_unread_update', handleGroupRequestUnreadUpdate)
     socket.on('group_request_unread_reset', handleGroupRequestResetUnread)
+
+    socket.on('new_pending_request', handleNewPendingRequest)
     return () => {
       socket.off('call_accepted', handleCallAccepted);
       socket.off('call_status_updated', handleCallStatusUpdated);
@@ -442,6 +459,8 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
       socket.off('group_request_unread_update', handleGroupRequestUnreadUpdate);
       socket.off('group_request_unread_reset', handleGroupRequestResetUnread);
+
+      socket.off('new_pending_request', handleNewPendingRequest);
     }
   }, [activeRoomId, isSocketReady, dispatch])
 

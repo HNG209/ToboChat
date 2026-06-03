@@ -80,7 +80,7 @@ export const roomApi = baseApi.injectEndpoints({
         },
       }),
       serializeQueryArgs: ({ endpointName }) => {
-        return endpointName 
+        return endpointName
       },
       merge: (currentCache, newData, { arg }) => {
         if (!arg?.cursor) {
@@ -207,15 +207,40 @@ export const roomApi = baseApi.injectEndpoints({
     }),
 
     // Danh sách người dùng đang chờ duyệt vào nhóm
-    getPendingRequest: builder.query<PageResponse<GroupPendingRequestResponse>, { roomId: string }>(
-      {
-        query: ({ roomId }) => ({
-          url: `/rooms/${roomId}/pending-requests`,
-          method: 'GET',
-        }),
-        // providesTags: (result, error, arg) => [{ type: 'RoomMetadata', id: arg.roomId }],
-      }
-    ),
+    getPendingRequests: builder.query<
+      PageResponse<GroupPendingRequestResponse>,
+      { roomId: string; cursor?: string; limit?: number }
+    >({
+      query: ({ roomId, cursor, limit }) => ({
+        url: `/rooms/${roomId}/pending-requests`,
+        method: 'GET',
+        params: { cursor: cursor || undefined, limit },
+      }),
+
+      // Gom cache theo roomId (bỏ qua cursor để các trang cùng room dùng chung cache)
+      serializeQueryArgs: ({ queryArgs, endpointName }) => `${endpointName}-${queryArgs.roomId}`,
+
+      // Ép refetch khi cursor thay đổi
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor && currentArg?.cursor !== undefined
+      },
+
+      // Gộp trang (merge) khi có cursor
+      merge: (currentCache, newData, { arg }) => {
+        if (!arg?.cursor) {
+          return newData
+        }
+        if (!currentCache.items) {
+          currentCache.items = []
+        }
+        const existingIds = new Set((currentCache.items as any[]).map((i) => (i.userId ?? (i as any).id)))
+        const newItems = newData.items.filter((i) => !existingIds.has((i as any).userId ?? (i as any).id))
+        currentCache.items.push(...newItems)
+        currentCache.nextCursor = newData.nextCursor
+      },
+
+      providesTags: (result, error, arg) => [{ type: 'RoomPendingRequests', id: arg.roomId }],
+    }),
 
     // Duyệt người dùng vào nhóm
     approveMember: builder.mutation<void, { roomId: string; userId: string; accept: boolean }>({
@@ -317,7 +342,7 @@ export const {
   useGetGroupInvitesQuery,
   useGetRoomMetadataQuery,
   useAddMembersMutation,
-  useGetPendingRequestQuery,
+  useGetPendingRequestsQuery,
   useApproveMemberMutation,
   useGetGroupImageUploadUrlMutation,
   useUpdateRoomAvatarMutation,

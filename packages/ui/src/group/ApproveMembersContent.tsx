@@ -6,7 +6,7 @@ import { ArrowLeft, Check, X, UserPlus } from '@tamagui/lucide-icons'
 import { ActivityIndicator } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { AppDispatch } from 'app/store'
-import { roomApi, useApproveMemberMutation, useGetPendingRequestQuery } from 'app/services/roomApi'
+import { roomApi, useApproveMemberMutation, useGetPendingRequestsQuery } from 'app/services/roomApi'
 import { GroupPendingRequestResponse, UserResponse } from 'app/types/Response'
 import { UserAvatar } from '../UserAvatar'
 
@@ -19,14 +19,14 @@ export const ApproveMembersContent = ({ roomId, onClose }: ApproveMembersContent
   const dispatch = useDispatch<AppDispatch>()
 
   // Lấy danh sách thành viên đang chờ duyệt
-  const { data: pendingData, isLoading } = useGetPendingRequestQuery({ roomId })
+  const { data: pendingData, isLoading } = useGetPendingRequestsQuery({ roomId })
   const [approveMember, { isLoading: isApproving }] = useApproveMemberMutation()
   // const [rejectMember, { isLoading: isRejecting }] = useRejectMemberMutation()
 
   // Xử lý Duyệt
   const handleApprove = async (userId: string) => {
     const patchResult = dispatch(
-      roomApi.util.updateQueryData('getPendingRequest', { roomId }, (draft) => {
+      roomApi.util.updateQueryData('getPendingRequests', { roomId }, (draft) => {
         const index = draft.items?.findIndex((r) => r.user.id === userId);
         if (index !== -1 && index !== undefined) {
           draft.items.splice(index, 1);
@@ -45,7 +45,7 @@ export const ApproveMembersContent = ({ roomId, onClose }: ApproveMembersContent
   // Xử lý Từ chối
   const handleReject = async (userId: string) => {
     const patchResult = dispatch(
-      roomApi.util.updateQueryData('getPendingRequest', { roomId }, (draft) => {
+      roomApi.util.updateQueryData('getPendingRequests', { roomId }, (draft) => {
         const index = draft.items?.findIndex((r) => r.user.id === userId);
         if (index !== -1 && index !== undefined) {
           draft.items.splice(index, 1);

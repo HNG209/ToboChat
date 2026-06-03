@@ -14,6 +14,7 @@ export const baseApi = createApi({
     'Rooms',
     'RoomMetadata',
     'RoomMember',
+    'RoomPendingRequests',
   ],
   endpoints: () => ({}),
 })
