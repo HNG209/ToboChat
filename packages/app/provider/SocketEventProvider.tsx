@@ -282,6 +282,24 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     }
 
     const handleNewFriend = (newFriend: FriendResponse) => {
+      const targetRoomId = generateDirectRoomId(selfUserId || '', newFriend.id);
+
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId: targetRoomId }, (draft) => {
+          if (!draft) return;
+          draft.userPresence.status = 'ONLINE' as UserPresenceStatus
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === targetRoomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items[index].userPresence.status = 'ONLINE' as UserPresenceStatus
+          }
+        })
+      );
+
       // Cập nhật cache rtk-query để thêm bạn mới vào danh sách bạn bè
       dispatch(
         contactApi.util.updateQueryData('getMyFriendList', undefined, (draft) => {
@@ -297,6 +315,25 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     }
 
     const handleFriendDeleted = (friendId: string) => {
+      const targetRoomId = generateDirectRoomId(selfUserId || '', friendId);
+
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId: targetRoomId }, (draft) => {
+          if (!draft) return;
+          // Không phải làm bạn bè nữa thì coi như không có trạng thái online, offline gì cả
+          draft.userPresence.status = 'UNAVAILABLE' as UserPresenceStatus
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getJoinedRooms', { status: 'ACTIVE' }, (draft) => {
+          const index = draft.items?.findIndex((r) => r.id === targetRoomId);
+          if (index !== -1 && index !== undefined) {
+            draft.items[index].userPresence.status = 'UNAVAILABLE' as UserPresenceStatus
+          }
+        })
+      );
+
       dispatch(
         contactApi.util.updateQueryData('getMyFriendList', undefined, (draft) => {
           if (draft?.items) {

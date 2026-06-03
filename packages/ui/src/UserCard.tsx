@@ -26,11 +26,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
   const dispatch = useDispatch<AppDispatch>()
   const selfUserId = useSelector((state: RootState) => state.auth.user?.id)
   const [deleteFriend, { isLoading: isDeletingFriend }] = useDeleteFriendMutation()
-  const buttonProps = {
-    size: "$3",
-    borderRadius: "$4",
-    variant: "outline" as const,
-  }
+
   const handleUnfriendOptimistic = (friendId: string) => {
     const state = store.getState()
 
@@ -57,6 +53,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
       )
     )
   }
+
   const handleUnfriend = async () => {
     if (!selfUserId) return
 
@@ -72,6 +69,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
       console.error('Unfriend failed:', error)
     }
   }
+
   const confirmUnfriend = () => {
     const message = `Bạn có chắc chắn muốn hủy kết bạn với ${user.name}?`
 
@@ -94,6 +92,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
       },
     ])
   }
+  
   return (
     <XStack
       width="100%"
