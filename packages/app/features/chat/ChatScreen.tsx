@@ -652,6 +652,7 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
 
     const handleReactionAdded = (data: MessageReactionPayload) => {
+      console.log('Received reaction_added event:', data)
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           const msg = draft.items?.find((m) => m.id === data.messageId)
