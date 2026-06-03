@@ -653,23 +653,35 @@ export function ChatScreen({ roomId, insets }: Props) {
 
     const handleReactionAdded = (data: MessageReactionPayload) => {
       console.log('Received reaction_added event:', data)
+
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           const msg = draft.items?.find((m) => m.id === data.messageId)
           if (msg) {
-            // Nếu đã có reaction của user rồi thì chỉ không thêm mới
             const isSameUser = data.userId === selfUserId
 
             if (isSameUser) {
-              const existing = msg.myReactions?.find((r) => r === data.reactionType as string)
-              if (existing) return
-              msg?.myReactions?.push(data.reactionType as string)
+              // 1. Khởi tạo mảng nếu Backend trả về undefined/null
+              if (!msg.myReactions) {
+                msg.myReactions = []
+              }
+
+              const existing = msg.myReactions.find((r) => r === data.reactionType as string)
+
+              if (!existing) {
+                // 2. Trực tiếp push vào mảng (không dùng optional chaining)
+                msg.myReactions.push(data.reactionType as string)
+              }
             }
 
-            // Cập nhật luôn số lượng reaction để tránh phải refetch lại message
-            if (msg.reactionsSummary) {
-              msg.reactionsSummary[data.reactionType as string] = (msg.reactionsSummary[data.reactionType as string] || 0) + 1
+            // 3. Khởi tạo object summary nếu Backend trả về undefined/null
+            if (!msg.reactionsSummary) {
+              msg.reactionsSummary = {}
             }
+
+            // 4. Update số lượng
+            msg.reactionsSummary[data.reactionType as string] =
+              (msg.reactionsSummary[data.reactionType as string] || 0) + 1
           }
         })
       )
