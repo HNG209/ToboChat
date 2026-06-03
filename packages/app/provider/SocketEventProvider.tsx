@@ -74,6 +74,7 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
       // Reset lại ID phòng đang gọi
       setCurrentCallRoomId((prevId) => prevId === data.roomId ? null : prevId);
+      dispatch(callApi.util.updateQueryData('getCallStatus', { roomId: data.roomId }, () => 'INACTIVE' as CallStatus));
     };
 
     const handleCallAccepted = (data: CallRequest) => {
