@@ -1,6 +1,6 @@
 import { X } from '@tamagui/lucide-icons'
 import { useEffect, useState } from 'react'
-import { Button, Dialog, Image, Text, View, XStack, YStack } from '@my/ui'
+import { Button, Dialog, Text, UserAvatar, XStack, YStack } from '@my/ui'
 import * as ImagePicker from 'expo-image-picker'
 
 type NativeAvatarFile = {
@@ -126,27 +126,13 @@ export const EditAvatar = ({
 
           <YStack padding="$4" space="$4">
             <YStack alignItems="center" space="$2">
-              <View
-                width={100}
-                height={100}
-                borderRadius={999}
+              <UserAvatar
+                name={currentName}
+                avatarUrl={preview || currentAvatar}
+                size={100}
                 borderWidth={2}
                 borderColor="$borderColor"
-                overflow="hidden"
-              >
-                <Image
-                  source={{
-                    uri:
-                      preview ||
-                      currentAvatar ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        currentName || 'User'
-                      )}&background=random`,
-                  }}
-                  width="100%"
-                  height="100%"
-                />
-              </View>
+              />
 
               <Button borderRadius="$10" onPress={handleChooseImage}>
                 Chọn ảnh

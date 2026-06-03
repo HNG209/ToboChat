@@ -38,6 +38,7 @@ import { View } from 'tamagui'
 import { Image } from 'tamagui'
 import { useUpdateRoomNameMutation } from 'app/services/roomApi'
 import { EditAvatar } from './EditAvatar'
+import { UserAvatar } from './UserAvatar'
 type ConversationInfoProps = {
   roomData: RoomResponse | undefined
   roomId: string
@@ -50,6 +51,7 @@ type ConversationInfoProps = {
   avatarCacheKey?: number
   onViewAttachments: () => void
   avatarUrlOverride?: string
+  avatarSeed?: string
   onSaveAvatar: (data: { avatar?: File }) => void
 }
 
@@ -64,6 +66,7 @@ export const ConversationInfoContent = ({
   onApproveMembers,
   avatarCacheKey,
   avatarUrlOverride,
+  avatarSeed,
   onViewAttachments,
   onSaveAvatar,
 }: ConversationInfoProps) => {
@@ -272,27 +275,14 @@ export const ConversationInfoContent = ({
         {/* --- PROFILE SECTION --- */}
         <YStack alignItems="center" py="$6" px="$4" space="$3">
           <View position="relative">
-            <View
-              width={96}
-              height={96}
-              borderRadius={999}
+            <UserAvatar
+              id={avatarSeed ?? roomData?.id}
+              name={roomData?.roomName || 'Room'}
+              avatarUrl={effectiveAvatarUrl}
+              size="$8"
               borderWidth={1}
               borderColor="$borderColor"
-              overflow="hidden"
-              backgroundColor="$background"
-            >
-              <Image
-                source={{
-                  uri:
-                    roomData?.avatarUrl ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      roomData?.roomName || 'Room'
-                    )}&background=random`,
-                }}
-                width="100%"
-                height="100%"
-              />
-            </View>
+            />
 
             <Button
               position="absolute"

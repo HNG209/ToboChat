@@ -5,7 +5,6 @@ import {
   XStack,
   YStack,
   Text,
-  Avatar,
   Theme,
   Circle,
 } from 'tamagui'
@@ -17,6 +16,7 @@ import {
   useGetRoomMembersQuery,
   useLeaveGroupMutation,
 } from 'app/services/roomApi'
+import { UserAvatar } from '../UserAvatar'
 
 interface TransferAdminDialogProps {
   open: boolean
@@ -175,10 +175,7 @@ export function TransferAdminDialog({
                     pressStyle={{ scale: 0.98 }}
                   >
                     <XStack alignItems="center" space="$3" flex={1} minWidth={0}>
-                      <Avatar circular size="$4">
-                        <Avatar.Image src={member.avatarUrl} />
-                        <Avatar.Fallback backgroundColor="$gray5" />
-                      </Avatar>
+                      <UserAvatar id={member.id} name={member.name} avatarUrl={member.avatarUrl} size="$4" />
 
                       <Text
                         fontSize="$3"

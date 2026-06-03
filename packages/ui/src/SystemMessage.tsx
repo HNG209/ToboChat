@@ -1,15 +1,15 @@
 import { Text } from '@my/ui'
-import { MessageResponse } from 'app/types/Response'
+import { MessageResponse, UserResponse } from 'app/types/Response'
 import { useState } from 'react'
 import { PollDetailDialog } from './PollDetailDialog'
 
 interface SystemMessageProps {
   msg: MessageResponse
   selfUserId?: string
-  onUserPress?: (userId: string) => void
+  onUserPress?: (user: UserResponse) => void
 }
 
-const buildRoleName = (role: string) => {
+const buildRoleName = (role?: string) => {
   switch (role) {
     case 'ADMIN': return 'Quản trị viên'
     case 'VICE_ADMIN': return 'Phó quản trị viên'
@@ -22,13 +22,15 @@ const buildRoleName = (role: string) => {
 const UserLink = ({
   id,
   name,
+  user,
   isSelf,
   onPress
 }: {
   id?: string
   name?: string
+  user?: UserResponse
   isSelf: boolean
-  onPress?: (id: string) => void
+  onPress?: (user: UserResponse) => void
 }) => {
   if (isSelf) return <Text fontWeight="bold">Bạn</Text>
 
@@ -45,7 +47,9 @@ const UserLink = ({
       }}
       onPress={(e) => {
         e.stopPropagation()
-        if (id && onPress) onPress(id)
+        if (id && onPress) {
+          onPress(user ?? { id, name: displayName, email: '', createdAt: '' })
+        }
       }}
     >
       {displayName}
@@ -97,7 +101,13 @@ export const SystemMessage = ({ msg, selfUserId, onUserPress }: SystemMessagePro
 
   // Helper để render Actor (Người thực hiện hành động)
   const Actor = () => (
-    <UserLink id={actorId} name={actorName} isSelf={isActorSelf} onPress={onUserPress} />
+    <UserLink
+      id={actorId}
+      name={actorName}
+      user={msg.user}
+      isSelf={isActorSelf}
+      onPress={onUserPress}
+    />
   )
 
   switch (msg.action) {

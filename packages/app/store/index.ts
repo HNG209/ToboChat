@@ -3,6 +3,7 @@ import { setupListeners } from '@reduxjs/toolkit/query'
 import { baseApi } from 'app/services/baseApi'
 import authReducer from './authSlice'
 import chatReducer from './chatSlice'
+import userProfileDialogReducer from './userProfileDialogSlice'
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     // Quản lý Auth
     auth: authReducer,
     chat: chatReducer,
+    userProfileDialog: userProfileDialogReducer,
   },
   // Thêm middleware của RTK Query
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(baseApi.middleware),

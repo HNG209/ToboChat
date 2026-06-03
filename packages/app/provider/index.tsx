@@ -21,6 +21,7 @@ import { YStack } from '@my/ui'
 import { I18nextProvider } from 'react-i18next'
 import i18n from '../i18n'
 import { SocketEventProvider } from './SocketEventProvider'
+import { UserProfileDialogProvider } from './UserProfileDialogProvider'
 export function Provider({ children }) {
   const systemScheme = useColorScheme()
 
@@ -63,6 +64,7 @@ export function Provider({ children }) {
                       // native={isWeb ? [] : ['mobile']}
                       >
                         {children}
+                        <UserProfileDialogProvider />
                         <CustomToast />
                       </ToastProvider>
                     </SocketEventProvider>

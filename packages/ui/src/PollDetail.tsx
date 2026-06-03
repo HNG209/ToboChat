@@ -1,5 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
-import { YStack, XStack, Text, Circle, Button, ZStack, Avatar } from 'tamagui'
+import { YStack, XStack, Text, Circle, Button, ZStack } from 'tamagui'
 import { BarChart2, CheckCircle2, Edit3 } from '@tamagui/lucide-icons'
 import { MessageResponse } from 'app/types/Response'
 import { useDispatch } from 'react-redux'
@@ -7,6 +7,7 @@ import { AppDispatch } from 'app/store'
 import { chatApi } from 'app/services/chatApi'
 import { CreatePollSheet } from './CreatePollSheet'
 import { useGetProfileQuery } from 'app/services/userApi'
+import { UserAvatar } from './UserAvatar'
 
 type PollMode = 'PREVIEW' | 'DETAIL'
 
@@ -194,10 +195,16 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
                       <XStack alignItems="center">
                         <XStack marginRight={extraCount > 0 ? "$1" : 0}>
                           {recentVoters.map((voter: any, idx: number) => (
-                            <Avatar key={voter.id} circular size="$1.5" ml={idx > 0 ? -12 : 0} borderWidth={2} borderColor="$background" zIndex={10 - idx}>
-                              <Avatar.Image source={{ uri: voter.avatar }} />
-                              <Avatar.Fallback bg="$blue5" />
-                            </Avatar>
+                            <UserAvatar
+                              key={voter.id}
+                              id={voter.id}
+                              avatarUrl={voter.avatar}
+                              size="$1.5"
+                              ml={idx > 0 ? -12 : 0}
+                              borderWidth={2}
+                              borderColor="$background"
+                              zIndex={10 - idx}
+                            />
                           ))}
                         </XStack>
 

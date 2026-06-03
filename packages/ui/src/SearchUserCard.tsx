@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
-import { Avatar, YStack, XStack, Text, Button } from 'tamagui'
+import { YStack, XStack, Text, Button } from 'tamagui'
 import { UserResponse } from 'app/types/Response'
 import { UserPlus, Check, X, Send, UserRoundCheck } from '@tamagui/lucide-icons'
+import { UserAvatar } from './UserAvatar'
 
 type Props = {
   user: UserResponse
   requestSent: boolean
   onPress?: () => void
-  onSendMessage?: () => void
+  onSendMessage?: (userId: string) => void
   onAddFriend?: (userId: string) => Promise<void>
   onCancelRequest?: (userId: string) => Promise<void>
   onAcceptRequest?: (userId: string) => Promise<void>
@@ -73,21 +74,27 @@ export function SearchUserCard({
       gap="$3"
     >
       {/* LEFT: Avatar + Info */}
-      <XStack alignItems="center" gap="$3" flex={1}>
-        <Avatar circular size="$4">
-          <Avatar.Image
-            src={
-              user.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}&background=random`
-            }
-          />
-          <Avatar.Fallback backgroundColor="$gray5" />
-        </Avatar>
+      <XStack
+        alignItems="center"
+        gap="$3"
+        flex={1}
+      >
+        <UserAvatar id={user.id} name={user.name} avatarUrl={user.avatarUrl} size="$4" />
 
         <YStack flex={1}>
-          <Text fontWeight="700" fontSize="$4" color="$color" numberOfLines={1}>
+          <Text
+            fontWeight="700"
+            fontSize="$4"
+            color="$color"
+            numberOfLines={1}
+          >
             {user.name}
           </Text>
-          <Text color="$color" fontSize="$2" numberOfLines={1}>
+          <Text
+            color="$color"
+            fontSize="$2"
+            numberOfLines={1}
+          >
             {user.email}
           </Text>
         </YStack>
@@ -103,7 +110,11 @@ export function SearchUserCard({
             paddingVertical="$1"
             borderRadius="$4"
           >
-            <Text color="$green10" fontWeight="700" fontSize="$2">
+            <Text
+              color="$green10"
+              fontWeight="700"
+              fontSize="$2"
+            >
               TÔI
             </Text>
           </XStack>
@@ -120,7 +131,12 @@ export function SearchUserCard({
             alignItems="center"
           >
             {/* <Check size={12} color="$blue10" /> */}
-            <Text color="$blue10" fontWeight="700" fontSize="$2" paddingVertical={3}>
+            <Text
+              color="$blue10"
+              fontWeight="700"
+              fontSize="$2"
+              paddingVertical={3}
+            >
               <UserRoundCheck size={16} />
             </Text>
           </XStack>
@@ -128,7 +144,11 @@ export function SearchUserCard({
 
         {/* Trường hợp 3: Chưa kết nối */}
         {friendStatus === 'STRANGER' && (
-          <XStack paddingHorizontal="$3" paddingVertical="$1" borderRadius="$4">
+          <XStack
+            paddingHorizontal="$3"
+            paddingVertical="$1"
+            borderRadius="$4"
+          >
             <Button
               size="$3"
               // theme="gray"
@@ -151,7 +171,6 @@ export function SearchUserCard({
                 handleAddFriend(user.id)
               }}
               disabled={loading}
-              loading={loading}
             />
           </XStack>
         )}
@@ -161,7 +180,7 @@ export function SearchUserCard({
           <Button
             size="$3"
             theme="red"
-            variant="outline"
+            variant="outlined"
             borderRadius="$4"
             icon={<X size={16} />}
             onPress={(e) => {
@@ -169,18 +188,21 @@ export function SearchUserCard({
               handleCancelRequest(user.id)
             }}
             disabled={loading}
-            loading={loading}
           />
         )}
 
         {/* Trường hợp 5: Đang chờ kết bạn (được người khác gửi lời mời) */}
         {friendStatus === 'PENDING' && (
-          <XStack paddingHorizontal="$3" paddingVertical="$1" borderRadius="$4">
+          <XStack
+            paddingHorizontal="$3"
+            paddingVertical="$1"
+            borderRadius="$4"
+          >
             {/* Nút xác nhận hoặc từ chối */}
             <Button
               size="$3"
               theme="green"
-              variant="outline"
+              variant="outlined"
               borderRadius="$4"
               marginRight="$2"
               icon={<Check size={16} />}
@@ -189,12 +211,11 @@ export function SearchUserCard({
                 handleAcceptRequest(user.id)
               }}
               disabled={loading}
-              loading={loading}
             />
             <Button
               size="$3"
               theme="red"
-              variant="outline"
+              variant="outlined"
               borderRadius="$4"
               icon={<X size={16} />}
               onPress={(e) => {
@@ -202,7 +223,6 @@ export function SearchUserCard({
                 handleCancelRequest(user.id)
               }}
               disabled={loading}
-              loading={loading}
             />
           </XStack>
         )}

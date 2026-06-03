@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  YStack, XStack, Text, Button, Avatar, ScrollView, Circle
+  YStack, XStack, Text, Button, ScrollView, Circle
 } from 'tamagui'
 import { ArrowLeft, Check, X, UserPlus } from '@tamagui/lucide-icons'
 import { ActivityIndicator } from 'react-native'
@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux'
 import { AppDispatch } from 'app/store'
 import { roomApi, useApproveMemberMutation, useGetPendingRequestQuery } from 'app/services/roomApi'
 import { GroupPendingRequestResponse, UserResponse } from 'app/types/Response'
+import { UserAvatar } from '../UserAvatar'
 
 interface ApproveMembersContentProps {
   roomId: string
@@ -93,10 +94,7 @@ export const ApproveMembersContent = ({ roomId, onClose }: ApproveMembersContent
                   borderRadius="$4"
                   hoverStyle={{ backgroundColor: "$backgroundHover" }}
                 >
-                  <Avatar circular size="$4">
-                    <Avatar.Image src={user.avatarUrl} />
-                    <Avatar.Fallback backgroundColor="$blue5" />
-                  </Avatar>
+                  <UserAvatar id={user.id} name={user.name} avatarUrl={user.avatarUrl} size="$4" />
 
                   <YStack flex={1}>
                     <Text fontWeight="600" color="$color" numberOfLines={1}>

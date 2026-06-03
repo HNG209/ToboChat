@@ -1,6 +1,6 @@
 import { Camera, X } from '@tamagui/lucide-icons'
 import { useMemo, useState } from 'react'
-import { Button, Dialog, Image, Text, View, XStack, YStack, Spacer } from '@my/ui'
+import { Button, Dialog, Text, UserAvatar, View, XStack, YStack, Spacer } from '@my/ui'
 import { EditProfileDialog } from './EditProfileDialog'
 import { EditAvatar } from './EditAvatar'
 
@@ -101,31 +101,14 @@ export const ProfileDialog = ({
               {/* Avatar center */}
               <YStack alignItems="center" space="$2">
                 <View position="relative">
-                  <View
-                    width={96}
-                    height={96}
-                    borderRadius={999}
+                  <UserAvatar
+                    id={userData?.id}
+                    name={userData?.name}
+                    avatarUrl={withCacheBuster(effectiveAvatarUrl)}
+                    size="$8"
                     borderWidth={2}
                     borderColor="$borderColor"
-                    overflow="hidden"
-                    backgroundColor="$background"
-                  >
-                    <Image
-                      key={
-                        withCacheBuster(effectiveAvatarUrl) ||
-                        effectiveAvatarUrl ||
-                        userData?.avatarUrl ||
-                        'avatar'
-                      }
-                      source={{
-                        uri:
-                          withCacheBuster(effectiveAvatarUrl) ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
-                      }}
-                      width="100%"
-                      height="100%"
-                    />
-                  </View>
+                  />
 
                   {/* Edit avatar button */}
                   <Button

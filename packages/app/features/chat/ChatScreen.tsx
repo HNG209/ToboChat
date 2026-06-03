@@ -49,10 +49,12 @@ import { MemberManagementContent } from '@my/ui/src/group/MemberManagementConten
 import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
 import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, useGetMyFriendListQuery, useRespondFriendRequestMutation, useSendFriendRequestMutation } from 'app/services/contactApi';
 import { FriendStatus } from 'app/types/Enums';
+import { setUserProfileFriendStatus } from 'app/store/userProfileDialogSlice'
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader'
 import { ConversationAttachments } from '@my/ui/src/ConversationAttachments'
 import { ChatErrorState } from '@my/ui/src/error/ChatErrorState'
+import { UserProfileDialogProvider } from 'app/provider/UserProfileDialogProvider'
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -219,9 +221,11 @@ export function ChatScreen({ roomId, insets }: Props) {
         return 'SENT' as FriendStatus
       })
     )
+    dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus: 'SENT' }))
     try {
       await sendFriendRequest({ otherId: otherUserId }).unwrap();
     } catch {
+      dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus }))
       dispatch(
         contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
           return friendStatus
@@ -237,9 +241,11 @@ export function ChatScreen({ roomId, insets }: Props) {
         return 'STRANGER' as FriendStatus
       })
     )
+    dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus: 'STRANGER' }))
     try {
       await cancelFriendRequest({ otherId: otherUserId }).unwrap();
     } catch {
+      dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus }))
       dispatch(
         contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
           return friendStatus
@@ -256,9 +262,16 @@ export function ChatScreen({ roomId, insets }: Props) {
         return accepted ? 'FRIEND' : 'STRANGER' as FriendStatus
       })
     )
+    dispatch(
+      setUserProfileFriendStatus({
+        userId: otherUserId,
+        friendStatus: accepted ? 'FRIEND' : 'STRANGER',
+      })
+    )
     try {
       await respondFriendRequest({ otherId: otherUserId, accepted }).unwrap();
     } catch {
+      dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus }))
       dispatch(
         contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
           return friendStatus
@@ -673,6 +686,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             <ChatScreenHeader
               roomId={roomId}
               roomData={roomData}
+              avatarSeed={isDM ? otherUserId : roomData?.id}
               onInfoPress={() => setShowInfo(!showInfo)}
               isRoomLoading={isRoomLoading}
               insets={insets}
@@ -1045,6 +1059,7 @@ export function ChatScreen({ roomId, insets }: Props) {
           <YStack
             width={350}
             height="100%"
+            position="relative"
             borderLeftWidth={1}
             borderColor="$borderColor"
             bg="$background"
@@ -1061,6 +1076,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onViewAttachments={() => setInfoView('ATTACHMENTS')}
                 avatarCacheKey={avatarCacheKey}
                 avatarUrlOverride={optimisticAvatarUrl}
+                avatarSeed={isDM ? otherUserId : roomData?.id}
                 onSaveAvatar={handleSaveAvatar}
               />
             ) : infoView === 'MANAGEMENT' ? (
@@ -1090,6 +1106,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onClose={() => setInfoView('INFO')}
               />
             )}
+            <UserProfileDialogProvider scope="conversationInfo" usePortal={false} />
           </YStack>
         )}
 
@@ -1103,7 +1120,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             dismissOnSnapToBottom={false}
             disableDrag={true}
           >
-            <Sheet.Frame>
+            <Sheet.Frame position="relative">
               <Provider store={store}>
                 {infoView === 'INFO' ? (
                   <ConversationInfoContent
@@ -1115,6 +1132,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onViewMembers={() => setInfoView('MEMBERS')}
                     onApproveMembers={() => setInfoView('APPROVED')}
                     onViewAttachments={() => setInfoView('ATTACHMENTS')}
+                    avatarSeed={isDM ? otherUserId : roomData?.id}
                     onSaveAvatar={handleSaveAvatar}
                   />
                 ) : infoView === 'MANAGEMENT' ? (
@@ -1144,6 +1162,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onClose={() => setInfoView('INFO')}
                   />
                 )}
+                <UserProfileDialogProvider scope="conversationInfo" usePortal={false} />
               </Provider>
             </Sheet.Frame>
           </Sheet>

@@ -6,7 +6,6 @@ import {
   XStack,
   YStack,
   Text,
-  Avatar,
   Theme,
   Circle,
   Label,
@@ -20,6 +19,7 @@ import { roomApi, useCreateGroupMutation } from 'app/services/roomApi';
 import { ActivityIndicator } from 'react-native';
 import { AppDispatch } from 'app/store';
 import { useDispatch } from 'react-redux';
+import { UserAvatar } from './UserAvatar';
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -195,10 +195,7 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
                         pressStyle={{ scale: 0.98 }}
                       >
                         <XStack alignItems="center" space="$3">
-                          <Avatar circular size="$4">
-                            <Avatar.Image src={friend.avatarUrl} />
-                            <Avatar.Fallback borderColor="#E5E5EA" />
-                          </Avatar>
+                          <UserAvatar id={friend.id} name={friend.name} avatarUrl={friend.avatarUrl} size="$4" />
                           <Text fontSize="$3">
                             {friend.name}
                           </Text>

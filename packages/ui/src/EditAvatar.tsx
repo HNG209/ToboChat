@@ -2,7 +2,7 @@
 import { X } from '@tamagui/lucide-icons'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Button, Dialog, Image, Text, View, XStack, YStack } from '@my/ui'
+import { Button, Dialog, Text, UserAvatar, XStack, YStack } from '@my/ui'
 import { Platform } from 'react-native'
 
 interface ProfileDialogProps {
@@ -100,26 +100,13 @@ export const EditAvatar = ({
           <YStack padding="$4" space="$4">
             {/* Avatar */}
             <YStack alignItems="center" space="$2">
-              <View
-                width={100}
-                height={100}
-                borderRadius={999}
+              <UserAvatar
+                name={currentName}
+                avatarUrl={preview || currentAvatar}
+                size={100}
                 borderWidth={2}
                 borderColor="$borderColor"
-                overflow="hidden"
-                backgroundColor="$background"
-              >
-                <Image
-                  source={{
-                    uri:
-                      preview ||
-                      currentAvatar ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(currentName || 'User')}&background=random`,
-                  }}
-                  width="100%"
-                  height="100%"
-                />
-              </View>
+              />
 
               {Platform.OS === 'web' && (
                 <>

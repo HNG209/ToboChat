@@ -1,10 +1,11 @@
 import React from 'react'
-import { Avatar, Button, Circle, Text, XStack, YStack } from "tamagui"
+import { Button, Circle, Text, XStack, YStack } from "tamagui"
 import { ChevronLeft, Info, Phone, Video } from "@tamagui/lucide-icons"
 import { RoomResponse } from "app/types/Response"
 import { useGetCallStatusQuery } from "app/services/callApi"
 import { getSocket } from "app/utils/socket"
 import { formatLastSeen } from 'app/utils/chatHelper'
+import { UserAvatar } from './UserAvatar'
 
 type Props = {
   roomId: string
@@ -12,10 +13,11 @@ type Props = {
   isRoomLoading: boolean,
   insets: { top: number; bottom: number; left: number; right: number } | undefined,
   linkProps: React.ComponentProps<typeof Button>
+  avatarSeed?: string
   onInfoPress?: () => void
 }
 
-export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, linkProps, onInfoPress }: Props) => {
+export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, linkProps, avatarSeed, onInfoPress }: Props) => {
   const isGroup = roomData?.roomType === 'GROUP';
   const userPresence = roomData?.userPresence;
 
@@ -55,12 +57,14 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
       <XStack alignItems="center" space="$3" flex={1} minWidth={0}>
         <Button size="$3" circular chromeless icon={ChevronLeft} {...linkProps} />
         <XStack alignItems="center" space="$2" flex={1} minWidth={0}>
-          <Avatar circular size="$4" marginRight="$2">
-            <Avatar.Image
-              src={roomData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(roomData?.roomName || 'Room')}&background=random`}
+          <XStack marginRight="$2">
+            <UserAvatar
+              id={avatarSeed ?? roomData?.id}
+              name={roomData?.roomName || 'Room'}
+              avatarUrl={roomData?.avatarUrl}
+              size="$4"
             />
-            <Avatar.Fallback borderColor="gray" />
-          </Avatar>
+          </XStack>
           <YStack flex={1} minWidth={0}>
             <Text
               fontWeight="bold"

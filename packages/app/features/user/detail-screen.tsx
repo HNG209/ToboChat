@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  Avatar,
   Button,
   DisableMFADialog,
   EnableMFADialog,
@@ -12,6 +11,7 @@ import {
   Text,
   Theme,
   Tooltip,
+  UserAvatar,
   XStack,
   YStack,
 } from '@my/ui'
@@ -464,29 +464,18 @@ export default function UserDetailScreen() {
         </XStack>
 
         {/* AVATAR */}
-        <Avatar
+        <UserAvatar
+          id={userProfile?.id}
+          name={userProfile?.name}
+          avatarUrl={withCacheBuster(optimisticAvatarUrl ?? userProfile?.avatarUrl)}
           size="$10"
-          circular
           position="absolute"
           bottom={-50}
           left="50%"
           transform={[{ translateX: -50 }]}
           borderWidth={4}
           borderColor="white"
-        >
-          <Avatar.Image
-            key={
-              withCacheBuster(optimisticAvatarUrl ?? userProfile?.avatarUrl) ||
-              optimisticAvatarUrl ||
-              userProfile?.avatarUrl ||
-              'avatar'
-            }
-            src={
-              withCacheBuster(optimisticAvatarUrl ?? userProfile?.avatarUrl) ||
-              'https://i.pravatar.cc/300'
-            }
-          />
-        </Avatar>
+        />
       </YStack>
 
       {/* INFO CARD */}

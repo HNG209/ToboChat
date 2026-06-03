@@ -6,8 +6,9 @@ import { Search, UserPlus, Users } from '@tamagui/lucide-icons'
 import { SearchUserCard } from '@my/ui'
 import { useLazyFindUserByEmailQuery } from 'app/services/userApi'
 import { generateDirectRoomId } from 'app/utils/chatHelper'
-import { useSelector } from 'react-redux'
-import type { RootState } from 'app/store'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from 'app/store'
+import { openUserProfileDialog } from 'app/store/userProfileDialogSlice'
 import { Platform, useWindowDimensions } from 'react-native'
 import { useRouter } from 'solito/navigation'
 import {
@@ -20,6 +21,7 @@ import { CreateGroupDialog } from './CreateGroupDialog'
 export default function SearchHeader() {
   const hasSession = useSelector((s: RootState) => s.auth.hasSession)
   const userId = useSelector((s: RootState) => s.auth.user?.id)
+  const dispatch = useDispatch<AppDispatch>()
   const { height: windowHeight } = useWindowDimensions()
   const [headerHeight, setHeaderHeight] = useState(0)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -155,8 +157,10 @@ export default function SearchHeader() {
                   key={user.id}
                   user={user}
                   requestSent={sentRequests.has(user.id)}
-                  onSendMessage={() => {
-                    router.push(`/chat/${generateDirectRoomId(userId, user.id)}`)
+                  onPress={() => dispatch(openUserProfileDialog(user))}
+                  onSendMessage={(otherId) => {
+                    if (!userId) return
+                    router.push(`/chat/${generateDirectRoomId(userId, otherId)}`)
                   }}
                   onAddFriend={async (userId) => {
                     setSentRequests((prev) => new Set([...prev, userId]))

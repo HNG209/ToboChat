@@ -21,6 +21,7 @@ export default function ChatInbox() {
   )
 
   const hasSession = useSelector((state: RootState) => state.auth.hasSession)
+  const selfUserId = useSelector((state: RootState) => state.auth.user?.id)
 
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [status, setStatus] = useState<RoomStatus>('ACTIVE')
@@ -229,13 +230,9 @@ export default function ChatInbox() {
             <ChatInboxItem
               selected={activeRoomId === room.id}
               key={room.id}
+              id={getRoomAvatarSeed(room.id, room.roomType, selfUserId)}
               name={room.roomName}
-              avatarUrl={
-                room.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  room.roomName
-                )}&background=random`
-              }
+              avatarUrl={room.avatarUrl}
               latestMessage={room.latestMessage}
               time={room?.latestMessage?.createdAt ?? undefined}
               pinned={false}
@@ -276,4 +273,9 @@ export default function ChatInbox() {
       )}
     </YStack>
   )
+}
+
+function getRoomAvatarSeed(roomId: string, roomType: RoomResponse['roomType'], selfUserId?: string) {
+  if (roomType !== 'DM' || !selfUserId) return roomId
+  return roomId.split('_').find((id) => id !== selfUserId) ?? roomId
 }

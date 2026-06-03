@@ -1,5 +1,5 @@
 'use client'
-import { Avatar, Button, ListItem, Popover, Spacer, YStack, Circle, Text, View } from '@my/ui'
+import { Button, ListItem, Popover, Spacer, YStack, Circle, Text, UserAvatar, View } from '@my/ui'
 import { Contact2, LogOut, MessageSquare, Settings, User } from '@tamagui/lucide-icons'
 
 import { signOut } from 'aws-amplify/auth'
@@ -428,21 +428,12 @@ export const ZaloSidebar = () => {
           shadowRadius={10}
           shadowOffset={{ width: 0, height: 4 }}
         >
-          <Avatar circular size="$5">
-            <Avatar.Image
-              key={
-                withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
-                optimisticAvatarUrl ||
-                profileData?.avatarUrl ||
-                'avatar'
-              }
-              src={
-                withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl) ||
-                `https://ui-avatars.com/api/?name=${profileData?.name}&background=random`
-              }
-            />
-            <Avatar.Fallback />
-          </Avatar>
+          <UserAvatar
+            id={profileData?.id}
+            name={profileData?.name}
+            avatarUrl={withCacheBuster(optimisticAvatarUrl ?? profileData?.avatarUrl)}
+            size="$5"
+          />
         </YStack>
 
         {/* Nav icons (match bottom layout) */}

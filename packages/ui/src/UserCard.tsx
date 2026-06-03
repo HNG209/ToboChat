@@ -1,4 +1,4 @@
-import { Button, XStack, YStack, Text, Avatar, Adapt, Sheet } from 'tamagui'
+import { Button, XStack, YStack, Text, Adapt, Sheet } from 'tamagui'
 import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
 import { FriendResponse, UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
@@ -9,6 +9,7 @@ import { AppDispatch, RootState, store } from 'app/store'
 import { contactApi, useDeleteFriendMutation } from 'app/services/contactApi'
 import { Popover } from 'tamagui'
 import { Dialog } from 'tamagui'
+import { UserAvatar } from './UserAvatar'
 type Props = {
   user: UserResponse
   description?: string
@@ -109,14 +110,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
     >
       {/* LEFT: Avatar + Thông tin người dùng */}
       <XStack alignItems="center" gap="$3" flex={1}>
-        <Avatar circular size="$4">
-          <Avatar.Image
-            src={
-              user?.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}&background=random`
-            }
-          />
-          <Avatar.Fallback backgroundColor="$gray5" />
-        </Avatar>
+        <UserAvatar id={user.id} name={user.name} avatarUrl={user.avatarUrl} size="$4" />
 
         <YStack flex={1}>
           <Text fontWeight="700" fontSize="$4" color="$color">
