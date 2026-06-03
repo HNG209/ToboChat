@@ -657,32 +657,37 @@ export function ChatScreen({ roomId, insets }: Props) {
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           const msg = draft.items?.find((m) => m.id === data.messageId)
-          if (msg) {
-            const isSameUser = data.userId === selfUserId
+          if (!msg) return; // Không tìm thấy tin nhắn thì bỏ qua
 
-            if (isSameUser) {
-              // 1. Khởi tạo mảng nếu Backend trả về undefined/null
-              if (!msg.myReactions) {
-                msg.myReactions = []
-              }
+          const isSameUser = data.userId === selfUserId;
+          const reactionType = data.reactionType as string;
 
-              const existing = msg.myReactions.find((r) => r === data.reactionType as string)
-
-              if (!existing) {
-                // 2. Trực tiếp push vào mảng (không dùng optional chaining)
-                msg.myReactions.push(data.reactionType as string)
-              }
+          if (isSameUser) {
+            // 1. Khởi tạo mảng nếu chưa có
+            if (!msg.myReactions) {
+              msg.myReactions = [];
             }
 
-            // 3. Khởi tạo object summary nếu Backend trả về undefined/null
-            if (!msg.reactionsSummary) {
-              msg.reactionsSummary = {}
+            // 2. Kiểm tra xem optimistic update đã thêm cảm xúc này vào chưa
+            const hasReacted = msg.myReactions.includes(reactionType);
+
+            if (hasReacted) {
+              // NẾU ĐÃ CÓ (DO OPTIMISTIC UPDATE): Dừng lại ngay lập tức.
+              // Không chạy xuống phần update reactionsSummary bên dưới nữa để tránh nhân đôi.
+              return;
             }
 
-            // 4. Update số lượng
-            msg.reactionsSummary[data.reactionType as string] =
-              (msg.reactionsSummary[data.reactionType as string] || 0) + 1
+            // Nếu chưa có (trường hợp socket đến mà chưa chạy optimistic), thì thêm vào
+            msg.myReactions.push(reactionType);
           }
+
+          // 3. Khởi tạo object summary nếu chưa có
+          if (!msg.reactionsSummary) {
+            msg.reactionsSummary = {};
+          }
+
+          // 4. Update số lượng (Chỉ chạy đến đây nếu là user khác, hoặc là mình nhưng chưa có optimistic update)
+          msg.reactionsSummary[reactionType] = (msg.reactionsSummary[reactionType] || 0) + 1;
         })
       )
     }
