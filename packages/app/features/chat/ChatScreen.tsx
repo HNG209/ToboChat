@@ -49,10 +49,12 @@ import { MemberManagementContent } from '@my/ui/src/group/MemberManagementConten
 import { ApproveMembersContent } from '@my/ui/src/group/ApproveMembersContent';
 import { contactApi, useCancelFriendRequestMutation, useGetFriendStatusQuery, useGetMyFriendListQuery, useRespondFriendRequestMutation, useSendFriendRequestMutation } from 'app/services/contactApi';
 import { FriendStatus } from 'app/types/Enums';
+import { setUserProfileFriendStatus } from 'app/store/userProfileDialogSlice'
 import { useGroupAvatarUpload } from 'app/hooks/useGroupAvatarUpload';
 import { ChatScreenHeader } from '@my/ui/src/ChatScreenHeader'
 import { ConversationAttachments } from '@my/ui/src/ConversationAttachments'
 import { ChatErrorState } from '@my/ui/src/error/ChatErrorState'
+import { UserProfileDialogProvider } from 'app/provider/UserProfileDialogProvider'
 
 async function copyText(text: string) {
   await copyToClipboard(text)
@@ -219,9 +221,11 @@ export function ChatScreen({ roomId, insets }: Props) {
         return 'SENT' as FriendStatus
       })
     )
+    dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus: 'SENT' }))
     try {
       await sendFriendRequest({ otherId: otherUserId }).unwrap();
     } catch {
+      dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus }))
       dispatch(
         contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
           return friendStatus
@@ -237,9 +241,11 @@ export function ChatScreen({ roomId, insets }: Props) {
         return 'STRANGER' as FriendStatus
       })
     )
+    dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus: 'STRANGER' }))
     try {
       await cancelFriendRequest({ otherId: otherUserId }).unwrap();
     } catch {
+      dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus }))
       dispatch(
         contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
           return friendStatus
@@ -256,9 +262,16 @@ export function ChatScreen({ roomId, insets }: Props) {
         return accepted ? 'FRIEND' : 'STRANGER' as FriendStatus
       })
     )
+    dispatch(
+      setUserProfileFriendStatus({
+        userId: otherUserId,
+        friendStatus: accepted ? 'FRIEND' : 'STRANGER',
+      })
+    )
     try {
       await respondFriendRequest({ otherId: otherUserId, accepted }).unwrap();
     } catch {
+      dispatch(setUserProfileFriendStatus({ userId: otherUserId, friendStatus }))
       dispatch(
         contactApi.util.updateQueryData('getFriendStatus', { otherId: otherUserId }, () => {
           return friendStatus
@@ -673,6 +686,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             <ChatScreenHeader
               roomId={roomId}
               roomData={roomData}
+              avatarSeed={isDM ? otherUserId : roomData?.id}
               onInfoPress={() => setShowInfo(!showInfo)}
               isRoomLoading={isRoomLoading}
               insets={insets}
@@ -680,50 +694,76 @@ export function ChatScreen({ roomId, insets }: Props) {
             />
 
             {isDM && otherUserId && !isFriendStatusLoading && friendStatus && (
-              <YStack mt="$2" px="$4">
+              <YStack
+                mt='$2'
+                px={Platform.OS === 'web' ? '$4' : '$3'}
+                pb={Platform.OS === 'web' ? '$0' : '$2'}
+              >
                 {friendStatus === 'STRANGER' && (
                   <Button
-                    size="$4"
+                    size={Platform.OS === 'web' ? '$4' : '$3'}
                     theme="blue"
-                    flex={1}
-                    icon={<UserPlus size={20} />}
+                    alignSelf="stretch"
+                    borderRadius="$10"
+                    icon={<UserPlus size={Platform.OS === 'web' ? 20 : 16} />}
                     onPress={handleSendFriendRequest}
                     disabled={isSending}
                   >
-                    Gửi lời mời kết bạn
+                    <Text
+                      fontSize={Platform.OS === 'web' ? '$4' : '$3'}
+                      fontWeight="600"
+                      numberOfLines={1}
+                    >
+                      Gửi lời mời kết bạn
+                    </Text>
                   </Button>
                 )}
                 {friendStatus === 'SENT' && (
                   <Button
-                    size="$4"
-                    flex={1}
-                    icon={<X size={20} />}
+                    size={Platform.OS === 'web' ? '$4' : '$3'}
+                    alignSelf="stretch"
+                    borderRadius="$10"
+                    icon={<X size={Platform.OS === 'web' ? 20 : 16} />}
                     onPress={handleCancelFriendRequest}
                   >
-                    Huỷ yêu cầu
+                    <Text
+                      fontSize={Platform.OS === 'web' ? '$4' : '$3'}
+                      fontWeight="600"
+                      numberOfLines={1}
+                    >
+                      Huỷ yêu cầu
+                    </Text>
                   </Button>
                 )}
                 {friendStatus === 'PENDING' && (
-                  <XStack space="$2" width="100%">
+                  <XStack space="$2" width="100%" flexWrap="nowrap">
                     <Button
-                      size="$4"
+                      size={Platform.OS === 'web' ? '$4' : '$3'}
                       theme="green"
                       flex={1}
-                      icon={<Check size={20} />}
+                      minWidth={0}
+                      borderRadius="$10"
+                      icon={<Check size={Platform.OS === 'web' ? 20 : 16} />}
                       onPress={() => handleRespondFriendRequest(true)}
                       disabled={isResponding}
                     >
-                      Chấp nhận
+                      <Text numberOfLines={1} fontSize={Platform.OS === 'web' ? '$4' : '$3'}>
+                        Chấp nhận
+                      </Text>
                     </Button>
                     <Button
-                      size="$4"
-                      theme="red"
+                      size={Platform.OS === 'web' ? '$4' : '$3'}
+                      theme="green"
                       flex={1}
-                      icon={<X size={20} />}
+                      minWidth={0}
+                      borderRadius="$10"
+                      icon={<Check size={Platform.OS === 'web' ? 20 : 16} />}
                       onPress={() => handleRespondFriendRequest(false)}
                       disabled={isResponding}
                     >
-                      Từ chối
+                      <Text numberOfLines={1} fontSize={Platform.OS === 'web' ? '$4' : '$3'}>
+                        Từ chối
+                      </Text>
                     </Button>
                   </XStack>
                 )}
@@ -1019,6 +1059,7 @@ export function ChatScreen({ roomId, insets }: Props) {
           <YStack
             width={350}
             height="100%"
+            position="relative"
             borderLeftWidth={1}
             borderColor="$borderColor"
             bg="$background"
@@ -1035,6 +1076,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onViewAttachments={() => setInfoView('ATTACHMENTS')}
                 avatarCacheKey={avatarCacheKey}
                 avatarUrlOverride={optimisticAvatarUrl}
+                avatarSeed={isDM ? otherUserId : roomData?.id}
                 onSaveAvatar={handleSaveAvatar}
               />
             ) : infoView === 'MANAGEMENT' ? (
@@ -1064,6 +1106,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                 onClose={() => setInfoView('INFO')}
               />
             )}
+            <UserProfileDialogProvider scope="conversationInfo" usePortal={false} />
           </YStack>
         )}
 
@@ -1077,7 +1120,7 @@ export function ChatScreen({ roomId, insets }: Props) {
             dismissOnSnapToBottom={false}
             disableDrag={true}
           >
-            <Sheet.Frame>
+            <Sheet.Frame position="relative">
               <Provider store={store}>
                 {infoView === 'INFO' ? (
                   <ConversationInfoContent
@@ -1089,6 +1132,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onViewMembers={() => setInfoView('MEMBERS')}
                     onApproveMembers={() => setInfoView('APPROVED')}
                     onViewAttachments={() => setInfoView('ATTACHMENTS')}
+                    avatarSeed={isDM ? otherUserId : roomData?.id}
                     onSaveAvatar={handleSaveAvatar}
                   />
                 ) : infoView === 'MANAGEMENT' ? (
@@ -1118,6 +1162,7 @@ export function ChatScreen({ roomId, insets }: Props) {
                     onClose={() => setInfoView('INFO')}
                   />
                 )}
+                <UserProfileDialogProvider scope="conversationInfo" usePortal={false} />
               </Provider>
             </Sheet.Frame>
           </Sheet>

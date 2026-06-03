@@ -1,9 +1,10 @@
 import React from 'react'
-import { Button, XStack, YStack, Text, Avatar } from 'tamagui'
+import { Button, XStack, YStack, Text } from 'tamagui'
 import { Check, X, Users } from '@tamagui/lucide-icons'
 import { UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
 import { useMedia } from 'tamagui'
+import { UserAvatar } from './UserAvatar'
 
 type GroupCardProps = {
   roomName: string
@@ -40,14 +41,7 @@ export function GroupCard({ roomName, avatarUrl, description, type, onAction }: 
     >
       {/* LEFT: Avatar + Thông tin nhóm */}
       <XStack alignItems="center" gap="$3" flex={1}>
-        <Avatar circular size="$4">
-          <Avatar.Image
-            src={
-              avatarUrl || `https://ui-avatars.com/api/?name=${roomName}&background=random`
-            }
-          />
-          <Avatar.Fallback backgroundColor="$gray5" />
-        </Avatar>
+        <UserAvatar id={roomName} name={roomName} avatarUrl={avatarUrl} size="$4" />
 
         <YStack flex={1}>
           <Text fontWeight="700" fontSize="$4" color="$color">

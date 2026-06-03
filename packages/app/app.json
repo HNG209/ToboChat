@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "5c21921f-5231-463f-83ef-4a8a4e941e97"
+      }
+    },
+    "android": {
+      "package": "com.konnatachai.app"
+    }
+  }
+}

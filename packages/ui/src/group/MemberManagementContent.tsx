@@ -1,5 +1,5 @@
 import {
-  YStack, XStack, Text, Button, Avatar, ScrollView,
+  YStack, XStack, Text, Button, ScrollView,
   Separator, Popover, Circle, Adapt, Sheet
 } from 'tamagui'
 import { ArrowLeft, MoreVertical, ShieldCheck, UserMinus, Star } from '@tamagui/lucide-icons'
@@ -14,6 +14,8 @@ import { ActivityIndicator, Alert } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { Platform } from 'expo-modules-core'
 import { AppDispatch } from 'app/store'
+import { openConversationInfoUserProfileDialog } from 'app/store/userProfileDialogSlice'
+import { UserAvatar } from '../UserAvatar'
 
 interface MemberManagementContentProps {
   roomId: string
@@ -106,19 +108,35 @@ export const MemberManagementContent = ({ roomId, onClose }: MemberManagementCon
             membersData?.items?.map((item: any) => {
               const member = item.member
               const role = item.role
-              const isMe = item.id === myInfo?.id
+              const myUserId = myInfo?.member?.id ?? myInfo?.id
+              const isMe = member.id === myUserId
               const canManage = myInfo?.permissions?.canApproveMember && !isMe
 
               return (
                 <XStack key={member.id} alignItems="center" p="$3" space="$3" borderRadius="$4" hoverStyle={{ backgroundColor: "$backgroundHover" }}>
-                  <Avatar circular size="$4">
-                    <Avatar.Image src={member.avatarUrl} />
-                    <Avatar.Fallback backgroundColor="$blue5" />
-                  </Avatar>
+                  <XStack
+                    onPress={(e) => {
+                      e.stopPropagation()
+                      if (!isMe) dispatch(openConversationInfoUserProfileDialog(member))
+                    }}
+                    cursor={isMe ? 'default' : 'pointer'}
+                  >
+                    <UserAvatar id={member.id} name={member.name} avatarUrl={member.avatarUrl} size="$4" />
+                  </XStack>
 
                   <YStack flex={1}>
                     <XStack alignItems="center" space="$2">
-                      <Text fontWeight="600" color="$color">{member.name} {isMe && "(Bạn)"}</Text>
+                      <Text
+                        fontWeight="600"
+                        color="$color"
+                        cursor={isMe ? 'default' : 'pointer'}
+                        onPress={(e) => {
+                          e.stopPropagation()
+                          if (!isMe) dispatch(openConversationInfoUserProfileDialog(member))
+                        }}
+                      >
+                        {member.name} {isMe && "(Bạn)"}
+                      </Text>
                       {role === 'ADMIN' && <Circle size={18} backgroundColor="$orange3"><Star size={10} color="$orange10" /></Circle>}
                       {role === 'VICE_ADMIN' && <Circle size={18} backgroundColor="$blue3"><ShieldCheck size={10} color="$blue10" /></Circle>}
                     </XStack>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Pressable } from 'react-native'
-import { Button, Dialog, Separator, Text, XStack, YStack, Circle, Spinner, Avatar } from '@my/ui'
+import { Button, Dialog, Separator, Text, XStack, YStack, Circle, Spinner } from '@my/ui'
 import { Check, SendHorizontal, X } from '@tamagui/lucide-icons'
 import { RoomType } from 'app/types/Enums'
 import type { MessageResponse, RoomResponse } from 'app/types/Response'
@@ -8,6 +8,7 @@ import { StyledFlatList } from './StyledFlatList'
 import { useGetJoinedRoomsQuery } from 'app/services/roomApi'
 import { useSelector } from 'react-redux'
 import { RootState } from 'app/store'
+import { UserAvatar } from './UserAvatar'
 
 type Props = {
   open: boolean
@@ -168,12 +169,12 @@ export function ForwardMessageDialog({
                       marginBottom="$2"
                     >
                       <XStack alignItems="center" space="$3" flex={1}>
-                        <Avatar circular size="$4">
-                          <Avatar.Image
-                            src={room.avatarUrl
-                              || `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`}
-                          />
-                        </Avatar>
+                        <UserAvatar
+                          id={room.id}
+                          name={room.roomName}
+                          avatarUrl={room.avatarUrl}
+                          size="$4"
+                        />
                         <YStack flex={1}>
                           <Text fontSize="$4" fontWeight="700" numberOfLines={1}>
                             {room.roomName}

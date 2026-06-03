@@ -29,7 +29,7 @@ export const ContactHeader = ({
       borderColor="$borderColor"
       borderRadius="$6"
       backgroundColor="$background"
-      gap="$3"
+      gap="$1"
     >
       {/* NÚT BACK: Tích hợp sẵn, tự ẩn trên Desktop và hiện trên Mobile */}
       <Button

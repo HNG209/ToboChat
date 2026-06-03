@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { Linking, Pressable } from 'react-native'
-import { XStack, YStack, Text, Avatar, Circle, Image } from '@my/ui'
+import { XStack, YStack, Text, Circle, Image } from '@my/ui'
 import { Check, File, Download } from '@tamagui/lucide-icons'
 import { MessageActionMenu } from './MessageActionMenu'
 import { MediaGrid } from 'app/media/MediaGrid'
@@ -11,6 +11,8 @@ import { AppDispatch, store } from 'app/store'
 import { RoomStatus } from './ChatInbox'
 import { WidgetMessage } from './WidgetMessage'
 import { SystemMessage } from './SystemMessage'
+import { openUserProfileDialog } from 'app/store/userProfileDialogSlice'
+import { UserAvatar } from './UserAvatar'
 
 interface Props {
   roomId: string
@@ -65,9 +67,9 @@ export function MessageItem({
   const [deleteMessage] = useDeleteMessageMutation()
   const [revokeMessage] = useRevokeMessageMutation()
 
-  const handleUserPress = (userId: string) => {
-    console.log("Điều hướng tới profile của user:", userId)
-    // Thực hiện navigation hoặc dispatch action tại đây
+  const handleUserPress = (user: NonNullable<MessageResponse['user']>) => {
+    if (user.id === selfUserId) return
+    dispatch(openUserProfileDialog(user))
   }
 
   // Xử lý tin nhắn hệ thống
@@ -255,9 +257,12 @@ export function MessageItem({
         {!isMe && !isGroupCallWidget && (
           <YStack width={32} alignItems="center">
             {showAvatar && (
-              <Avatar circular size="$3">
-                <Avatar.Image src={msg.user?.avatarUrl} />
-              </Avatar>
+              <UserAvatar
+                id={msg.user?.id}
+                name={msg.user?.name}
+                avatarUrl={msg.user?.avatarUrl}
+                size="$3"
+              />
             )}
           </YStack>
         )}

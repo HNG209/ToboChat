@@ -10,6 +10,7 @@ import {
   GetMyFriendsRequest,
   RespondFriendRequestRequest,
   SendFriendRequestRequest,
+  DeleteFriendRequest,
 } from 'app/types/Request'
 import { baseApi } from './baseApi'
 import { FriendStatus } from 'app/types/Enums'
@@ -57,6 +58,15 @@ export const contactApi = baseApi.injectEndpoints({
       invalidatesTags: ['FriendRequests', 'UserSearch'],
     }),
 
+    // ===== XÓA KẾT BẠN =====
+    deleteFriend: builder.mutation<void, DeleteFriendRequest>({
+      query: ({ userId, otherId }) => ({
+        url: `/contacts/${userId}/friends/${otherId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['FriendList', 'UserSearch'],
+    }),
+
     // ===== PHẢN HỒI LỜI MỜI (chấp nhận / từ chối) =====
     respondFriendRequest: builder.mutation<void, RespondFriendRequestRequest>({
       query: ({ otherId, accepted }) => ({
@@ -88,4 +98,5 @@ export const {
   useSendFriendRequestMutation,
   useRespondFriendRequestMutation,
   useCancelFriendRequestMutation,
+  useDeleteFriendMutation,
 } = contactApi

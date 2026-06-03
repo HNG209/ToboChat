@@ -1,14 +1,15 @@
-import { Button, XStack, YStack, Text, Avatar, Adapt, Sheet } from 'tamagui'
+import { Button, XStack, YStack, Text, Adapt, Sheet } from 'tamagui'
 import { MoreHorizontal, Check, X, UserMinus, Users } from '@tamagui/lucide-icons'
 import { FriendResponse, UserResponse } from 'app/types/Response'
 import { FriendRequestType } from 'app/types/Request'
-import { Platform } from 'react-native'
+import { Alert, Platform } from 'react-native'
 import { useMedia } from 'tamagui'
-import { useDispatch } from 'react-redux'
-import { AppDispatch, store } from 'app/store'
-import { contactApi } from 'app/services/contactApi'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState, store } from 'app/store'
+import { contactApi, useDeleteFriendMutation } from 'app/services/contactApi'
 import { Popover } from 'tamagui'
 import { Dialog } from 'tamagui'
+import { UserAvatar } from './UserAvatar'
 type Props = {
   user: UserResponse
   description?: string
@@ -23,7 +24,8 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
   const isSent = type === FriendRequestType.SENT
   const media = useMedia()
   const dispatch = useDispatch<AppDispatch>()
-
+  const selfUserId = useSelector((state: RootState) => state.auth.user?.id)
+  const [deleteFriend, { isLoading: isDeletingFriend }] = useDeleteFriendMutation()
   const buttonProps = {
     size: "$3",
     borderRadius: "$4",
@@ -37,7 +39,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
       ['FriendList']
     )
 
-    friendListCaches.forEach(({ originalArgs }) => {
+    return friendListCaches.map(({ originalArgs }) =>
       dispatch(
         contactApi.util.updateQueryData(
           'getMyFriendList',
@@ -53,7 +55,44 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
           }
         )
       )
-    })
+    )
+  }
+  const handleUnfriend = async () => {
+    if (!selfUserId) return
+
+    const patches = handleUnfriendOptimistic(user.id)
+
+    try {
+      await deleteFriend({
+        userId: selfUserId,
+        otherId: user.id,
+      }).unwrap()
+    } catch (error) {
+      patches.forEach((patch) => patch.undo())
+      console.error('Unfriend failed:', error)
+    }
+  }
+  const confirmUnfriend = () => {
+    const message = `Bạn có chắc chắn muốn hủy kết bạn với ${user.name}?`
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        handleUnfriend()
+      }
+      return
+    }
+
+    Alert.alert('Hủy kết bạn', message, [
+      {
+        text: 'Hủy',
+        style: 'cancel',
+      },
+      {
+        text: 'Hủy kết bạn',
+        style: 'destructive',
+        onPress: handleUnfriend,
+      },
+    ])
   }
   return (
     <XStack
@@ -71,14 +110,7 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
     >
       {/* LEFT: Avatar + Thông tin người dùng */}
       <XStack alignItems="center" gap="$3" flex={1}>
-        <Avatar circular size="$4">
-          <Avatar.Image
-            src={
-              user?.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}&background=random`
-            }
-          />
-          <Avatar.Fallback backgroundColor="$gray5" />
-        </Avatar>
+        <UserAvatar id={user.id} name={user.name} avatarUrl={user.avatarUrl} size="$4" />
 
         <YStack flex={1}>
           <Text fontWeight="700" fontSize="$4" color="$color">
@@ -136,9 +168,9 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
                       borderRadius={0}
                       size="$3"
                       justifyContent="flex-start"
-                      onPress={() => {
-                        handleUnfriendOptimistic(user.id)
-                      }}
+                      disabled={isDeletingFriend}
+                      opacity={isDeletingFriend ? 0.5 : 1}
+                      onPress={confirmUnfriend}
                     >
                       <XStack space="$2" alignItems="center">
                         <UserMinus size={16} color="$red10" />

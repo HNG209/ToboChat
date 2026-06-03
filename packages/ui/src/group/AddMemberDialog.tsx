@@ -4,7 +4,6 @@ import {
   XStack,
   YStack,
   Text,
-  Avatar,
   Theme,
   Circle,
   Label,
@@ -19,6 +18,7 @@ import { ActivityIndicator } from 'react-native';
 import { useDispatch } from 'react-redux'
 import { AppDispatch } from 'app/store'
 import { FriendResponse } from 'app/types/Response';
+import { UserAvatar } from '../UserAvatar';
 
 interface AddMemberContentProps {
   roomId: string;
@@ -167,10 +167,7 @@ export const AddMemberContent = ({ roomId, onClose }: AddMemberContentProps) => 
                 pressStyle={isSelectable ? { backgroundColor: '$backgroundHover' } : undefined}
               >
                 <XStack alignItems="center" space="$3">
-                  <Avatar circular size="$4">
-                    <Avatar.Image src={friend.avatarUrl} />
-                    <Avatar.Fallback backgroundColor="$blue5" />
-                  </Avatar>
+                  <UserAvatar id={friend.id} name={friend.name} avatarUrl={friend.avatarUrl} size="$4" />
 
                   <YStack>
                     <Text fontSize="$3" fontWeight={isSelected ? '600' : '500'}>

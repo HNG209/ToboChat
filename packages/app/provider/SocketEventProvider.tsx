@@ -1,7 +1,7 @@
 import { AppDispatch, RootState } from "app/store"
 import { getSocket } from "app/utils/socket"
 import { useEffect, useState } from "react"
-import { Dialog, Button, Text, XStack, YStack, Avatar, Spinner } from "@my/ui"
+import { Dialog, Button, Text, XStack, YStack, Spinner, UserAvatar } from "@my/ui"
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
 import { Check, Maximize2, PhoneCall, X as XIcon } from "@tamagui/lucide-icons"
@@ -432,11 +432,12 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
           <YStack alignItems="center" space="$4">
             {incomingCall?.room && (
               <YStack alignItems="center" space="$2">
-                <Avatar circular size="$7">
-                  <Avatar.Image
-                    src={incomingCall.room.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(incomingCall.room.roomName)}&background=random`}
-                  />
-                </Avatar>
+                <UserAvatar
+                  id={incomingCall.room.id}
+                  name={incomingCall.room.roomName}
+                  avatarUrl={incomingCall.room.avatarUrl}
+                  size="$7"
+                />
                 <Text fontSize="$6" fontWeight="bold">
                   {incomingCall.room.roomName}
                 </Text>

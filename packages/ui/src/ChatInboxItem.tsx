@@ -1,9 +1,11 @@
-import { Avatar, ListItem, Text, View, YStack, Circle, XStack } from '@my/ui'
+import { ListItem, Text, View, YStack, Circle, XStack } from '@my/ui'
 import { LatestMessage, MessageResponse } from 'app/types/Response'
 import { Pin } from '@tamagui/lucide-icons'
 import { formatLatestMessage } from 'app/utils/chatHelper'
+import { UserAvatar } from './UserAvatar'
 
 type Props = {
+  id?: string
   name: string
   latestMessage?: LatestMessage
   time?: string
@@ -33,6 +35,7 @@ function formatTime(isoString?: string) {
 }
 
 export const ChatInboxItem = ({
+  id,
   name,
   latestMessage,
   time,
@@ -67,9 +70,14 @@ export const ChatInboxItem = ({
       transition="all 0.15s"
       icon={
         <View position="relative">
-          <Avatar circular size="$6" borderWidth={2} borderColor={selected ? '$blue4' : '$color4'}>
-            <Avatar.Image src={avatarUrl} />
-          </Avatar>
+          <UserAvatar
+            name={name}
+            avatarUrl={avatarUrl}
+            id={id ?? name}
+            size="$6"
+            borderWidth={2}
+            borderColor={selected ? '$blue4' : '$color4'}
+          />
           {isOnline && (
             <Circle
               size={13}

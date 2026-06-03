@@ -9,6 +9,7 @@ import {
   ScrollView,
   Spinner,
   Text,
+  UserAvatar,
   View,
   XStack,
   YStack,
@@ -349,26 +350,14 @@ export default function ProfileTabScreen() {
               </Text>
 
               <YStack alignItems="center" space="$2">
-                <View
-                  width={84}
-                  height={84}
-                  borderRadius={999}
+                <UserAvatar
+                  id={userData?.id}
+                  name={userData?.name}
+                  avatarUrl={optimisticAvatarUrl || effectiveAvatarUrl}
+                  size={84}
                   borderWidth={2}
                   borderColor="$borderColor"
-                  overflow="hidden"
-                  backgroundColor="$background"
-                >
-                  <Image
-                    source={{
-                      uri:
-                        optimisticAvatarUrl ||
-                        effectiveAvatarUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
-                    }}
-                    width="100%"
-                    height="100%"
-                  />
-                </View>
+                />
 
                 <Text fontSize="$3" color="$color10" textAlign="center">
                   Bạn có muốn cập nhật avatar không?
@@ -500,20 +489,11 @@ export default function ProfileTabScreen() {
                 overflow="hidden"
                 backgroundColor="$background"
               >
-                <Image
-                  key={
-                    withCacheBuster(effectiveAvatarUrl) ||
-                    effectiveAvatarUrl ||
-                    userData?.avatarUrl ||
-                    'avatar'
-                  }
-                  source={{
-                    uri:
-                      withCacheBuster(effectiveAvatarUrl) ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'User')}&background=random`,
-                  }}
-                  width="100%"
-                  height="100%"
+                <UserAvatar
+                  id={userData?.id}
+                  name={userData?.name}
+                  avatarUrl={withCacheBuster(effectiveAvatarUrl)}
+                  size="$8"
                 />
               </View>
 

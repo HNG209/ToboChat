@@ -65,7 +65,8 @@
           "cameraPermission": "ToboChat cần quyền truy cập Camera để bạn có thể gọi video.",
           "microphonePermission": "ToboChat cần quyền truy cập Micro để bạn có thể trò chuyện."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

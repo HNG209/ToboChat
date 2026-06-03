@@ -69,7 +69,7 @@ export default function RequestPage() {
   return (
     <XStack
       flex={1}
-      padding="$2" // Đổi thành $2 cho đồng bộ với các trang khác
+      padding="$2"
       gap="$2"
       alignItems="stretch"
       {...(isWeb ? { height: '100vh' } : {})}
@@ -80,53 +80,46 @@ export default function RequestPage() {
           title="Lời mời kết bạn"
           subtitle={`${requestsData?.items?.length ?? 0} lời mời`}
           onBackPath="/contacts"
-          actionElement={
-            isWeb ? (
-              // Web: giữ Select như cũ
-              <Select
-                value={requestFilter}
-                onValueChange={(val) => handleFilterChange(val as FriendRequestType)}
-                disablePreventBodyScroll
-              >
-                <Select.Trigger width={180} borderRadius="$4" iconAfter={<ChevronDown size={16} />}>
-                  <Select.Value placeholder="Chọn loại lời mời" />
-                </Select.Trigger>
-                <Select.Content zIndex={200000}>
-                  <Select.Viewport>
-                    <Select.Item index={0} value={FriendRequestType.PENDING}>
-                      <Select.ItemText>Đã nhận</Select.ItemText>
-                    </Select.Item>
-                    <Select.Item index={1} value={FriendRequestType.SENT}>
-                      <Select.ItemText>Đã gửi</Select.ItemText>
-                    </Select.Item>
-                  </Select.Viewport>
-                </Select.Content>
-              </Select>
-            ) : (
-              // Native: toggle gọn để tránh vỡ layout
-              <XStack space="$2">
-                <Button
-                  size="$2"
-                  borderRadius="$4"
-                  themeInverse={requestFilter === FriendRequestType.PENDING}
-                  variant={requestFilter === FriendRequestType.PENDING ? undefined : 'outlined'}
-                  onPress={() => handleFilterChange(FriendRequestType.PENDING)}
-                >
-                  Đã nhận
-                </Button>
-                <Button
-                  size="$2"
-                  borderRadius="$4"
-                  themeInverse={requestFilter === FriendRequestType.SENT}
-                  variant={requestFilter === FriendRequestType.SENT ? undefined : 'outlined'}
-                  onPress={() => handleFilterChange(FriendRequestType.SENT)}
-                >
-                  Đã gửi
-                </Button>
-              </XStack>
-            )
-          }
         />
+
+        <XStack
+          gap="$5"
+          px="$2"
+          borderBottomWidth={1}
+          borderColor="$borderColor"
+        >
+          {[
+            { label: 'Đã nhận', value: FriendRequestType.PENDING },
+            { label: 'Đã gửi', value: FriendRequestType.SENT },
+          ].map((tab) => {
+            const active = requestFilter === tab.value
+
+            return (
+              <YStack
+                key={tab.value}
+                alignItems="center"
+                cursor={isWeb ? 'pointer' : undefined}
+                onPress={() => handleFilterChange(tab.value)}
+              >
+                <Text
+                  fontWeight={active ? '700' : '500'}
+                  color={active ? '$blue10' : '$color10'}
+                >
+                  {tab.label}
+                </Text>
+
+                <YStack
+                  mt="$1"
+                  height={3}
+                  width="100%"
+                  minWidth={50}
+                  borderRadius="$10"
+                  bg={active ? '$blue10' : 'transparent'}
+                />
+              </YStack>
+            )
+          })}
+        </XStack>
 
         {/* NỘI DUNG DANH SÁCH LỜI MỜI */}
         <YStack
