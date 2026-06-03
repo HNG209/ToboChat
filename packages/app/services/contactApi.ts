@@ -24,6 +24,30 @@ export const contactApi = baseApi.injectEndpoints({
         params,
       }),
       providesTags: ['FriendList'],
+
+      serializeQueryArgs: ({ queryArgs, endpointName }) => {
+        const roomId = (queryArgs as GetMyFriendsRequest | void)?.roomId ?? 'all'
+        return `${endpointName}-${roomId}`
+      },
+
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor && currentArg?.cursor !== undefined
+      },
+
+      merge: (currentCache, newData, { arg }) => {
+        if (!arg?.cursor) {
+          return newData
+        }
+
+        if (!currentCache.items) {
+          currentCache.items = []
+        }
+
+        const existingIds = new Set(currentCache.items.map((i) => i.id))
+        const newItems = newData.items.filter((i) => !existingIds.has(i.id))
+        currentCache.items.push(...newItems)
+        currentCache.nextCursor = newData.nextCursor
+      },
     }),
 
     getFriendStatus: builder.query<FriendStatus, { otherId: string }>({
@@ -40,13 +64,33 @@ export const contactApi = baseApi.injectEndpoints({
       query: ({ type, cursor, limit = 10 }) => ({
         url: '/friend-requests',
         method: 'GET',
-        params: {
-          type: type,
-          cursor,
-          limit,
-        },
+        params: { type, cursor, limit },
       }),
       providesTags: ['FriendRequests'],
+
+      serializeQueryArgs: ({ queryArgs, endpointName }) => {
+        const t = (queryArgs as GetMyFriendRequestsRequest | void)?.type ?? 'all'
+        return `${endpointName}-${t}`
+      },
+
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor && currentArg?.cursor !== undefined
+      },
+
+      merge: (currentCache, newData, { arg }) => {
+        if (!arg?.cursor) {
+          return newData
+        }
+
+        if (!currentCache.items) {
+          currentCache.items = []
+        }
+
+        const existingIds = new Set(currentCache.items.map((i) => i.id))
+        const newItems = newData.items.filter((i) => !existingIds.has(i.id))
+        currentCache.items.push(...newItems)
+        currentCache.nextCursor = newData.nextCursor
+      },
     }),
 
     // ===== GỬI LỜI MỜI KẾT BẠN =====

@@ -186,7 +186,6 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
             {isPending && (
               <XStack gap="$2">
                 <Button
-                  {...buttonProps}
                   theme="blue"
                   icon={<Check size={16} />}
                   onPress={() => onAction?.('accept', user.id)}
@@ -194,7 +193,6 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
                   {!media.sm && "Chấp nhận"}
                 </Button>
                 <Button
-                  {...buttonProps}
                   icon={<X size={16} />}
                   onPress={() => onAction?.('reject', user.id)}
                 >
@@ -206,7 +204,6 @@ export function UserCard({ user, description, isGroup, type, requestId, onAction
             {/* Trường hợp: Lời mời ĐÃ GỬI (Sent) */}
             {isSent && (
               <Button
-                {...buttonProps}
                 theme="red"
                 icon={<UserMinus size={16} />}
                 onPress={() => onAction?.('cancel', requestId || user.id)}

@@ -5,16 +5,17 @@ import { Dialog, Button, Text, XStack, YStack, Spinner, UserAvatar } from "@my/u
 import { useDispatch, useSelector } from "react-redux"
 import { VideoCall } from "app/features/call/VideoCall"
 import { Check, Maximize2, PhoneCall, X as XIcon } from "@tamagui/lucide-icons"
-import { CallResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse, UserPresenceResponse } from "app/types/Response"
-import { CallRequest } from "app/types/Request"
+import { CallResponse, FriendRequestResponse, FriendResponse, GroupAcceptRequestResponse, IncomingCallDto, LatestMessage, MessageResponse, RoomMemberResponse, RoomResponse, UserPresenceResponse } from "app/types/Response"
+import { CallRequest, FriendRequestType } from "app/types/Request"
 import { callApi, CallStatus } from "app/services/callApi"
 import { roomApi } from "app/services/roomApi"
 import { userApi } from "app/services/userApi"
-import { RoomStatus, UserPresenceStatus } from "app/types/Enums"
+import { FriendStatus, RoomStatus, UserPresenceStatus } from "app/types/Enums"
 import { RoomUpdateEvent } from "app/types/Events"
 import { useRouter } from "solito/navigation"
 import { Platform } from "react-native"
 import { generateDirectRoomId } from "app/utils/chatHelper"
+import { contactApi } from "app/services/contactApi"
 
 type InboxUpdatedPayload = {
   message: LatestMessage
@@ -252,12 +253,6 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       );
     }
 
-    // const handleMemberUpdated = (data: RoomMemberResponse) => {
-    //   dispatch(
-    //     roomApi.util.updateQueryData('getMyInfo', { roomId: data.roomId }, () => { return data })
-    //   );
-    // }
-
     const handleCallError = (message: string) => {
       setIsAcceptingCall(false);
       console.log("Lỗi tham gia gọi:", message);
@@ -285,6 +280,123 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       );
     }
 
+    const handleNewFriend = (newFriend: FriendResponse) => {
+      // Cập nhật cache rtk-query để thêm bạn mới vào danh sách bạn bè
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendList', undefined, (draft) => {
+          if (draft) {
+            draft.items.unshift(newFriend);
+          }
+        })
+      );
+
+      dispatch(
+        contactApi.util.updateQueryData('getFriendStatus', { otherId: newFriend.id }, (draft) => 'FRIEND' as FriendStatus)
+      );
+    }
+
+    const handleFriendDeleted = (friendId: string) => {
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendList', undefined, (draft) => {
+          if (draft?.items) {
+            const index = draft.items.findIndex((f) => f.id === friendId);
+            if (index !== -1) {
+              draft.items.splice(index, 1);
+            }
+          }
+        })
+      );
+
+      dispatch(
+        contactApi.util.updateQueryData('getFriendStatus', { otherId: friendId }, (draft) => 'STRANGER' as FriendStatus)
+      );
+    }
+
+    const handleFriendRequestCancelled = (data: { otherId: string, type: FriendRequestType }) => {
+      dispatch(
+        contactApi.util.updateQueryData('getFriendStatus', { otherId: data.otherId }, (draft) => 'STRANGER' as FriendStatus)
+      );
+
+      // Xoá khỏi danh sách lời mời
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendRequests', { type: data.type }, (draft) => {
+          if (draft?.items) {
+            const index = draft.items.findIndex((f) => f.id === data.otherId);
+            if (index !== -1) {
+              draft.items.splice(index, 1);
+            }
+          }
+        })
+      );
+    }
+
+    const handleNewFriendRequest = (payload: FriendRequestResponse) => {
+      dispatch(
+        contactApi.util.updateQueryData('getFriendStatus', { otherId: payload.id }, (draft) => 'PENDING' as FriendStatus)
+      );
+
+      dispatch(
+        contactApi.util.updateQueryData('getMyFriendRequests', { type: FriendRequestType.PENDING, cursor: undefined, limit: 10 }, (draft) => {
+          if (!draft) return
+          if (!draft.items) {
+            draft.items = []
+          }
+          const isExisted = draft.items.some((item) => item.id === payload.id)
+          if (!isExisted) {
+            // Nhét Object người gửi lên đầu mảng (unshift) để giao diện xuất hiện thẻ UserCard ngay lập tức
+            draft.items.unshift(payload)
+          }
+        })
+      )
+
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.friendRequestCount = (draft.friendRequestCount || 0) + 1
+        })
+      )
+    }
+
+    const handleFriendRequestResetUnread = () => {
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.friendRequestCount = 0
+        })
+      )
+    }
+
+    const handleGroupRequestUnreadUpdate = (payload: GroupAcceptRequestResponse) => {
+      dispatch(
+        roomApi.util.updateQueryData('getGroupInvites', { cursor: undefined, limit: 20 }, (draft) => {
+          if (!draft) return
+          if (!draft.items) {
+            draft.items = []
+          }
+          const isExisted = draft.items.some((item) => item.roomId === payload.roomId)
+          if (!isExisted) {
+            // Nhét nhóm mới lên đầu mảng để giao diện tự động render thẻ UserCard (Group) ngay lập tức
+            draft.items.unshift(payload)
+          }
+        })
+      )
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.groupRequestCount = (draft.groupRequestCount || 0) + 1
+        })
+      )
+    }
+
+    const handleGroupRequestResetUnread = () => {
+      dispatch(
+        userApi.util.updateQueryData('getProfile', undefined, (draft) => {
+          if (!draft) return
+          draft.groupRequestCount = 0
+        })
+      )
+    }
+
     socket.on('call_accepted', handleCallAccepted);
     socket.on('call_status_updated', handleCallStatusUpdated);
     socket.on('call_joined', handleCallJoined);
@@ -294,11 +406,19 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
     socket.on('unread_updated', handleUnreadUpdate);
     socket.on('inbox_updated', handleInboxUpdated);
     socket.on('room_updated', handleRoomUpdated);
-    // socket.on('member_updated', handleMemberUpdated);
     socket.on('self_removed', handleSelfRemoved);
     socket.on('new_room', handleNewRoom);
     socket.on('pending_inbox_updated', handlePendingInboxUpdated);
     socket.on('user_presence_updated', handleUserPresenceUpdated);
+
+    socket.on('new_friend', handleNewFriend);
+    socket.on('new_friend_request', handleNewFriendRequest);
+    socket.on('friend_request_unread_reset', handleFriendRequestResetUnread);
+    socket.on('friend_deleted', handleFriendDeleted);
+    socket.on('friend_request_cancelled', handleFriendRequestCancelled);
+
+    socket.on('group_request_unread_update', handleGroupRequestUnreadUpdate)
+    socket.on('group_request_unread_reset', handleGroupRequestResetUnread)
     return () => {
       socket.off('call_accepted', handleCallAccepted);
       socket.off('call_status_updated', handleCallStatusUpdated);
@@ -309,11 +429,19 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
       socket.off('unread_updated', handleUnreadUpdate);
       socket.off('inbox_updated', handleInboxUpdated);
       socket.off('room_updated', handleRoomUpdated);
-      // socket.off('member_updated', handleMemberUpdated);
       socket.off('self_removed', handleSelfRemoved);
       socket.off('new_room', handleNewRoom);
       socket.off('pending_inbox_updated', handlePendingInboxUpdated);
       socket.off('user_presence_updated', handleUserPresenceUpdated);
+
+      socket.off('new_friend', handleNewFriend);
+      socket.off('new_friend_request', handleNewFriendRequest);
+      socket.off('friend_request_unread_reset', handleFriendRequestResetUnread);
+      socket.off('friend_deleted', handleFriendDeleted);
+      socket.off('friend_request_cancelled', handleFriendRequestCancelled);
+
+      socket.off('group_request_unread_update', handleGroupRequestUnreadUpdate);
+      socket.off('group_request_unread_reset', handleGroupRequestResetUnread);
     }
   }, [activeRoomId, isSocketReady, dispatch])
 
