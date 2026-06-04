@@ -122,7 +122,7 @@ export function TransferAdminDialog({
           zIndex={2}
         />
 
-        <Dialog.Title fontSize="$7" fontWeight="bold" letterSpacing={0.15} mb="$2">
+        <Dialog.Title fontSize="$8" fontWeight="bold" letterSpacing={0.15} mb="$2">
           Nhường quyền Trưởng nhóm
         </Dialog.Title>
 

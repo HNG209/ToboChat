@@ -155,7 +155,7 @@ export function UserProfileDialog({
             borderColor="$borderColor"
           >
             <Dialog.Title asChild unstyled>
-              <Text fontSize="$5" fontWeight="700" color="$color">
+              <Text fontSize="$8" fontWeight="bold" letterSpacing={0.15} color="$color">
                 Thông tin tài khoản
               </Text>
             </Dialog.Title>

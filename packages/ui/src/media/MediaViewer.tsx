@@ -151,7 +151,7 @@ export const MediaViewer = ({ visible, mediaList, activeIndex, onClose, onNext, 
             maxHeight="100vh"
           >
             <VisuallyHidden>
-              <Dialog.Title>Viewer</Dialog.Title>
+              <Dialog.Title fontSize="$8" fontWeight="bold" letterSpacing={0.15}>Viewer</Dialog.Title>
             </VisuallyHidden>
             {MainViewerContent}
           </Dialog.Content>
