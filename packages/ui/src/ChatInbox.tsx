@@ -47,69 +47,6 @@ export default function ChatInbox() {
     }
   )
 
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout
-
-    const checkSocket = () => {
-      const socket = getSocket()
-
-      if (socket) {
-        setIsSocketReady(true)
-      } else {
-        timeoutId = setTimeout(checkSocket, 200)
-      }
-    }
-
-    checkSocket()
-
-    return () => clearTimeout(timeoutId)
-  }, [])
-
-  useEffect(() => {
-    if (!isSocketReady) return
-
-    const socket = getSocket()
-    if (!socket) return
-
-    const handleGroupDisband = (roomId: string) => {
-      dispatch(
-        roomApi.util.updateQueryData(
-          'getJoinedRooms',
-          { status: 'ACTIVE' },
-          (draft) => {
-            const index = draft.items?.findIndex((room) => room.id === roomId)
-
-            if (index !== undefined && index !== -1) {
-              draft.items.splice(index, 1)
-            }
-          }
-        )
-      )
-    }
-
-    const handleNewMember = (member: RoomMemberResponse) => {
-      dispatch(
-        roomApi.util.updateQueryData(
-          'getRoomMembers',
-          { roomId: member.roomId },
-          (draft) => {
-            if (draft) {
-              draft.items.unshift(member)
-            }
-          }
-        )
-      )
-    }
-
-    socket.on('room_disband', handleGroupDisband)
-    socket.on('new_member', handleNewMember)
-
-    return () => {
-      socket.off('room_disband', handleGroupDisband)
-      socket.off('new_member', handleNewMember)
-    }
-  }, [dispatch, isSocketReady])
-
   const handleRoomPress = (roomId: string) => {
     router.push(`/chat/${roomId}`)
   }

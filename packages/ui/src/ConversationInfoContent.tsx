@@ -407,23 +407,26 @@ export const ConversationInfoContent = ({
                   cursor: "pointer"
                 }}
                 pressTheme
-                title="Thành viên nhóm"
+                title={`Thành viên nhóm (${roomData?.memberCount || 0})`}
                 iconAfter={ChevronRight}
                 borderRadius="$4"
                 onPress={onViewMembers}
               />
-              <ListItem
-                backgroundColor="transparent"
-                hoverStyle={{
-                  backgroundColor: "$blue2",
-                  cursor: "pointer"
-                }}
-                pressTheme
-                title="Duyệt thành viên"
-                iconAfter={ChevronRight}
-                borderRadius="$4"
-                onPress={onApproveMembers}
-              />
+
+              {myInfo?.permissions?.canApproveMember && (
+                <ListItem
+                  backgroundColor="transparent"
+                  hoverStyle={{
+                    backgroundColor: "$blue2",
+                    cursor: "pointer"
+                  }}
+                  pressTheme
+                  title={`Duyệt thành viên (${roomData?.pendingCount || 0})`}
+                  iconAfter={ChevronRight}
+                  borderRadius="$4"
+                  onPress={onApproveMembers}
+                />
+              )}
             </>
           )}
 
