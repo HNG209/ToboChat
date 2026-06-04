@@ -299,6 +299,7 @@ export function MessageItem({
                 <MediaGrid
                   media={media}
                   onPressMedia={(index) => onOpenMedia(media, index)}
+                  onLongPress={isRevoked ? undefined : () => menuTriggerRef.current?.()}
                 />
                 {msg.content ? (
                   <Pressable

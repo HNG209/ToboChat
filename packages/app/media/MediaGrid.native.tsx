@@ -1,5 +1,5 @@
 import React from 'react'
-import { Image } from 'react-native'
+import { Image, Pressable } from 'react-native'
 import { YStack, XStack, Text, ZStack } from 'tamagui'
 import { Play } from '@tamagui/lucide-icons'
 import { Video, ResizeMode } from 'expo-av'
@@ -7,9 +7,11 @@ import { Video, ResizeMode } from 'expo-av'
 export const MediaGrid = ({
   media,
   onPressMedia,
+  onLongPress,
 }: {
   media: any[]
   onPressMedia: (index: number) => void
+  onLongPress?: () => void
 }) => {
   if (!media || media.length === 0) return null
 
@@ -31,31 +33,36 @@ export const MediaGrid = ({
     const item = media[0]
     const isVideo = item.contentType?.startsWith('video/')
     return (
-      <YStack
-        width={300}
-        height={200}
-        backgroundColor="$color5"
+      <Pressable
         onPress={() => onPressMedia(0)}
-        borderRadius={8}
-        overflow="hidden"
+        onLongPress={onLongPress}
+        delayLongPress={250}
       >
-        <ZStack fullscreen>
-          {isVideo ? (
-            <>
-              {renderVideoItem(item.fileUrl, false)}
-              <YStack fullscreen alignItems="center" justifyContent="center">
-                <Play size={40} color="white" />
-              </YStack>
-            </>
-          ) : (
-            <Image
-              source={{ uri: item.fileUrl }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-            />
-          )}
-        </ZStack>
-      </YStack>
+        <YStack
+          width={300}
+          height={200}
+          backgroundColor="$color5"
+          borderRadius={8}
+          overflow="hidden"
+        >
+          <ZStack fullscreen pointerEvents="none">
+            {isVideo ? (
+              <>
+                {renderVideoItem(item.fileUrl, false)}
+                <YStack fullscreen alignItems="center" justifyContent="center">
+                  <Play size={40} color="white" />
+                </YStack>
+              </>
+            ) : (
+              <Image
+                source={{ uri: item.fileUrl }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            )}
+          </ZStack>
+        </YStack>
+      </Pressable>
     )
   }
 
@@ -66,31 +73,37 @@ export const MediaGrid = ({
         const isLastItem = idx === displayLimit - 1 && remainingCount > 0
 
         return (
-          <YStack
+          <Pressable
             key={item.fileUrl || idx}
-            width="50%"
-            height={150}
-            borderWidth={0.5}
-            borderColor="$background"
-            position="relative"
             onPress={() => onPressMedia(idx)}
+            onLongPress={onLongPress}
+            delayLongPress={250}
+            style={{ width: '50%', height: 150 }}
           >
-            <ZStack fullscreen>
-              {isVideo ? (
-                <YStack fullscreen backgroundColor="black" alignItems="center" justifyContent="center">
-                  {renderVideoItem(item.fileUrl, true)}
-                  <Play size={30} color="white" position="absolute" style={{ zIndex: 5 }} />
-                </YStack>
-              ) : (
-                <Image source={{ uri: item.fileUrl }} style={{ width: '100%', height: '100%' }} />
-              )}
-              {isLastItem && (
-                <YStack fullscreen backgroundColor="rgba(0,0,0,0.6)" alignItems="center" justifyContent="center" zIndex={10}>
-                  <Text color="white" fontWeight="bold" fontSize="$6">+{remainingCount}</Text>
-                </YStack>
-              )}
-            </ZStack>
-          </YStack>
+            <YStack
+              width="100%"
+              height="100%"
+              borderWidth={0.5}
+              borderColor="$background"
+              position="relative"
+            >
+              <ZStack fullscreen pointerEvents="none">
+                {isVideo ? (
+                  <YStack fullscreen backgroundColor="black" alignItems="center" justifyContent="center">
+                    {renderVideoItem(item.fileUrl, true)}
+                    <Play size={30} color="white" position="absolute" style={{ zIndex: 5 }} />
+                  </YStack>
+                ) : (
+                  <Image source={{ uri: item.fileUrl }} style={{ width: '100%', height: '100%' }} />
+                )}
+                {isLastItem && (
+                  <YStack fullscreen backgroundColor="rgba(0,0,0,0.6)" alignItems="center" justifyContent="center" zIndex={10}>
+                    <Text color="white" fontWeight="bold" fontSize="$6">+{remainingCount}</Text>
+                  </YStack>
+                )}
+              </ZStack>
+            </YStack>
+          </Pressable>
         )
       })}
     </XStack>

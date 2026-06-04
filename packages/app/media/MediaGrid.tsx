@@ -9,6 +9,7 @@ export const MediaGrid = ({
 }: {
   media: any[]
   onPressMedia: (index: number) => void
+  onLongPress?: () => void
 }) => {
   if (!media || media.length === 0) return null
 

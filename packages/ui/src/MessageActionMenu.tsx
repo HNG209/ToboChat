@@ -180,7 +180,12 @@ export function MessageActionMenu({
             >
               {view === 'main' ? (
                 <YStack paddingVertical="$1">
-                  <MessageReactions message={message} roomId={roomId} />
+                  <MessageReactions
+                    message={message}
+                    roomId={roomId}
+                    showBadge={false}
+                    onSelectComplete={() => setOpen(false)}
+                  />
                   <Separator marginVertical="$2" />
                   <XStack flexWrap="wrap">
                     <Tile title="Sao chép" icon={<Copy size={18} color="#3b82f6" />} onPress={() => onCopy(message)} />
@@ -231,8 +236,13 @@ export function MessageActionMenu({
           pointerEvents="box-none"
         >
           {/* Thêm một lớp bọc children và cũng cho nó box-none */}
-          <YStack width="100%" pointerEvents="box-none" alignItems={isMe ? 'flex-end' : 'flex-start'}>
+          <YStack pointerEvents="box-none" position="relative" alignItems={isMe ? 'flex-end' : 'flex-start'}>
             {children}
+            <MessageReactions
+              message={message}
+              roomId={roomId}
+              showPicker={false}
+            />
           </YStack>
 
           {/* Lớp xử lý chọn nhiều (Selection Mode) */}

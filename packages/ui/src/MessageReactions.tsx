@@ -19,11 +19,21 @@ const REACTION_OPTIONS = [
 interface Props {
   message: MessageResponse
   roomId: string
-  isGroupEnd: boolean
+  isGroupEnd?: boolean
   opacity?: number
+  showBadge?: boolean
+  showPicker?: boolean
+  onSelectComplete?: () => void
 }
 
-export function MessageReactions({ message, roomId, opacity }: Props) {
+export function MessageReactions({
+  message,
+  roomId,
+  opacity,
+  showBadge = true,
+  showPicker = true,
+  onSelectComplete,
+}: Props) {
   const dispatch = useDispatch<AppDispatch>()
   const [addReaction] = useAddReactionMutation()
   const shouldShow = message.messageType === 'USER'
@@ -38,6 +48,7 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
 
     if (hasAlreadyReacted) {
       console.log('Bạn đã thả reaction này rồi!');
+      onSelectComplete?.();
       return;
     }
 
@@ -58,6 +69,8 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
         }
       })
     );
+
+    onSelectComplete?.();
 
     try {
       await addReaction({ roomId, messageId: message.id, reactionType }).unwrap();
@@ -84,10 +97,10 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
   const summary = message.reactionsSummary || {}
   const activeTypes = Object.keys(summary).filter(type => summary[type] > 0)
 
-  const ReactionBadge = activeTypes.length > 0 && (
+  const ReactionBadge = showBadge && activeTypes.length > 0 && (
     <XStack
       position="absolute"
-      bottom={-23}
+      bottom={0}
       right={1}
       p="$1"
       backgroundColor="white"
@@ -107,7 +120,7 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
         {activeTypes.slice(0, 3).map((type) => {
           const option = REACTION_OPTIONS.find(opt => opt.type === type);
           return (
-            <Text key={type} fontSize={13}>
+            <Text key={type} fontSize={10}>
               {option ? option.emoji : '👍'}
             </Text>
           );
@@ -123,7 +136,12 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
     return (
       <>
         {ReactionBadge}
-        {EmojiList}
+        <ReactionDetailModal
+          summary={summary}
+          open={showDetail}
+          onOpenChange={setShowDetail}
+        />
+        {showPicker && EmojiList}
       </>
     )
   }
@@ -137,7 +155,7 @@ export function MessageReactions({ message, roomId, opacity }: Props) {
         open={showDetail}
         onOpenChange={setShowDetail}
       />
-      {shouldShow && (
+      {showPicker && shouldShow && (
         <Popover size="$2" allowFlip placement="top" >
           <Popover.Trigger asChild>
             <Button
