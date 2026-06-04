@@ -608,11 +608,59 @@ export function ChatScreen({ roomId, insets }: Props) {
       })
     }
 
+    const handleNewMember = (member: RoomMemberResponse) => {
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId }, (draft) => {
+          if (draft) {
+            draft.memberCount = (draft.memberCount || 0) + 1
+          }
+        })
+      )
+
+      dispatch(
+        roomApi.util.updateQueryData(
+          'getRoomMembers',
+          { roomId: member.roomId },
+          (draft) => {
+            if (draft) {
+              draft.items.unshift(member)
+            }
+          }
+        )
+      )
+    }
+
     const handleMemberRemoved = async (memberId: string) => {
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId }, (draft) => {
+          if (draft) {
+            draft.memberCount = Math.max(0, (draft.memberCount || 0) - 1);
+          }
+        })
+      );
+
       dispatch(
         roomApi.util.updateQueryData('getRoomMembers', { roomId }, (draft) => {
           if (draft?.items) {
             draft.items = draft.items.filter((i: any) => i.member.id !== memberId);
+          }
+        })
+      );
+    }
+
+    const handlePendingRemoved = (data: { roomId: string, targetUserId: string }) => {
+      dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId: data.roomId }, (draft) => {
+          if (draft) {
+            draft.pendingCount = Math.max(0, (draft.pendingCount || 0) - 1);
+          }
+        })
+      );
+
+      dispatch(
+        roomApi.util.updateQueryData('getPendingRequests', { roomId: data.roomId }, (draft) => {
+          if (draft?.items) {
+            draft.items = draft.items.filter(i => i.user.id !== data.targetUserId);
           }
         })
       );
@@ -652,8 +700,6 @@ export function ChatScreen({ roomId, insets }: Props) {
     }
 
     const handleReactionAdded = (data: MessageReactionPayload) => {
-      console.log('Received reaction_added event:', data)
-
       dispatch(
         chatApi.util.updateQueryData('getMessages', { roomId }, (draft) => {
           const msg = draft.items?.find((m) => m.id === data.messageId)
@@ -692,22 +738,44 @@ export function ChatScreen({ roomId, insets }: Props) {
       )
     }
 
+    const handleGroupDisband = (roomId: string) => {
+      dispatch(
+        roomApi.util.updateQueryData(
+          'getJoinedRooms',
+          { status: 'ACTIVE' },
+          (draft) => {
+            const index = draft.items?.findIndex((room) => room.id === roomId)
+
+            if (index !== undefined && index !== -1) {
+              draft.items.splice(index, 1)
+            }
+          }
+        )
+      )
+    }
+
     socket.on('poll_updated', handlePollUpdated)
     socket.on('member_removed', handleMemberRemoved)
+    socket.on('new_member', handleNewMember)
     socket.on('member_updated', handleMemberUpdated)
     socket.on('delete_message', handleMessageDeleted)
     socket.on('receive_message', handleReceiveMessage)
     socket.on('message_revoked', handleMessageRevoked)
     socket.on('reaction_added', handleReactionAdded)
+    socket.on('room_disband', handleGroupDisband)
+    socket.on('pending_removed', handlePendingRemoved)
     return () => {
       socket.emit('leave_room', roomId)
       socket.off('poll_updated', handlePollUpdated)
       socket.off('member_removed', handleMemberRemoved)
+      socket.off('new_member', handleNewMember)
       socket.off('member_updated', handleMemberUpdated)
       socket.off('delete_message', handleMessageDeleted)
       socket.off('receive_message', handleReceiveMessage)
       socket.off('message_revoked', handleMessageRevoked)
       socket.off('reaction_added', handleReactionAdded)
+      socket.off('room_disband', handleGroupDisband)
+      socket.off('pending_removed', handlePendingRemoved)
     }
   }, [roomId, isSocketReady, dispatch])
 

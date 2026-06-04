@@ -437,6 +437,14 @@ export const SocketEventProvider = ({ children }: { children: React.ReactNode })
 
     const handleNewPendingRequest = (data: GroupPendingRequestResponse) => {
       dispatch(
+        roomApi.util.updateQueryData('getRoomMetadata', { roomId: data.roomId }, (draft) => {
+          if (draft) {
+            draft.pendingCount = (draft.pendingCount || 0) + 1
+          }
+        })
+      );
+
+      dispatch(
         roomApi.util.updateQueryData('getPendingRequests', { roomId: data.roomId }, (draft) => {
           if (!draft) return
           if (!draft.items) {
