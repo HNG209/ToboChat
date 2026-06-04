@@ -53,7 +53,7 @@ function PollWidget({ msg, roomId }: { msg: MessageResponse; roomId: string }) {
       p="$4"
       width="100%"
       minWidth={300}
-      maxWidth={450}
+      maxWidth="100%"
       alignSelf="center"
       marginVertical="$2"
       bg="$background"
