@@ -175,19 +175,24 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
             return (
               <YStack key={opt.id} space="$1">
                 <Button
-                  p={0} height={48} bg="transparent" borderWidth={1}
+                  p={0}
+                  bg="transparent"
+                  borderWidth={1}
                   borderColor={isVotedByMe ? '$blue8' : '$borderColor'}
-                  borderRadius="$3" overflow="hidden"
+                  borderRadius="$3"
+                  overflow="hidden"
                   onPress={() => handleOptionClick(opt.id)}
                   pointerEvents={mode === 'PREVIEW' ? 'none' : 'auto'}
                 >
-                  <ZStack fullscreen>
+                  <ZStack width="100%" minHeight={48}>
                     <YStack height="100%" width={`${percentage}%`} bg={isVotedByMe ? '$blue4' : '$color3'} animation="quick" />
 
-                    <XStack fullscreen px="$3" alignItems="center" justifyContent="space-between">
+                    <XStack width="100%"
+                      minHeight={48}
+                      py="$2" px="$3" alignItems="center" justifyContent="space-between">
                       <XStack alignItems="center" space="$2" flex={1}>
                         {isVotedByMe && <CheckCircle2 size={18} color="$blue10" />}
-                        <Text fontWeight={isVotedByMe ? 'bold' : 'normal'} color={isVotedByMe ? '$blue11' : '$color11'} numberOfLines={1} flex={1}>
+                        <Text fontWeight={isVotedByMe ? 'bold' : 'normal'} color={isVotedByMe ? '$blue11' : '$color11'} flex={1} flexShrink={1} flexWrap="wrap">
                           {opt.text}
                         </Text>
                       </XStack>
@@ -232,7 +237,7 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
         </XStack>
 
         <CreatePollSheet isOpen={isEditOpen} onOpenChange={setIsEditOpen} roomId={roomId} initialPoll={msg} />
-      </YStack>
+      </YStack >
     )
   }
 )

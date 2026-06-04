@@ -47,7 +47,7 @@ export function ReactionDetailModal({ summary, open, onOpenChange }: ReactionDet
         >
           <XStack justifyContent="space-between" alignItems="center">
             <Dialog.Title asChild unstyled>
-              <Text fontSize={18} color="$color" >
+              <Text fontSize="$8" fontWeight="bold" letterSpacing={0.15} color="$color" >
                 Biểu cảm
               </Text>
             </Dialog.Title>

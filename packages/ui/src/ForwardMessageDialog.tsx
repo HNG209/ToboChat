@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pressable } from 'react-native'
+import { Platform, Pressable } from 'react-native'
 import { Button, Dialog, Separator, Text, XStack, YStack, Circle, Spinner } from '@my/ui'
 import { Check, SendHorizontal, X } from '@tamagui/lucide-icons'
 import { RoomType } from 'app/types/Enums'
@@ -62,6 +62,7 @@ export function ForwardMessageDialog({
   const selectedCount = selectedRoomIds.size
   const previewMessages = messages.slice(0, 3)
   const hasMoreMessages = messages.length > previewMessages.length
+  const isWeb = Platform.OS === 'web'
 
   const toggleRoom = (roomId: string) => {
     setSelectedRoomIds((prev) => {
@@ -108,6 +109,7 @@ export function ForwardMessageDialog({
             enterStyle={{ opacity: 0 }}
             exitStyle={{ opacity: 0 }}
             backgroundColor="#000"
+
           />
         </Dialog.Close>
 
@@ -121,6 +123,7 @@ export function ForwardMessageDialog({
           padding="$4"
           width="92%"
           maxWidth={560}
+          maxHeight={isWeb ? undefined : '88%'}
           backgroundColor="$background"
         >
           <XStack alignItems="center" justifyContent="space-between" gap="$3">
@@ -149,7 +152,7 @@ export function ForwardMessageDialog({
             </Button>
           </XStack>
 
-          <YStack maxHeight={340}>
+          <YStack width="100%" minHeight={340} alignSelf="stretch" >
             <StyledFlatList<RoomResponse>
               data={availableRooms}
               keyExtractor={room => room.id}
@@ -157,8 +160,10 @@ export function ForwardMessageDialog({
                 const selected = selectedRoomIds.has(room.id)
                 const initials = room.roomName.trim().slice(0, 2).toUpperCase() || 'PH'
                 return (
-                  <Pressable key={room.id} onPress={() => toggleRoom(room.id)}>
+                  <Pressable key={room.id} onPress={() => toggleRoom(room.id)} style={{ width: '100%' }}>
                     <XStack
+                      width="100%"
+                      minWidth={0}
                       alignItems="center"
                       justifyContent="space-between"
                       padding="$3"
@@ -168,14 +173,14 @@ export function ForwardMessageDialog({
                       backgroundColor={selected ? '$blue2' : '$background'}
                       marginBottom="$2"
                     >
-                      <XStack alignItems="center" space="$3" flex={1}>
+                      <XStack alignItems="center" space="$3" flex={1} minWidth={0}>
                         <UserAvatar
                           id={room.id}
                           name={room.roomName}
                           avatarUrl={room.avatarUrl}
                           size="$4"
                         />
-                        <YStack flex={1}>
+                        <YStack flex={1} minWidth={0}>
                           <Text fontSize="$4" fontWeight="700" numberOfLines={1}>
                             {room.roomName}
                           </Text>
@@ -187,6 +192,7 @@ export function ForwardMessageDialog({
                       {selected ? (
                         <Circle
                           size={22}
+                          flexShrink={0}
                           backgroundColor="$blue10"
                           alignItems="center"
                           justifyContent="center"
@@ -196,6 +202,7 @@ export function ForwardMessageDialog({
                       ) : (
                         <Circle
                           size={22}
+                          flexShrink={0}
                           borderWidth={1}
                           borderColor="$borderColor"
                           backgroundColor="$background"
@@ -233,7 +240,7 @@ export function ForwardMessageDialog({
               onEndReached={handleFetchMore}
               onEndReachedThreshold={0.5}
               ListFooterComponent={isFetchingMore ? <Spinner size="small" color="$blue10" /> : null}
-              style={{ maxHeight: 340 }}
+              style={{ width: '100%', maxHeight: 340, alignSelf: 'stretch' }}
             />
           </YStack>
 

@@ -53,13 +53,13 @@ export const PollDetailDialog = ({ isOpen, pollId, msg, onOpenChange, roomId }: 
           onEscapeKeyDown={(e) => e.preventDefault()}
           bordered elevate key="content" animation="quick"
           enterStyle={{ opacity: 0, scale: 0.98, y: -10 }} exitStyle={{ opacity: 0, scale: 0.98, y: -10 }}
-          width={400} height="auto" padding={0} borderRadius="$4" backgroundColor="$background" overflow="hidden"
+          width="90%" height="auto" padding={0} borderRadius="$4" backgroundColor="$background" overflow="hidden"
         >
           <XStack padding="$2" alignItems="center" justifyContent="space-between" borderBottomWidth={1} borderColor="$borderColor">
-            <Dialog.Title fontWeight="bold" letterSpacing={0.15}>
+            <Dialog.Title fontSize="$8" fontWeight="bold" letterSpacing={0.15}>
               <XStack alignItems="center" space="$2">
                 <Circle size={28} bg="$blue3"><BarChart2 size={16} color="$blue10" /></Circle>
-                <Text fontSize="$2" color="$color11" fontWeight="600">Chi tiết bình chọn</Text>
+                <Text fontSize="$8" color="$color11" fontWeight="bold" letterSpacing={0.15}>Chi tiết bình chọn</Text>
               </XStack>
             </Dialog.Title>
             <Dialog.Close asChild>

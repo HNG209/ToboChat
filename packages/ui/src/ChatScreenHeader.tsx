@@ -6,7 +6,7 @@ import { useGetCallStatusQuery } from "app/services/callApi"
 import { getSocket } from "app/utils/socket"
 import { formatLastSeen } from 'app/utils/chatHelper'
 import { UserAvatar } from './UserAvatar'
-
+import { Platform } from 'react-native'
 type Props = {
   roomId: string
   roomData: RoomResponse | undefined,
@@ -44,7 +44,7 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
     <XStack
       alignItems="center"
       justifyContent="space-between"
-      p="$3"
+      p="$2"
       pt={insets?.top}
       borderColor="$borderColor"
       borderWidth={1}
@@ -54,7 +54,7 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
       bg="$color1"
       elevation="$2"
     >
-      <XStack alignItems="center" space="$3" flex={1} minWidth={0}>
+      <XStack alignItems="center" space="$2" flex={1} minWidth={0}>
         <Button size="$3" circular chromeless icon={ChevronLeft} {...linkProps} />
         <XStack alignItems="center" space="$2" flex={1} minWidth={0}>
           <XStack marginRight="$2">
@@ -93,13 +93,15 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
         </XStack>
       </XStack>
 
-      <XStack space="$1" justifyContent="center" alignItems="center">
+      <XStack justifyContent="center" alignItems="center">
         {callStatusData === 'IN_CALL' ? (
           <XStack alignItems="center" space="$2" px="$2">
             <Phone color="#22c55e" size={16} />
-            <Text fontSize="$2" color="$green10" fontWeight="600">
-              Đang trong cuộc gọi
-            </Text>
+            {Platform.OS === 'web' ? (
+              <Text fontSize="$2" color="$green10" fontWeight="600">
+                Đang trong cuộc gọi
+              </Text>
+            ) : null}
           </XStack>
         ) : isGroup ? (
           callStatusData === 'ACTIVE' ? (
@@ -117,8 +119,8 @@ export const ChatScreenHeader = ({ roomId, roomData, isRoomLoading, insets, link
             </Button>
           ) : (
             <>
-              <Button size="$5" circular chromeless icon={Phone} onPress={() => handleStartCall(false)} />
-              <Button size="$5" circular chromeless icon={Video} onPress={() => handleStartCall(true)} />
+              <Button size="$4" circular chromeless icon={Phone} onPress={() => handleStartCall(false)} />
+              <Button size="$4" circular chromeless icon={Video} onPress={() => handleStartCall(true)} />
             </>
           )
         ) : (

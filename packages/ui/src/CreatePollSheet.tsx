@@ -267,6 +267,7 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                     <XStack space="$2" alignItems="center">
                       <Input
                         flex={1}
+                        multiline
                         placeholder="VD: Gợi ý món ăn trưa..."
                         value={aiPrompt}
                         onChangeText={setAiPrompt}
@@ -325,6 +326,7 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                     onChangeText={setQuestion}
                     size="$4"
                     borderRadius="$3"
+                    multiline
                   />
                 </YStack>
 
@@ -339,6 +341,7 @@ export const CreatePollSheet = ({ isOpen, roomId, initialPoll, onOpenChange }: P
                         onChangeText={(text) => handleChangeOption(text, index)}
                         size="$4"
                         borderRadius="$3"
+                        multiline
                       />
                       {options.length > 2 && (
                         <Button
