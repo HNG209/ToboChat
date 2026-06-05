@@ -96,11 +96,12 @@ export function MessageReactions({
   )
   const summary = message.reactionsSummary || {}
   const activeTypes = Object.keys(summary).filter(type => summary[type] > 0)
+  const isWeb = Platform.OS === 'web'
 
   const ReactionBadge = showBadge && activeTypes.length > 0 && (
     <XStack
       position="absolute"
-      bottom={0}
+      bottom={isWeb ? -20 : 0}
       right={1}
       p="$1"
       backgroundColor="white"
@@ -120,7 +121,7 @@ export function MessageReactions({
         {activeTypes.slice(0, 3).map((type) => {
           const option = REACTION_OPTIONS.find(opt => opt.type === type);
           return (
-            <Text key={type} fontSize={10}>
+            <Text key={type} fontSize={isWeb ? 13 : 10}>
               {option ? option.emoji : '👍'}
             </Text>
           );

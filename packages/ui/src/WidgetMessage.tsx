@@ -6,6 +6,7 @@ import { getSocket } from 'app/utils/socket'
 import { PollDetail } from './PollDetail'
 import { PollDetailDialog } from './PollDetailDialog'
 import { useState } from 'react'
+import { Platform } from 'react-native'
 
 interface WidgetMessageProps {
   msg: MessageResponse
@@ -47,13 +48,14 @@ function PollWidget({ msg, roomId }: { msg: MessageResponse; roomId: string }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { data: myProfile } = useGetProfileQuery();
   const currentUserId = myProfile?.id;
+  const isWeb = Platform.OS === 'web'
 
   return (
     <YStack
       p="$4"
       width="100%"
       minWidth={300}
-      maxWidth="100%"
+      maxWidth={isWeb ? 450 : "100%"}
       alignSelf="center"
       marginVertical="$2"
       bg="$background"
@@ -62,8 +64,25 @@ function PollWidget({ msg, roomId }: { msg: MessageResponse; roomId: string }) {
       borderColor="$borderColor"
     >
       <PollDetail msg={msg} roomId={roomId} mode="PREVIEW" currentUserId={currentUserId} />
-      <Button marginBottom="$2" onPress={() => setIsDetailOpen(true)} backgroundColor="$blue10" variant="outlined" chromeless>
-        <Text color="white">Bình chọn</Text>
+      <Button
+        backgroundColor="$blue10"
+        hoverStyle={{
+          backgroundColor: '$background',
+        }}
+        pressStyle={{
+          backgroundColor: '$blue2',
+        }}
+        onPress={() => setIsDetailOpen(true)}
+      >
+        <Button.Text
+          color="white"
+          hoverStyle={{
+            color: '$blue10',
+          }}
+
+        >
+          Bình chọn
+        </Button.Text>
       </Button>
 
       <PollDetailDialog

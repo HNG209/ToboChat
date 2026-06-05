@@ -1,5 +1,10 @@
 {
   "android": {
     "package": "com.konnatachai.myapp"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "245d5441-f68e-4be4-a7fb-bbd9eae76bba"
+    }
   }
 }

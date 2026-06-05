@@ -144,25 +144,34 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
 
     return (
       <YStack space="$3" width="100%">
-        <XStack alignItems="center" justifyContent="space-between">
-          {mode === 'PREVIEW' && (
-            <XStack alignItems="center" space="$2">
-              <Circle size={28} bg="$blue3">
-                <BarChart2 size={16} color="$blue10" />
-              </Circle>
-              <Text fontSize="$2" color="$color11" fontWeight="600">
-                Cuộc bình chọn
-              </Text>
-            </XStack>
-          )}
 
-          {(mode === 'PREVIEW' && canAddOption) && (
-            <Button size="$2" circular chromeless icon={<Edit3 size={16} color="$color10" />} onPress={() => setIsEditOpen(true)} />
-          )}
-        </XStack>
 
-        <Text fontWeight="bold" fontSize="$6" color="$color12">{question}</Text>
+        <YStack space="$1">
+          <XStack alignItems="center" justifyContent="space-between">
+            {mode === 'PREVIEW' && (
+              <XStack alignItems="center" space="$2">
+                <Circle size={28} bg="$blue3">
+                  <BarChart2 size={16} color="$blue10" />
+                </Circle>
+                <Text fontSize="$2" color="$color11" fontWeight="600">
+                  Cuộc bình chọn
+                </Text>
+              </XStack>
+            )}
 
+            {(mode === 'PREVIEW' && canAddOption) && (
+              <Button size="$2" circular chromeless icon={<Edit3 size={16} color="$color10" />} onPress={() => setIsEditOpen(true)} />
+            )}
+          </XStack>
+
+          <Text
+            fontWeight="bold"
+            fontSize="$6"
+            color="$color12"
+          >
+            {question}
+          </Text>
+        </YStack>
         <YStack space="$2">
           {renderedOptions.map((opt: any) => {
             const votesCount = opt.votedUserIds.length
@@ -174,8 +183,14 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
 
             return (
               <YStack key={opt.id} space="$1">
+
                 <Button
-                  p={0}
+                  unstyled
+                  width="100%"
+                  minHeight={48}
+                  height="auto"
+                  px="$3"
+                  py="$2.5"
                   bg="transparent"
                   borderWidth={1}
                   borderColor={isVotedByMe ? '$blue8' : '$borderColor'}
@@ -184,47 +199,68 @@ export const PollDetail = forwardRef<PollDetailRef, PollDetailProps>(
                   onPress={() => handleOptionClick(opt.id)}
                   pointerEvents={mode === 'PREVIEW' ? 'none' : 'auto'}
                 >
-                  <ZStack width="100%" minHeight={48}>
-                    <YStack height="100%" width={`${percentage}%`} bg={isVotedByMe ? '$blue4' : '$color3'} animation="quick" />
+                  <YStack
+                    position="absolute"
+                    left={0}
+                    top={0}
+                    bottom={0}
+                    width={`${percentage}%`}
+                    bg={isVotedByMe ? '$blue4' : '$color3'}
+                  />
 
-                    <XStack width="100%"
-                      minHeight={48}
-                      py="$2" px="$3" alignItems="center" justifyContent="space-between">
-                      <XStack alignItems="center" space="$2" flex={1}>
-                        {isVotedByMe && <CheckCircle2 size={18} color="$blue10" />}
-                        <Text fontWeight={isVotedByMe ? 'bold' : 'normal'} color={isVotedByMe ? '$blue11' : '$color11'} flex={1} flexShrink={1} flexWrap="wrap">
-                          {opt.text}
-                        </Text>
-                      </XStack>
+                  <XStack
+                    width="100%"
+                    minWidth={0}
+                    alignItems="flex-start"
+                    justifyContent="space-between"
+                    gap="$2"
+                    zIndex={1}
+                  >
+                    <XStack flex={1} minWidth={0} alignItems="flex-start" gap="$2">
+                      {isVotedByMe && (
+                        <CheckCircle2 size={18} color="$blue10" style={{ marginTop: 2 }} />
+                      )}
 
-                      <XStack alignItems="center">
-                        <XStack marginRight={extraCount > 0 ? "$1" : 0}>
-                          {recentVoters.map((voter: any, idx: number) => (
-                            <UserAvatar
-                              key={voter.id}
-                              id={voter.id}
-                              avatarUrl={voter.avatar}
-                              size="$1.5"
-                              ml={idx > 0 ? -12 : 0}
-                              borderWidth={2}
-                              borderColor="$background"
-                              zIndex={10 - idx}
-                            />
-                          ))}
-                        </XStack>
-
-                        {extraCount > 0 && (
-                          <Circle size={24} bg="$color5" ml={-10} borderWidth={2} borderColor="$background">
-                            <Text fontSize={10} fontWeight="bold">+{extraCount}</Text>
-                          </Circle>
-                        )}
-
-                        <Text fontSize="$3" color="$color10" fontWeight="600" ml="$2">
-                          {votesCount > 0 ? votesCount : ''}
-                        </Text>
-                      </XStack>
+                      <Text
+                        flex={1}
+                        minWidth={0}
+                        flexShrink={1}
+                        flexWrap="wrap"
+                        whiteSpace="normal"
+                        fontWeight={isVotedByMe ? 'bold' : 'normal'}
+                        color={isVotedByMe ? '$blue11' : '$color11'}
+                      >
+                        {opt.text}
+                      </Text>
                     </XStack>
-                  </ZStack>
+
+                    <XStack flexShrink={0} alignItems="center">
+                      <XStack marginRight={extraCount > 0 ? "$1" : 0}>
+                        {recentVoters.map((voter: any, idx: number) => (
+                          <UserAvatar
+                            key={voter.id}
+                            id={voter.id}
+                            avatarUrl={voter.avatar}
+                            size="$1.5"
+                            ml={idx > 0 ? -12 : 0}
+                            borderWidth={2}
+                            borderColor="$background"
+                            zIndex={10 - idx}
+                          />
+                        ))}
+                      </XStack>
+
+                      {extraCount > 0 && (
+                        <Circle size={24} bg="$color5" ml={-10} borderWidth={2} borderColor="$background">
+                          <Text fontSize={10} fontWeight="bold">+{extraCount}</Text>
+                        </Circle>
+                      )}
+
+                      <Text fontSize="$3" color="$color10" fontWeight="600" ml="$2">
+                        {votesCount > 0 ? votesCount : ''}
+                      </Text>
+                    </XStack>
+                  </XStack>
                 </Button>
               </YStack>
             )
