@@ -1,4 +1,4 @@
-import { Text } from '@my/ui'
+import { Text, YStack } from '@my/ui'
 import { MessageResponse, UserResponse } from 'app/types/Response'
 import { useState } from 'react'
 import { PollDetailDialog } from './PollDetailDialog'
@@ -187,14 +187,26 @@ export const SystemMessage = ({ msg, selfUserId, onUserPress }: SystemMessagePro
 
     case 'POLL_UPDATED':
       return (
-        <Text>
-          <Actor /> đã cập nhật cuộc bình chọn. <PollLink pollId={meta?.pollId} question={'Xem chi tiết'} onPress={onPollPress} />
-        </Text>
+        <YStack>
+          <Text>
+            <Actor /> đã cập nhật cuộc bình chọn. <PollLink pollId={meta?.pollId} question={'Xem chi tiết'} onPress={onPollPress} />
+          </Text>
+          
+          <PollDetailDialog
+            isOpen={isPollDetailOpen}
+            pollId={selectedPollId!}
+            onOpenChange={(open) => {
+              if (!open) setSelectedPollId(null)
+              setIsPollDetailOpen(open)
+            }}
+            roomId={msg.roomId}
+          />
+        </YStack>
       )
 
     case 'POLL_VOTED':
       return (
-        <>
+        <YStack>
           <Text>
             <Actor /> đã tham gia bình chọn. <PollLink pollId={meta?.pollId} question={'Xem chi tiết'} onPress={onPollPress} />
           </Text>
@@ -208,7 +220,7 @@ export const SystemMessage = ({ msg, selfUserId, onUserPress }: SystemMessagePro
             }}
             roomId={msg.roomId}
           />
-        </>
+        </YStack>
       )
 
     default:
